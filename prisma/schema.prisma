@@ -1,0 +1,74 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// enum movementType {
+//   IN
+//   OUT
+// }
+
+model category {
+  id          String  @id
+  name        String
+  description String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  product   product[]
+
+  @@map("categories")
+}
+
+model unity {
+  id          String    @id
+  name        String
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  product     product[]
+
+  @@map("unities")
+}
+
+model product {
+  id          String   @id
+  name        String
+  description String?
+  categoryId  String
+  brandName   String
+  unityId     String
+  quantity    Int
+  status      String   @default("active")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  category category   @relation(fields: [categoryId], references: [id])
+  unity    unity      @relation(fields: [unityId], references: [id])
+  movement movement[]
+
+  @@map("products")
+}
+
+model movement {
+  id        String   @id
+  productId String
+  quantity  Int
+  type      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product product @relation(fields: [productId], references: [id])
+
+  @@map("movements")
+}
