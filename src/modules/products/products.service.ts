@@ -111,7 +111,11 @@ export class ProductsService {
     return `This action updates a #${id} product`;
   }
 
-  remove(id: string) {
-    return `This action removes a #${id} product`;
+  async remove(id: string) {
+    await this.prismaService.product.delete({
+      where: {
+        id,
+      }
+    })
   }
 }
