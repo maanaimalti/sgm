@@ -13,11 +13,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum movementType {
-  IN
-  OUT
-}
-
 model category {
   id          String  @id
   name        String
@@ -61,12 +56,12 @@ model product {
 }
 
 model movement {
-  id        String       @id
+  id        String   @id
   productId String
   quantity  Int
-  type      movementType
-  createdAt DateTime     @default(now())
-  updatedAt DateTime     @updatedAt
+  type      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   product product @relation(fields: [productId], references: [id])
 
