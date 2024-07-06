@@ -22,12 +22,12 @@ export class MovementController {
 
   @Get()
   findAll() {
-    return this.movementService.findAll();
+    return this.movementService.findAll({});
   }
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.movementService.findOne(+id);
+    return this.movementService.findOne(id);
   }
 
   @Patch(':id')
@@ -35,11 +35,11 @@ export class MovementController {
     @Param('id') id: string,
     @Body() updateMovementDto: UpdateMovementDto,
   ) {
-    return this.movementService.update(+id, updateMovementDto);
+    return this.movementService.update(id, updateMovementDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.movementService.remove(+id);
+    return this.movementService.remove(id);
   }
 }
