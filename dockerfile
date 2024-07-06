@@ -12,6 +12,8 @@ COPY . .
 
 RUN pnpm migrate:prod
 
+RUN pnpm run prisma:generate
+
 RUN pnpm run build
 
 EXPOSE 3000
