@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from 'src/shared/db/prisma.service';
 // biome-ignore lint/style/useImportType: <explanation>
 import { HelpersService } from 'src/shared/helpers/helpers.service';
-import type { CreateProductDto } from './dto/create-product.dto';
+import { CreateProductDto } from './dto/create-product.dto';
 import type { FindAllProductDto } from './dto/find-all-product.dto';
 import type { UpdateProductDto } from './dto/update-product.dto';
 
@@ -107,8 +107,19 @@ export class ProductsService {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  update(id: string, updateProductDto: UpdateProductDto) {
-    return `This action updates a #${id} product`;
+  async update(id: string, updateProductDto: UpdateProductDto) {
+
+    await this.prismaService.product.update({
+      where: {
+        id,
+      },
+      data: {
+        brandName: updateProductDto.brandName,
+        categoryId: updateProductDto.categoryId,
+        description: updateProductDto.description,
+        name: updateProductDto.name,
+      },
+    });
   }
 
   async remove(id: string) {
