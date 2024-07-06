@@ -9,7 +9,8 @@ import {
 } from '@nestjs/common';
 import type { CreateMovementDto } from './dto/create-movement.dto';
 import type { UpdateMovementDto } from './dto/update-movement.dto';
-import type { MovementService } from './movement.service';
+// biome-ignore lint/style/useImportType: <explanation>
+import { MovementService } from './movement.service';
 
 @Controller('movement')
 export class MovementController {

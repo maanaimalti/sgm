@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import type { ProductRepository } from 'src/shared/db/repositories/product-repository';
-import type { HelpersService } from 'src/shared/helpers/helpers.service';
+// biome-ignore lint/style/useImportType: <explanation>
+import { PrismaService } from 'src/shared/db/prisma.service';
+// biome-ignore lint/style/useImportType: <explanation>
+import { HelpersService } from 'src/shared/helpers/helpers.service';
 import type { CreateProductDto } from './dto/create-product.dto';
 import type { FindAllProductDto } from './dto/find-all-product.dto';
 import type { UpdateProductDto } from './dto/update-product.dto';
@@ -9,13 +11,13 @@ import type { UpdateProductDto } from './dto/update-product.dto';
 export class ProductsService {
   constructor(
     private readonly helpersService: HelpersService,
-    private readonly productRepository: ProductRepository,
+    private readonly prismaService: PrismaService,
   ) {}
 
   async create(createProductDto: CreateProductDto) {
     const id = this.helpersService.generateId();
     const product = { id, ...createProductDto };
-    await this.productRepository.create({
+    await this.prismaService.product.create({
       data: {
         id: product.id,
         name: product.name,
@@ -39,7 +41,7 @@ export class ProductsService {
 
   async findAll(findAllProductDto: FindAllProductDto) {
     const { page, pageSize } = findAllProductDto;
-    const products = await this.productRepository.findAll({
+    const products = await this.prismaService.product.findMany({
       skip: (page - 1) * pageSize,
       take: pageSize,
       where: {
@@ -66,7 +68,7 @@ export class ProductsService {
         status: true,
       },
     });
-    const total = await this.productRepository.count({
+    const total = await this.prismaService.product.count({
       where: { status: 'active' },
     });
     return {
@@ -76,7 +78,7 @@ export class ProductsService {
   }
 
   async findOne(id: string) {
-    const result = await this.productRepository.findOne({
+    const result = await this.prismaService.product.findUnique({
       where: {
         id,
       },

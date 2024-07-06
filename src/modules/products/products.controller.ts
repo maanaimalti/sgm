@@ -9,7 +9,8 @@ import {
 } from '@nestjs/common';
 import type { CreateProductDto } from './dto/create-product.dto';
 import type { UpdateProductDto } from './dto/update-product.dto';
-import type { ProductsService } from './products.service';
+// biome-ignore lint/style/useImportType: <explanation>
+import { ProductsService } from './products.service';
 
 @Controller('products')
 export class ProductsController {

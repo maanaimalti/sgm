@@ -20,7 +20,8 @@
       },
       "style": {
         "noShoutyConstants": "warn",
-        "useNamingConvention": "off"
+        "useNamingConvention": "off",
+        "useImportType": "info"
       }
     }
   },

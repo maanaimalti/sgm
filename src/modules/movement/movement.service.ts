@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import type { PrismaService } from 'src/shared/db/prisma.service';
-import type { HelpersService } from 'src/shared/helpers/helpers.service';
+// biome-ignore lint/style/useImportType: <explanation>
+import { PrismaService } from 'src/shared/db/prisma.service';
+// biome-ignore lint/style/useImportType: <explanation>
+import { HelpersService } from 'src/shared/helpers/helpers.service';
 import type { CreateMovementDto } from './dto/create-movement.dto';
 import type { FindAllMovementDTO } from './dto/find-all-movement.dto';
 import type { UpdateMovementDto } from './dto/update-movement.dto';
