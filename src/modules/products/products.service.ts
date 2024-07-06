@@ -126,7 +126,7 @@ export class ProductsService {
     await this.prismaService.product.delete({
       where: {
         id,
-      }
-    })
+      },
+    });
   }
 }

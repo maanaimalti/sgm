@@ -9,14 +9,14 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "mysql"
   url      = env("DATABASE_URL")
 }
 
-// enum movementType {
-//   IN
-//   OUT
-// }
+enum movementType {
+  IN
+  OUT
+}
 
 model category {
   id          String  @id
@@ -61,12 +61,12 @@ model product {
 }
 
 model movement {
-  id        String   @id
+  id        String       @id
   productId String
   quantity  Int
-  type      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  type      movementType
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
   product product @relation(fields: [productId], references: [id])
 
