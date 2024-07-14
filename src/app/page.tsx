@@ -1,84 +1,85 @@
-/**
- * v0 by Vercel.
- * @see https://v0.dev/t/tcytNEZZhtQ
- * Documentation: https://v0.dev/docs#integrating-generated-code-into-your-nextjs-app
- */
-import { Sidebar } from "@/components/Sidebar"
-import { Header } from "@/components/header"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
+"use client";
 
-export default function Component() {
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { useLogin } from "@/hooks/pages/use-login";
+import { LoaderCircleIcon } from "lucide-react";
+import Image from "next/image";
+
+export default function LoginPage() {
+  const { form, loginMutateIsLoading, onSubmit } = useLogin();
+
   return (
-    <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
-      <div className="hidden border-r bg-muted/40 lg:block">
-        <Sidebar />
-      </div>
-      <div className="flex flex-col">
-        <Header />
-        <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
-          <div className="flex items-center">
-            <h1 className="font-semibold text-lg md:text-2xl">Adicionar produto</h1>
-          </div>
-          <div className="border shadow-sm rounded-lg p-6">
-            <form className="grid gap-6">
-              <div className="grid gap-3">
-                <Label htmlFor="name">Nome</Label>
-                <Input id="name" type="text" className="w-full" />
-              </div>
-              <div className="grid gap-3">
-                <Label htmlFor="description">Descrição</Label>
-                <Textarea id="description" className="min-h-32" />
-              </div>
-              <div className="grid gap-3">
-                <Label htmlFor="brand">Marca</Label>
-                <Input id="brand" type="text" className="w-full" />
-              </div>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <div>
-                  <Label htmlFor="quantity">Quantidade</Label>
-                  <Input id="quantity" type="number" className="w-full" />
+    <div className="flex min-h-[100dvh] flex-col items-center justify-center bg-background">
+      <div className="mx-auto w-full max-w-md space-y-6">
+        <div className="flex justify-center">
+          <Image src="/logo.png" alt="Logo" width={240} height={240} />
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl">Login</CardTitle>
+            <CardDescription>
+              Digite seu nome de usuário e senha para acessar sua conta.
+            </CardDescription>
+          </CardHeader>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)}>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <FormField 
+                    control={form.control}
+                    name="username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel htmlFor="username">Nome de usuário</FormLabel>
+                        <FormControl>
+                          <Input
+                            id="username"
+                            type="text"
+                            placeholder="Digite seu nome de usuário"
+                            autoComplete="username"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-                <div>
-                  <Label htmlFor="unit">Unidade de medida</Label>
-                  <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Selecione a unidade" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="unit">Unidade</SelectItem>
-                      <SelectItem value="kg">Kilograma</SelectItem>
-                      <SelectItem value="lb">Pound</SelectItem>
-                      <SelectItem value="oz">Ounce</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="space-y-2">
+                  <FormField 
+                    control={form.control}
+                    name="password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel htmlFor="password">Senha</FormLabel>
+                        <FormControl>
+                          <Input
+                            id="password"
+                            type="password"
+                            autoComplete="current-password"
+                            placeholder="Digite sua senha"
+                            {...field}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
-              </div>
-              <div className="grid gap-3">
-                <Label htmlFor="category">Categoria</Label>
-                <Select>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione a categoria" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="electronics">Electronics</SelectItem>
-                    <SelectItem value="clothing">Clothing</SelectItem>
-                    <SelectItem value="home">Home</SelectItem>
-                    <SelectItem value="sports">Sports</SelectItem>
-                    <SelectItem value="beauty">Beauty</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex justify-end gap-2">
-                <Button variant="outline">Cancelar</Button>
-                <Button>Salvar produto</Button>
-              </div>
+              </CardContent>
+              <CardFooter>
+                <Button className="w-full" type="submit" disabled={loginMutateIsLoading}>
+                  {loginMutateIsLoading ? (
+                    <LoaderCircleIcon className="animate-spin h-4 w-4" />
+                  ) : "Entrar"}
+                </Button>
+              </CardFooter>
             </form>
-          </div>
-        </main>
+          </Form>
+        </Card>
       </div>
     </div>
   )
