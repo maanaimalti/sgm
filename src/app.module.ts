@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CategoryModule } from './modules/category/category.module';
@@ -16,18 +17,9 @@ import { HelpersModule } from './shared/helpers/helpers.module';
     CategoryModule,
     UnityModule,
     AuthModule,
+    ConfigModule.forRoot({}),
   ],
   controllers: [AppController],
-  providers: [
-    AppService,
-    // {
-    //   provide: APP_GUARD,
-    //   useClass: JwtAuthGuard,
-    // },
-    // {
-    //   provide: APP_GUARD,
-    //   useClass: RolesGuard,
-    // },
-  ],
+  providers: [AppService],
 })
 export class AppModule {}
