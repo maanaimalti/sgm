@@ -67,3 +67,34 @@ model movement {
 
   @@map("movements")
 }
+
+model user {
+  id       String @id
+  name     String
+  username String @unique
+  password String
+  roles    role[]
+
+  @@map("users")
+}
+
+model role {
+  id          String       @id
+  name        String       @unique
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  users       user[]
+  permissions permission[]
+
+  @@map("roles")
+}
+
+model permission {
+  id        String   @id
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  roles     role[]
+
+  @@map("permissions")
+}
