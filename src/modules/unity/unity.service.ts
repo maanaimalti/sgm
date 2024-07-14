@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { CreateUnityDto } from './dto/create-unity.dto';
-import { UpdateUnityDto } from './dto/update-unity.dto';
-import { PrismaService } from 'src/shared/db/prisma.service';
-import { HelpersService } from 'src/shared/helpers/helpers.service';
+import type { PrismaService } from 'src/shared/db/prisma.service';
+import type { HelpersService } from 'src/shared/helpers/helpers.service';
+import type { CreateUnityDto } from './dto/create-unity.dto';
+import type { UpdateUnityDto } from './dto/update-unity.dto';
 
 @Injectable()
 export class UnityService {
@@ -10,11 +10,11 @@ export class UnityService {
     private readonly helpersService: HelpersService,
     private readonly prismaService: PrismaService,
   ) {}
-  
+
   create(createUnityDto: CreateUnityDto) {
-    const { name, description} = createUnityDto;
+    const { name, description } = createUnityDto;
     const id = this.helpersService.generateId();
-    return this.prismaService.category.create({
+    return this.prismaService.unity.create({
       data: {
         id,
         name,
@@ -49,9 +49,9 @@ export class UnityService {
 
   async remove(id: string) {
     await this.prismaService.unity.delete({
-    where: {
-      id,
-    }
-  })
-}
+      where: {
+        id,
+      },
+    });
+  }
 }
