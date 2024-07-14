@@ -2,11 +2,13 @@ import { useToast } from "@/components/ui/use-toast";
 import { GetAllCategoriesFetcher } from "@/data/fetchers/categories/get-all";
 import { deleteCategoryMutation } from "@/data/mutations/delete-category";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 
 export const useCategory = () => {
   const { toast } = useToast();
   const router = useRouter();
+  const queryClient = useQueryClient();
+
   const deleteCategory = useMutation({
     mutationKey: "delete-categories",
     mutationFn: deleteCategoryMutation,
@@ -15,6 +17,7 @@ export const useCategory = () => {
         title: "Categoria deletada com sucesso",
         duration: 2000,
       });
+      queryClient.invalidateQueries("categories");
     },
     onError: () => {
       toast({

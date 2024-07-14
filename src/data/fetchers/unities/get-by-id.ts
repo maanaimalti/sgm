@@ -1,7 +1,7 @@
 import { api } from "@/services/api";
 
-export const GetAllUnitiesFetcher = async () => {
-  const response = await api.get<UnitResponse[]>("/unity");
+export const GetUnitByIdFetcher = async (id: string) => {
+  const response = await api.get<UnitResponse>(`/unity/${id}`);
   return response.data;
 };
 

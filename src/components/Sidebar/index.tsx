@@ -1,6 +1,6 @@
 "use client";
 
-import { BellIcon, PackageIcon, PaperclipIcon } from "lucide-react";
+import { BellIcon, PackageIcon, PaperclipIcon, WeightIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -38,6 +38,17 @@ export const Sidebar = () => {
           >
             <PaperclipIcon className="h-4 w-4" />
             Categorias
+          </Link>
+          <Link
+            href="/unidade-de-medida"
+            className={
+              `
+                flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary ${pathname.includes("/unidade-de-medida") ? "text-primary bg-muted" : ""}
+              `
+            }
+          >
+            <WeightIcon className="h-4 w-4" />
+            Unidade de medida
           </Link>
           <Link
             href="/produtos"
