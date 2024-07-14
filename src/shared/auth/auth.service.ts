@@ -1,6 +1,7 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 // biome-ignore lint/style/useImportType: <explanation>
 import { JwtService } from '@nestjs/jwt';
+import type { role, user } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
 // biome-ignore lint/style/useImportType: <explanation>
 import { PrismaService } from '../db/prisma.service';
@@ -15,6 +16,7 @@ export class AuthService {
   async validateUser(username: string, password: string): Promise<any> {
     const user = await this.prismaService.user.findUnique({
       where: { username },
+      include: { roles: true },
     });
     if (user && (await bcrypt.compare(password, user.password))) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -24,8 +26,16 @@ export class AuthService {
     return null;
   }
 
-  async login(user: any) {
-    const payload = { email: user.email, sub: user.id, roles: user.roles };
+  async login(user: user & { roles: role[] }) {
+    const data = await this.validateUser(user.username, user.password);
+    if (!data) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+    const payload = {
+      username: data.username,
+      sub: data.id,
+      roles: data.roles.map((role) => role.name),
+    };
     return {
       accessToken: this.jwtService.sign(payload),
     };
