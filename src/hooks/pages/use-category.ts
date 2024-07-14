@@ -39,11 +39,16 @@ export const useCategory = () => {
     router.push("/categorias/novo");
   }
 
+  const handleEditCategory = (id: string) => {
+    router.push(`/categorias/${id}`);
+  };
+
   return {
     categories: data,
     isLoading,
     deleteIsLoading: deleteCategory.isLoading,
     handleDeleteCategory,
-    handleClickNewCategory
-  }
+    handleClickNewCategory,
+    handleEditCategory,
+  };
 }

@@ -1,9 +1,14 @@
-import { BellIcon, HomeIcon, LineChartIcon, PackageIcon, PaperclipIcon, UsersIcon } from "lucide-react"
-import Image from "next/image"
-import Link from "next/link"
-import { Button } from "../ui/button"
+"use client";
+
+import { BellIcon, PackageIcon, PaperclipIcon } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Button } from "../ui/button";
 
 export const Sidebar = () => {
+  const pathname = usePathname();
+
   return (
     <div className="flex h-full max-h-screen flex-col gap-2">
       <div className="flex h-[60px] items-center border-b px-6">
@@ -24,45 +29,26 @@ export const Sidebar = () => {
       <div className="flex-1 overflow-auto py-2">
         <nav className="grid items-start px-4 text-sm font-medium">
           <Link
-            href="#"
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-            prefetch={false}
-          >
-            <HomeIcon className="h-4 w-4" />
-            Inicio
-          </Link>
-          <Link
             href="/categorias"
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-            prefetch={false}
+            className={
+              `
+                flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary ${pathname.includes("/categorias") ? "text-primary bg-muted" : ""}
+              `
+            }
           >
             <PaperclipIcon className="h-4 w-4" />
             Categorias
-            {/* <Badge className="ml-auto flex h-6 w-6 shrink-0 items-center justify-center rounded-full">6</Badge> */}
           </Link>
           <Link
-            href="#"
-            className="flex items-center gap-3 rounded-lg bg-muted px-3 py-2 text-primary  transition-all hover:text-primary"
-            prefetch={false}
+            href="/produtos"
+            className={
+              `
+                flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary ${pathname.includes("/produtos") ? "text-primary bg-muted" : ""} hidden
+              `
+            }
           >
             <PackageIcon className="h-4 w-4" />
             Produtos{" "}
-          </Link>
-          <Link
-            href="#"
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-            prefetch={false}
-          >
-            <UsersIcon className="h-4 w-4" />
-            Customers
-          </Link>
-          <Link
-            href="#"
-            className="flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary"
-            prefetch={false}
-          >
-            <LineChartIcon className="h-4 w-4" />
-            Analytics
           </Link>
         </nav>
       </div>

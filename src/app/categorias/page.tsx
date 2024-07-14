@@ -15,7 +15,8 @@ const CategoriesPage = () => {
     isLoading,
     deleteIsLoading,
     handleDeleteCategory,
-    handleClickNewCategory
+    handleClickNewCategory,
+    handleEditCategory
   } = useCategory();
 
   return (
@@ -49,9 +50,13 @@ const CategoriesPage = () => {
                         categories?.map(category => (
                           <TableRow key={category.id}>
                             <TableCell>{category.name}</TableCell>
-                            <TableCell>{category.description ?? " - "}</TableCell>
+                            <TableCell>{category.description || " - "}</TableCell>
                             <TableCell className="flex gap-2">
-                              <Button size="icon" variant="outline">
+                              <Button 
+                                size="icon" 
+                                variant="outline" 
+                                onClick={() => handleEditCategory(category.id)}
+                              >
                                 <EditIcon className="h-4 w-4" />
                               </Button>
                               <AlertDialog>

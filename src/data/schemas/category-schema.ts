@@ -5,4 +5,10 @@ export const categorySchema = z.object({
   description: z.string().optional(),
 });
 
+export const categoryWithIdSchema = categorySchema.extend({
+  id: z.string(),
+});
+
 export type CategoryForm = z.infer<typeof categorySchema>;
+
+export type CategoryWithIdForm = z.infer<typeof categoryWithIdSchema>;

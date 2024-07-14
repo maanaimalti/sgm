@@ -4,11 +4,12 @@ import { categorySchema, type CategoryForm } from "@/data/schemas/category-schem
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { useMutation } from "react-query";
+import { useMutation, useQueryClient } from "react-query";
 
 export const useNewCategory = () => {
   const { toast } = useToast();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const createCategoryMutation = useMutation({
     mutationKey: 'create-category',
@@ -26,6 +27,7 @@ export const useNewCategory = () => {
         title: "Categoria criada com sucesso",
         duration: 5000,
       });
+      queryClient.invalidateQueries("categories");
       router.push('/categorias');
     },
   });
