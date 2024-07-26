@@ -33,7 +33,7 @@ export class ProductsController {
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'chicken')
-  findAll(@Query() page: number, @Query() pageSize: number) {
+  findAll(@Query() { page, pageSize }: { page?: number; pageSize?: number }) {
     return this.productsService.findAll({ page, pageSize });
   }
 
