@@ -22,7 +22,6 @@ export class ProductsController {
   constructor(private readonly productsService: ProductsService) {}
 
   @Post()
-  @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'chicken')
   create(@Body() createProductDto: CreateProductDto) {
@@ -30,7 +29,6 @@ export class ProductsController {
   }
 
   @Get()
-  @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'chicken')
   findAll(
@@ -43,7 +41,6 @@ export class ProductsController {
   }
 
   @Get(':id')
-  @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'chicken')
   findOne(@Param('id') id: string) {
@@ -51,7 +48,6 @@ export class ProductsController {
   }
 
   @Patch(':id')
-  @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'chicken')
   update(@Param('id') id: string, @Body() updateProductDto: UpdateProductDto) {
@@ -59,7 +55,6 @@ export class ProductsController {
   }
 
   @Delete(':id')
-  @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'chicken')
   remove(@Param('id') id: string) {

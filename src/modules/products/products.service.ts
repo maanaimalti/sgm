@@ -17,6 +17,9 @@ export class ProductsService {
   async create(createProductDto: CreateProductDto) {
     const id = this.helpersService.generateId();
     const product = { id, ...createProductDto };
+    Logger.log(`Creating product with id: ${id} and name: ${product.name}`, {
+      product,
+    });
     await this.prismaService.product.create({
       data: {
         id: product.id,
