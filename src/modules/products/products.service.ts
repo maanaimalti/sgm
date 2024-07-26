@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 // biome-ignore lint/style/useImportType: <explanation>
 import { PrismaService } from 'src/shared/db/prisma.service';
 // biome-ignore lint/style/useImportType: <explanation>
 import { HelpersService } from 'src/shared/helpers/helpers.service';
-import { CreateProductDto } from './dto/create-product.dto';
+import type { CreateProductDto } from './dto/create-product.dto';
 import type { FindAllProductDto } from './dto/find-all-product.dto';
 import type { UpdateProductDto } from './dto/update-product.dto';
 
@@ -40,7 +40,10 @@ export class ProductsService {
   }
 
   async findAll(findAllProductDto: FindAllProductDto) {
-    const { page, pageSize } = findAllProductDto;
+    const { page = 1, pageSize = 10 } = findAllProductDto;
+    Logger.log(
+      `Request all products with page: ${page} and page-size: ${pageSize}`,
+    );
     const products = await this.prismaService.product.findMany({
       skip: (page - 1) * pageSize,
       take: pageSize,
@@ -108,7 +111,6 @@ export class ProductsService {
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   async update(id: string, updateProductDto: UpdateProductDto) {
-
     await this.prismaService.product.update({
       where: {
         id,

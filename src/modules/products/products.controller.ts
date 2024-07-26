@@ -6,6 +6,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
@@ -32,8 +33,8 @@ export class ProductsController {
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'chicken')
-  findAll() {
-    return this.productsService.findAll({});
+  findAll(@Query() page: number, @Query() pageSize: number) {
+    return this.productsService.findAll({ page, pageSize });
   }
 
   @Get(':id')
