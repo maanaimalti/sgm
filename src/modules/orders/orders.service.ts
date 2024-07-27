@@ -42,9 +42,9 @@ export class OrdersService {
     return result;
   }
 
-  findAll(findAllOrdersDto: FindAllOrdersDto) {
+  async findAll(findAllOrdersDto: FindAllOrdersDto) {
     const { page = 1, pageSize = 10 } = findAllOrdersDto;
-    return this.prismaService.orders.findMany({
+    const orders = await this.prismaService.orders.findMany({
       skip: (page - 1) * pageSize,
       take: pageSize,
       select: {
@@ -59,6 +59,11 @@ export class OrdersService {
         createdAt: true,
       },
     });
+    const total = await this.prismaService.orders.count();
+    return {
+      orders,
+      total,
+    };
   }
 
   async findOne(id: string) {
