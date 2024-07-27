@@ -13,6 +13,14 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum orderStatus {
+  PENDING
+  APPROVED
+  CANCELED
+
+  @@map("order_status")
+}
+
 model category {
   id          String  @id
   name        String
@@ -48,9 +56,10 @@ model product {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  category category   @relation(fields: [categoryId], references: [id])
-  unity    unity      @relation(fields: [unityId], references: [id])
-  movement movement[]
+  category  category    @relation(fields: [categoryId], references: [id])
+  unity     unity       @relation(fields: [unityId], references: [id])
+  movement  movement[]
+  orderItem orderItem[]
 
   @@map("products")
 }
@@ -69,11 +78,12 @@ model movement {
 }
 
 model user {
-  id       String @id
+  id       String   @id
   name     String
-  username String @unique
+  username String   @unique
   password String
   roles    role[]
+  orders   orders[]
 
   @@map("users")
 }
@@ -97,4 +107,32 @@ model permission {
   roles     role[]
 
   @@map("permissions")
+}
+
+model orders {
+  id        String   @id
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  status orderStatus @default(PENDING)
+
+  user      user        @relation(fields: [userId], references: [id])
+  orderItem orderItem[]
+
+  @@map("orders")
+}
+
+model orderItem {
+  id        String   @id
+  orderId   String
+  productId String
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order   orders  @relation(fields: [orderId], references: [id])
+  product product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
 }

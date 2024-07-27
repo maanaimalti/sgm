@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CategoryModule } from './modules/category/category.module';
 import { MovementModule } from './modules/movement/movement.module';
+import { OrdersModule } from './modules/orders/orders.module';
 import { ProductsModule } from './modules/products/products.module';
 import { UnityModule } from './modules/unity/unity.module';
 import { AuthModule } from './shared/auth/auth.module';
@@ -18,6 +19,7 @@ import { HelpersModule } from './shared/helpers/helpers.module';
     UnityModule,
     AuthModule,
     ConfigModule.forRoot({}),
+    OrdersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

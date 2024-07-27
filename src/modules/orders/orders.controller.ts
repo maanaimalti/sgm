@@ -1,0 +1,66 @@
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { Roles } from 'src/shared/auth/roles.decorator';
+import { RolesGuard } from 'src/shared/auth/roles.guard';
+import { GetUserId } from 'src/shared/decorators/get-user-id';
+import type { CreateOrderControllerDto } from './dto/create-order-controller.dto';
+// biome-ignore lint/style/useImportType: <explanation>
+import { OrdersService } from './orders.service';
+
+@Controller('orders')
+export class OrdersController {
+  constructor(private readonly ordersService: OrdersService) {}
+
+  @Post()
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'chicken')
+  create(
+    @Body() createOrderDto: CreateOrderControllerDto,
+    @GetUserId() userId: string,
+  ) {
+    const data = { ...createOrderDto, userId };
+    return this.ordersService.create(data);
+  }
+
+  @Get()
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'chicken')
+  findAll(
+    @Query()
+    { page, pageSize }: { page?: string | number; pageSize?: string | number },
+  ) {
+    page = page ? Number.parseInt(page as string) : 1;
+    pageSize = pageSize ? Number.parseInt(pageSize as string) : 10;
+    return this.ordersService.findAll({ page, pageSize });
+  }
+
+  @Get(':id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'chicken')
+  findOne(@Param('id') id: string) {
+    return this.ordersService.findOne(id);
+  }
+
+  @Patch('/approve/:id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  approveOrder(@Param('id') id: string) {
+    return this.ordersService.approveOrder(id);
+  }
+
+  @Patch('/cancel/:id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  cancelOrder(@Param('id') id: string) {
+    return this.ordersService.cancelOrder(id);
+  }
+}
