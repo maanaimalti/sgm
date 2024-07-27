@@ -1,8 +1,8 @@
 import { useToast } from "@/components/ui/use-toast";
 import { GetAllUnitiesFetcher } from "@/data/fetchers/unities/get-all";
 import { deleteUnitMutation } from "@/data/mutations/delete-unit";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "react-query";
 
 export const useUnit = () => {
   const queryClient = useQueryClient();

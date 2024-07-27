@@ -9,4 +9,8 @@ export const productSchema = z.object({
   category: z.string({ message: "Categoria é obrigatória"}),
 });
 
+export const productUpdateSchema = z.object({
+  id: z.string({ message: "ID é obrigatório" }),
+}).merge(productSchema);
+
 export type ProductForm = z.infer<typeof productSchema>;

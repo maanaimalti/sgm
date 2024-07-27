@@ -4,9 +4,9 @@ import { updateUnitMutation } from "@/data/mutations/update-unit";
 import type { CategoryWithIdForm } from "@/data/schemas/category-schema";
 import { type UnitWithIdForm, unitSchema } from "@/data/schemas/unit-schema";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { useMutation, useQuery, useQueryClient } from "react-query";
 
 export const useEditUnit = () => {
   const { toast } = useToast();
@@ -20,7 +20,7 @@ export const useEditUnit = () => {
   });
 
   const editCategoryMutation = useMutation({
-    mutationKey: "edit-unit",
+    mutationKey: ["edit-unit"],
     mutationFn: updateUnitMutation,
     onError: () => {
       toast({
@@ -35,7 +35,7 @@ export const useEditUnit = () => {
         title: "Unidade de medida atualizada com sucesso",
         duration: 5000,
       });
-      queryClient.invalidateQueries("unities");
+      queryClient.invalidateQueries({queryKey: ["unities"]});
       router.push("/unidade-de-medida");
     },
   });
@@ -63,7 +63,7 @@ export const useEditUnit = () => {
     unit: unitQuery.data,
     isLoading: unitQuery.isLoading,
     form,
-    editUnitIsLoading: editCategoryMutation.isLoading,
+    editUnitIsLoading: editCategoryMutation.isPending,
     onSubmit,
   };
 }

@@ -1,11 +1,11 @@
 import { useToast } from "@/components/ui/use-toast";
 import { GetCategoryByIdFetcher } from "@/data/fetchers/categories/get-by-id";
 import { updateCategoryMutation } from "@/data/mutations/update-category";
-import { categorySchema, type CategoryWithIdForm } from "@/data/schemas/category-schema";
+import { type CategoryWithIdForm, categorySchema } from "@/data/schemas/category-schema";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { useMutation, useQuery, useQueryClient } from "react-query";
 
 export const useEditCategory = () => {
   const { toast } = useToast();
@@ -19,7 +19,7 @@ export const useEditCategory = () => {
   });
 
   const editCategoryMutation = useMutation({
-    mutationKey: "edit-category",
+    mutationKey: ["edit-category"],
     mutationFn: updateCategoryMutation,
     onError: () => {
       toast({
@@ -34,7 +34,7 @@ export const useEditCategory = () => {
         title: "Categoria atualizada com sucesso",
         duration: 5000,
       });
-      queryClient.invalidateQueries("categories");
+      queryClient.invalidateQueries({queryKey: ["categories"]});
       router.push("/categorias");
     },
   });
@@ -62,7 +62,7 @@ export const useEditCategory = () => {
     category: categoryQuery.data,
     isLoading: categoryQuery.isLoading,
     form,
-    editCategoryIsLoading: editCategoryMutation.isLoading,
+    editCategoryIsLoading: editCategoryMutation.isPending,
     onSubmit,
   };
 }

@@ -1,10 +1,10 @@
 import { useToast } from "@/components/ui/use-toast";
 import { newCategoryMutation } from "@/data/mutations/new-category";
-import { categorySchema, type CategoryForm } from "@/data/schemas/category-schema";
+import { type CategoryForm, categorySchema } from "@/data/schemas/category-schema";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { useMutation, useQueryClient } from "react-query";
 
 export const useNewCategory = () => {
   const { toast } = useToast();

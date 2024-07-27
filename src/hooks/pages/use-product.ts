@@ -1,64 +1,64 @@
-import { toast } from "@/components/ui/use-toast";
-import { GetAllCategoriesFetcher } from "@/data/fetchers/categories/get-all";
-import { GetAllUnitiesFetcher } from "@/data/fetchers/unities/get-all";
-import { newProductMutation } from "@/data/mutations/new-product-mutation";
-import { productSchema, type ProductForm } from "@/data/schemas/product-schema";
-import { zodResolver } from "@hookform/resolvers/zod";
+import { useToast } from "@/components/ui/use-toast";
+import { GetAllProductsFetcher } from "@/data/fetchers/products/get-all";
+import { deleteProductMutation } from "@/data/mutations/delete-product";
+
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { useMutation, useQuery } from "react-query";
+import { useState } from "react";
 
 export const useProductPage = () => {
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
+  const [currentPage, setCurrentPage] = useState(1);
   const router = useRouter();
 
-  const productMutation = useMutation({
-    mutationFn: (product: ProductForm) => newProductMutation(product),
-    retry: 3,
-    retryDelay: 2000,
+  const deleteProduct = useMutation({
+    mutationKey: ["delete-product"],
+    mutationFn: deleteProductMutation,
     onSuccess: () => {
       toast({
-        title: "Produto cadastrado com sucesso",
+        title: "Produto deletado com sucesso",
+        duration: 2000,
       });
-      router.push("/produtos");
+      queryClient.invalidateQueries({queryKey: ["products", currentPage]});
     },
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    onError: (error: any) => {
+    onError: () => {
       toast({
-        title: "Erro ao cadastrar produto",
-        description: error.message,
+        title: "Erro ao deletar produto",
+        description: "Tente novamente mais tarde",
         variant: "destructive",
+        duration: 2000,
       });
     },
   });
 
-  const { data: categories } = useQuery({
-    queryKey: "categories",
-    queryFn: GetAllCategoriesFetcher,
-    onError: (error) => {
-      console.log({ error });
-    }
+  const { data, isLoading, isPlaceholderData } = useQuery({
+    queryKey: ["products", currentPage],
+    queryFn: () => GetAllProductsFetcher({ page: currentPage }),
+    placeholderData: keepPreviousData
   });
 
-  const { data: unities } = useQuery({
-    queryKey: "unities",
-    queryFn: GetAllUnitiesFetcher,
-    onError: (error) => {
-      console.log({ error });
-    }
-  });
+  const handleDeleteProduct = (id: string) => {
+    deleteProduct.mutate(id);
+  };
 
-  const form = useForm<ProductForm>({
-    resolver: zodResolver(productSchema),
-  });
+  const handleClickNewProduct = () => {
+    router.push("/produtos/novo");
+  };
 
-  const onSubmit = (data: ProductForm) => {
-    productMutation.mutate(data);
+  const handleEditProduct = (id: string) => {
+    router.push(`/produtos/${id}`);
   };
 
   return {
-    form,
-    unities,
-    categories,
-    onSubmit
-  }
-}
+    products: data?.products,
+    total: data?.total,
+    currentPage,
+    isLoading,
+    deleteIsLoading: deleteProduct.isPending,
+    setCurrentPage,
+    handleDeleteProduct,
+    handleClickNewProduct,
+    handleEditProduct,
+  };
+};

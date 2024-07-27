@@ -2,10 +2,10 @@ import { useToast } from "@/components/ui/use-toast";
 import { loginMutation } from "@/data/mutations/login";
 import { type LoginForm, loginSchema } from "@/data/schemas/login-schema";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation } from "@tanstack/react-query";
 import type { AxiosError } from "axios";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
-import { useMutation } from "react-query";
 
 export const useLogin = () => {
   const { toast } = useToast();

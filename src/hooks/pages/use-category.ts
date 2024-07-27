@@ -1,8 +1,8 @@
 import { useToast } from "@/components/ui/use-toast";
 import { GetAllCategoriesFetcher } from "@/data/fetchers/categories/get-all";
 import { deleteCategoryMutation } from "@/data/mutations/delete-category";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useMutation, useQuery, useQueryClient } from "react-query";
 
 export const useCategory = () => {
   const { toast } = useToast();

@@ -1,12 +1,8 @@
-
 import { api } from "@/services/api";
 import type { ProductForm } from "../schemas/product-schema";
 
-export const newProductMutation = async (
-  product: ProductForm,
-) => {
-  const { data } = await api.post("/products", {
-    quantity: product.quantity,
+export const updateProductMutation = async (product: ProductForm) => {
+  const { data } = await api.patch("/products", {
     brandName: product.brandName,
     unityId: product.unity,
     categoryId: product.category,
