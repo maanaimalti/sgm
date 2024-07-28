@@ -89,17 +89,22 @@ export class OrdersService {
               select: {
                 id: true,
                 name: true,
+                unity: {
+                  select: {
+                    name: true,
+                  },
+                },
               },
             },
           },
         },
       },
     });
-    Logger.log(`Order with id: ${id} found. Request by: ${id}`);
     if (!data) {
       Logger.error(`Order with id: ${id} not found. Request by: ${id}`);
       throw new NotFoundException(`Order with id: ${id} not found`);
     }
+    Logger.log(`Order with id: ${id} found. Request by: ${id}`);
     return data;
   }
 
