@@ -1,7 +1,8 @@
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 export const useHeader = () => {
   const router = useRouter();
+  const pathname = usePathname();
 
   const handleLogout = () => {
     localStorage.removeItem("accessToken");
@@ -10,5 +11,6 @@ export const useHeader = () => {
 
   return {
     handleLogout,
+    pathname
   };
 }

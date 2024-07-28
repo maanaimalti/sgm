@@ -1,10 +1,11 @@
 "use client";
 
-import { BellIcon, PackageIcon, PaperclipIcon, WeightIcon } from "lucide-react";
+import { BellIcon, LogsIcon, PackageIcon, PaperclipIcon, WeightIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "../ui/button";
+import { Separator } from "../ui/separator";
 
 export const Sidebar = () => {
   const pathname = usePathname();
@@ -60,6 +61,18 @@ export const Sidebar = () => {
           >
             <PackageIcon className="h-4 w-4" />
             Produtos{" "}
+          </Link>
+          <Separator className="my-4" />
+          <Link
+            href="/pedidos"
+            className={
+              `
+                flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary ${pathname.includes("/pedido") ? "text-primary bg-muted" : ""}
+              `
+            }
+          >
+            <LogsIcon className="h-4 w-4" />
+            Pedido{" "}
           </Link>
         </nav>
       </div>

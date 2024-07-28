@@ -32,7 +32,7 @@ export const useProductPage = () => {
     },
   });
 
-  const { data, isLoading, isPlaceholderData } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["products", currentPage],
     queryFn: () => GetAllProductsFetcher({ page: currentPage }),
     placeholderData: keepPreviousData

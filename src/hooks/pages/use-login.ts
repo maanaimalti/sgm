@@ -12,7 +12,7 @@ export const useLogin = () => {
   const router = useRouter();
 
   const loginMutate = useMutation({
-    mutationKey: 'login',
+    mutationKey: ['login'],
     mutationFn: loginMutation,
     onError: (error: AxiosError) => {
       if (error?.response?.status === 401) {
@@ -47,7 +47,7 @@ export const useLogin = () => {
 
   return {
     form,
-    loginMutateIsLoading: loginMutate.isLoading,
+    loginMutateIsLoading: loginMutate.isPending,
     onSubmit,
   };
 }
