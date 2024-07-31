@@ -78,12 +78,13 @@ model movement {
 }
 
 model user {
-  id       String   @id
-  name     String
-  username String   @unique
-  password String
-  roles    role[]
-  orders   orders[]
+  id           String         @id
+  name         String
+  username     String         @unique
+  password     String
+  roles        role[]
+  orders       orders[]
+  orderReports orderReports[]
 
   @@map("users")
 }
@@ -117,8 +118,9 @@ model orders {
 
   status orderStatus @default(PENDING)
 
-  user      user        @relation(fields: [userId], references: [id])
-  orderItem orderItem[]
+  user         user           @relation(fields: [userId], references: [id])
+  orderItem    orderItem[]
+  orderReports orderReports[]
 
   @@map("orders")
 }
@@ -135,4 +137,18 @@ model orderItem {
   product product @relation(fields: [productId], references: [id])
 
   @@map("order_items")
+}
+
+model orderReports {
+  id        String   @id
+  orderId   String
+  userId    String
+  url       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  user   @relation(fields: [userId], references: [id])
+  order orders @relation(fields: [orderId], references: [id])
+
+  @@map("order_reports")
 }

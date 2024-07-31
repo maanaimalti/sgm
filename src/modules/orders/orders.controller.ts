@@ -63,4 +63,21 @@ export class OrdersController {
   cancelOrder(@Param('id') id: string) {
     return this.ordersService.cancelOrder(id);
   }
+
+  @Get('/report/:id')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  getReport(@Param('id') id: string) {
+    return this.ordersService.getReport(id);
+  }
+
+  @Post('/report')
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin')
+  generateReport(
+    @Body() data: { orderId: string },
+    @GetUserId() userId: string,
+  ) {
+    return this.ordersService.generateReport(data.orderId, userId);
+  }
 }

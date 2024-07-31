@@ -1,0 +1,40 @@
+import {
+  DeleteObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3';
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class UploadFileService {
+  #client: S3Client;
+  endpoint: string;
+
+  constructor() {
+    this.endpoint = process.env.R2_ENDPOINT;
+    this.#client = new S3Client({
+      endpoint: this.endpoint,
+    });
+  }
+
+  async uploadFile(filename: string, file: Uint8Array) {
+    const command = new PutObjectCommand({
+      Bucket: 'sgm-files',
+      Key: filename,
+      Body: file,
+    });
+    await this.#client.send(command);
+  }
+
+  async deleteFile(bucketName: string, filename: string): Promise<void> {
+    const command = new DeleteObjectCommand({
+      Bucket: bucketName,
+      Key: filename,
+    });
+    await this.#client.send(command);
+  }
+
+  getFileUrl(bucketName: string, fileKey: string): string {
+    return `${this.endpoint}/${bucketName}/${fileKey}`;
+  }
+}
