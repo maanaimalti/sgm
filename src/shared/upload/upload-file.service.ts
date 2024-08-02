@@ -19,7 +19,7 @@ export class UploadFileService {
 
   async uploadFile(filename: string, file: Uint8Array) {
     const command = new PutObjectCommand({
-      Bucket: 'sgm-files',
+      Bucket: 'sgm',
       Key: filename,
       Body: file,
     });

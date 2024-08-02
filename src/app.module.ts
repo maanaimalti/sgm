@@ -9,6 +9,7 @@ import { ProductsModule } from './modules/products/products.module';
 import { UnityModule } from './modules/unity/unity.module';
 import { AuthModule } from './shared/auth/auth.module';
 import { HelpersModule } from './shared/helpers/helpers.module';
+import { NotificationModule } from './modules/notification/notification.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { HelpersModule } from './shared/helpers/helpers.module';
     AuthModule,
     ConfigModule.forRoot({}),
     OrdersModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

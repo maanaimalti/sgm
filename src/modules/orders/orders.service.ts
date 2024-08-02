@@ -7,6 +7,8 @@ import { PrismaService } from 'src/shared/db/prisma.service';
 import { HelpersService } from 'src/shared/helpers/helpers.service';
 // biome-ignore lint/style/useImportType: <explanation>
 import { UploadFileService } from 'src/shared/upload/upload-file.service';
+// biome-ignore lint/style/useImportType: <explanation>
+import { NotificationService } from '../notification/notification.service';
 import type { CreateOrderDto } from './dto/create-order.dto';
 import type { FindAllOrdersDto } from './dto/find-all-orders.dto';
 
@@ -16,6 +18,7 @@ export class OrdersService {
     private readonly helpersService: HelpersService,
     private readonly prismaService: PrismaService,
     private readonly uploadFileService: UploadFileService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async create(createOrderDto: CreateOrderDto) {
@@ -148,7 +151,8 @@ export class OrdersService {
       throw new NotFoundException(`Order with id: ${id} not found`);
     }
     Logger.log(`Order report with id: ${id} found. Request by: ${id}`);
-    return data;
+    const url = this.uploadFileService.getFileUrl('sgm', data.url);
+    return { url };
   }
 
   async generateReport(id: string, userId: string) {
@@ -201,8 +205,10 @@ export class OrdersService {
     (async () => {
       try {
         const pdfBytes = await result.save();
+        Logger.log('generated file');
         const filename = `/cozinha/pedidos/relatorio-pedido-${id.toLowerCase()}.pdf`;
         await this.uploadFileService.uploadFile(filename, pdfBytes);
+        Logger.log(`uploaded file with key: ${filename}`);
         await this.prismaService.orderReports.create({
           data: {
             id: this.helpersService.generateId(),
@@ -218,6 +224,11 @@ export class OrdersService {
               },
             },
           },
+        });
+        await this.notificationService.create({
+          userId: order.user.id,
+          text: 'Você tem um novo relatório de pedido disponível.',
+          type: 'ORDER_REPORT',
         });
       } catch (error) {
         Logger.error(error?.message, { error: error });

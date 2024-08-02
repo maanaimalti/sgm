@@ -85,6 +85,7 @@ model user {
   roles        role[]
   orders       orders[]
   orderReports orderReports[]
+  notification notification[]
 
   @@map("users")
 }
@@ -151,4 +152,16 @@ model orderReports {
   order orders @relation(fields: [orderId], references: [id])
 
   @@map("order_reports")
+}
+
+model notification {
+  id         String    @id
+  text       String
+  type       String
+  to         String
+  readableAt DateTime? @map("readable_at")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user user @relation(fields: [to], references: [id])
 }
