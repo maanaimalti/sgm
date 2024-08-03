@@ -39,7 +39,6 @@ const ProductsPage = () => {
               <TableHeader>
                 <TableRow>
                   <TableHead>Produto</TableHead>
-                  <TableHead>Marca</TableHead>
                   <TableHead>Categoria</TableHead>
                   <TableHead>Ações</TableHead>
                 </TableRow>
@@ -54,7 +53,6 @@ const ProductsPage = () => {
                       products?.map(product => (
                         <TableRow key={product.id}>
                           <TableCell>{product.name}</TableCell>
-                          <TableCell>{product.brandName || " - "}</TableCell>
                           <TableCell>{product.category.name || " - "}</TableCell>
                           <TableCell className="flex gap-2">
                             <Button

@@ -62,66 +62,6 @@ const NewProductsPage = () => {
                 <div className="grid gap-3">
                   <FormField
                     control={form.control}
-                    name="brandName"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Marca</FormLabel>
-                        <FormControl>
-                          <Input className="w-full" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <div>
-                    <FormField
-                      control={form.control}
-                      name="quantity"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Quantidade</FormLabel>
-                          <FormControl>
-                            <Input type="number" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  <div>
-                    <FormField
-                      control={form.control}
-                      name="unity"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Unidade de medida</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
-                            <FormControl>
-                              <SelectTrigger>
-                                <SelectValue placeholder="Selecione a unidade" />
-                              </SelectTrigger>
-                            </FormControl>
-                            <SelectContent>
-                              {
-                                unities?.map((unity) => (
-                                  <SelectItem key={unity.id} value={unity.id}>
-                                    {unity.name}
-                                  </SelectItem>
-                                ))
-                              }
-                            </SelectContent>
-                          </Select>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </div>
-                <div className="grid gap-3">
-                  <FormField
-                    control={form.control}
                     name="category"
                     render={({ field }) => (
                       <FormItem>

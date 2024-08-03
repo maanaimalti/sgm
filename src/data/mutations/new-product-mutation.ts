@@ -6,8 +6,6 @@ export const newProductMutation = async (
   product: ProductForm,
 ) => {
   const { data } = await api.post("/products", {
-    quantity: product.quantity,
-    brandName: product.brandName,
     unityId: product.unity,
     categoryId: product.category,
     name: product.name,

@@ -51,17 +51,14 @@ export const useEditProductPage = () => {
   const form = useForm<ProductForm>({
     resolver: zodResolver(productSchema),
     defaultValues: {
-      brandName: product?.brandName ?? "",
       description: product?.description ?? "",
       name: product?.name ?? "",
       category: product?.category.id ?? "",
     },
     values: {
-      brandName: product?.brandName ?? "",
       description: product?.description ?? "",
       name: product?.name ?? "",
       category: product?.category.id ?? "",
-      quantity: product?.quantity.toString() ?? '1',
       unity: product?.unity.id ?? "",
     }
   });
