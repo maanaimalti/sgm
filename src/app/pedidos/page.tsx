@@ -81,41 +81,37 @@ const PedidosPage = () => {
                             }
                           </TableCell>
                           <TableCell>
-                            {
-                              (isAdmin || isManager) && (
-                                <div className="flex gap-2">
-                                  <Button
-                                    variant="outline"
-                                    size="icon"
-                                    onClick={() => handleEditOrder(order.id)}
-                                  >
-                                    <EditIcon className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              )
-                            }
-                            {
-                              (isAdmin || isManager || isBuyer) && (
-                                <div className="flex gap-2">
-                                  {
-                                    order?.status === "APPROVED" && (
-                                      <Button
-                                        variant="warning"
-                                        size="icon"
-                                        disabled={isLoadingDownload}
-                                        onClick={() => handleDownloadOrder(order.id)}
-                                      >
-                                        {
-                                          isLoadingDownload ?
-                                            <LoaderCircleIcon className="animate-spin h-4 w-4" /> :
-                                            <DownloadIcon className="h-4 w-4" />
-                                        }
-                                      </Button>
-                                    )
-                                  }
-                                </div>
-                              )
-                            }
+                            <div className="flex gap-2">
+                              {
+                                (isAdmin || isManager) && (
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      onClick={() => handleEditOrder(order.id)}
+                                    >
+                                      <EditIcon className="h-4 w-4" />
+                                    </Button>
+                                )
+                              }
+                              {
+                                (isAdmin || isManager || isBuyer) && (
+                                  order?.status === "APPROVED" && (
+                                    <Button
+                                      variant="warning"
+                                      size="icon"
+                                      disabled={isLoadingDownload}
+                                      onClick={() => handleDownloadOrder(order.id)}
+                                    >
+                                      {
+                                        isLoadingDownload ?
+                                          <LoaderCircleIcon className="animate-spin h-4 w-4" /> :
+                                          <DownloadIcon className="h-4 w-4" />
+                                      }
+                                    </Button>
+                                  )
+                                )
+                              }
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))
