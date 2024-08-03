@@ -1,14 +1,17 @@
 "use client";
 
-import { BellIcon, LogsIcon, PackageIcon, PaperclipIcon, WeightIcon } from "lucide-react";
+import { useSidebar } from "@/hooks/pages/use-sidebar";
+import { BellIcon, ChevronRightIcon, LogsIcon, PackageIcon, PaperclipIcon, WeightIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "../ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "../ui/popover";
 import { Separator } from "../ui/separator";
 
 export const Sidebar = () => {
   const pathname = usePathname();
+  const { notifications, notificationsIsLoading, handleClickNotification } = useSidebar();
 
   return (
     <div className="flex h-full max-h-screen flex-col gap-2">
@@ -22,10 +25,40 @@ export const Sidebar = () => {
 
           />
         </Link>
-        <Button variant="outline" size="icon" className="ml-auto h-8 w-8">
-          <BellIcon className="h-4 w-4" />
-          <span className="sr-only">Notificações</span>
-        </Button>
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="icon" className="ml-auto h-8 w-8">
+              <BellIcon className="h-4 w-4" />
+              <span className="sr-only">Notificações</span>
+            </Button>
+          </PopoverTrigger>  
+          <PopoverContent className={!(notifications?.length) ? "hidden" : ""}>
+            <section className="flex p-1 flex-col gap-3 items-center">
+              {
+                notifications?.map(notification => (
+                  <>
+                    <div key={notification.id}>
+                      <Button
+                        className="w-full"
+                        variant="ghost"
+                        size="sm"
+                        disabled={!!notification.readableAt}
+                        onClick={() => handleClickNotification(notification)}
+                      >
+                        <span>
+                          {notification.text}
+                        </span>
+                        <ChevronRightIcon width={15} height={15} />
+                      </Button>
+                    </div>
+                    <Separator key={`${notification.id}-separator`}/>   
+                  </>
+                ))
+              }
+            </section>
+          </PopoverContent>
+        </Popover>
+        
       </div>
       <div className="flex-1 overflow-auto py-2">
         <nav className="grid items-start px-4 text-sm font-medium">
