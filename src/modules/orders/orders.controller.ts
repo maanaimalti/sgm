@@ -1,12 +1,12 @@
 import {
-    Body,
-    Controller,
-    Get,
-    Param,
-    Patch,
-    Post,
-    Query,
-    UseGuards,
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from 'src/shared/auth/roles.decorator';
@@ -33,7 +33,7 @@ export class OrdersController {
 
   @Get()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'kitchen')
+  @Roles('admin', 'kitchen', 'buyer', 'manager')
   findAll(
     @Query()
     { page, pageSize }: { page?: string | number; pageSize?: string | number },
@@ -45,35 +45,35 @@ export class OrdersController {
 
   @Get(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'kitchen')
+  @Roles('admin', 'kitchen', 'buyer', 'manager')
   findOne(@Param('id') id: string) {
     return this.ordersService.findOne(id);
   }
 
   @Patch('/approve/:id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'manager')
   approveOrder(@Param('id') id: string) {
     return this.ordersService.approveOrder(id);
   }
 
   @Patch('/cancel/:id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'manager')
   cancelOrder(@Param('id') id: string) {
     return this.ordersService.cancelOrder(id);
   }
 
   @Get('/report/:id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'buyer', 'manager')
   getReport(@Param('id') id: string) {
     return this.ordersService.getReport(id);
   }
 
   @Post('/report')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin')
+  @Roles('admin', 'buyer', 'manager')
   generateReport(
     @Body() data: { orderId: string },
     @GetUserId() userId: string,
