@@ -13,7 +13,7 @@ export const useNewUnit = () => {
   const queryClient = useQueryClient();
 
   const createUnitMutation = useMutation({
-    mutationKey: 'create-unit',
+    mutationKey: ['create-unit'],
     mutationFn: newUnitMutation,
     onError: () => {
       toast({
@@ -28,7 +28,9 @@ export const useNewUnit = () => {
         title: "Unidade de medida criada com sucesso",
         duration: 5000,
       });
-      queryClient.invalidateQueries("unities");
+      queryClient.invalidateQueries({
+        queryKey: ["unities"],
+      });
       router.push('/unidade-de-medida');
     },
   });
@@ -43,7 +45,7 @@ export const useNewUnit = () => {
 
   return {
     form,
-    createUnitIsLoading: createUnitMutation.isLoading,
+    createUnitIsLoading: createUnitMutation.isPending,
     onSubmit
   };
 };

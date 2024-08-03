@@ -10,14 +10,16 @@ export const useUnit = () => {
   const router = useRouter();
 
   const deleteUnit = useMutation({
-    mutationKey: "delete-unit",
+    mutationKey: ["delete-unit"],
     mutationFn: deleteUnitMutation,
     onSuccess: () => {
       toast({
         title: "Unidade deletada com sucesso",
         duration: 2000,
       });
-      queryClient.invalidateQueries("unities");
+      queryClient.invalidateQueries({
+        queryKey: ["unities"],
+      });
     },
     onError: () => {
       toast({
@@ -30,7 +32,7 @@ export const useUnit = () => {
   });
 
   const { data, isLoading } = useQuery({
-    queryKey: "unities",
+    queryKey: ["unities"],
     queryFn: GetAllUnitiesFetcher,
   });
 
@@ -49,7 +51,7 @@ export const useUnit = () => {
   return {
     unities: data,
     isLoading,
-    deleteIsLoading: deleteUnit.isLoading,
+    deleteIsLoading: deleteUnit.isPending,
     handleDeleteUnit,
     handleClickNewUnit,
     handleEditUnit,

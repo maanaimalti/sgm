@@ -12,7 +12,7 @@ export const useNewCategory = () => {
   const queryClient = useQueryClient();
 
   const createCategoryMutation = useMutation({
-    mutationKey: 'create-category',
+    mutationKey: ['create-category'],
     mutationFn: newCategoryMutation,
     onError: () => {
       toast({
@@ -27,7 +27,9 @@ export const useNewCategory = () => {
         title: "Categoria criada com sucesso",
         duration: 5000,
       });
-      queryClient.invalidateQueries("categories");
+      queryClient.invalidateQueries({
+        queryKey: ["categories"],
+      });
       router.push('/categorias');
     },
   });
@@ -42,7 +44,7 @@ export const useNewCategory = () => {
 
   return {
     form,
-    createCategoryIsLoading: createCategoryMutation.isLoading,
+    createCategoryIsLoading: createCategoryMutation.isPending,
     onSubmit
   };
 };

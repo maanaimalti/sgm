@@ -10,14 +10,16 @@ export const useCategory = () => {
   const queryClient = useQueryClient();
 
   const deleteCategory = useMutation({
-    mutationKey: "delete-categories",
+    mutationKey: ["delete-categories"],
     mutationFn: deleteCategoryMutation,
     onSuccess: () => {
       toast({
         title: "Categoria deletada com sucesso",
         duration: 2000,
       });
-      queryClient.invalidateQueries("categories");
+      queryClient.invalidateQueries({
+        queryKey: ["categories"],
+      });
     },
     onError: () => {
       toast({
@@ -30,7 +32,7 @@ export const useCategory = () => {
   })
 
   const { data, isLoading } = useQuery({
-    queryKey: "categories",
+    queryKey:[ "categories"],
     queryFn: GetAllCategoriesFetcher,
   });
 
@@ -49,7 +51,7 @@ export const useCategory = () => {
   return {
     categories: data,
     isLoading,
-    deleteIsLoading: deleteCategory.isLoading,
+    deleteIsLoading: deleteCategory.isPending,
     handleDeleteCategory,
     handleClickNewCategory,
     handleEditCategory,
