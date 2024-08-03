@@ -22,7 +22,7 @@ export class OrdersService {
   ) {}
 
   async create(createOrderDto: CreateOrderDto) {
-    const { items, userId } = createOrderDto;
+    const { items, userId, observation, event } = createOrderDto;
     const id = this.helpersService.generateId();
     Logger.log(`Creating order with id: ${id} and user id: ${userId}`);
     const result = await this.prismaService.orders.create({
@@ -44,6 +44,8 @@ export class OrdersService {
             quantity: item.quantity,
           })),
         },
+        observation,
+        event,
       },
     });
     return result;
@@ -105,6 +107,8 @@ export class OrdersService {
             },
           },
         },
+        observation: true,
+        event: true,
       },
     });
     if (!data) {
@@ -126,13 +130,14 @@ export class OrdersService {
     });
   }
 
-  async cancelOrder(id: string) {
+  async cancelOrder(id: string, observation?: string) {
     await this.prismaService.orders.update({
       where: {
         id,
       },
       data: {
         status: orderStatus.CANCELED,
+        statusOberservation: observation,
       },
     });
   }
@@ -170,6 +175,7 @@ export class OrdersService {
         },
         status: true,
         createdAt: true,
+        observation: true,
         orderItem: {
           select: {
             id: true,
@@ -188,7 +194,6 @@ export class OrdersService {
                     name: true,
                   },
                 },
-                brandName: true,
               },
             },
           },
@@ -404,11 +409,40 @@ export class OrdersService {
       return newPage;
     }
 
+    function addObservation(page, observation) {
+      let newPage = page;
+      if (yPosition < pageMargin + 100) {
+        newPage = addNewPage();
+      }
+      newPage.drawText('Observações:', {
+        x: pageMargin,
+        y: yPosition - 20,
+        size: fontSize,
+        font: timesRomanBoldFont,
+      });
+      yPosition -= 40;
+      const lines = observation.split('\n');
+      for (const line of lines) {
+        if (yPosition < pageMargin + 50) {
+          newPage = addNewPage();
+        }
+        newPage.drawText(line, {
+          x: pageMargin,
+          y: yPosition - 20,
+          size: fontSize,
+          font: timesRomanFont,
+        });
+        yPosition -= 20;
+      }
+      return newPage;
+    }
+
     // Start creating the document
     addHeader(page);
     addOrderDetails(page, order);
     addTableHeader(page);
-    const lastPage = addTableRows(page, order.orderItem);
+    let lastPage = addTableRows(page, order.orderItem);
+    lastPage = addObservation(lastPage, order?.observation);
     addSignatureLine(lastPage);
 
     return pdfDoc;

@@ -1,12 +1,12 @@
 import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  UseGuards,
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Param,
+    Patch,
+    Post,
+    UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from 'src/shared/auth/roles.decorator';
@@ -23,7 +23,7 @@ export class UnityController {
   @Post()
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'chicken')
+  @Roles('admin', 'kitchen')
   create(@Body() createUnityDto: CreateUnityDto) {
     return this.unityService.create(createUnityDto);
   }
@@ -31,7 +31,7 @@ export class UnityController {
   @Get()
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'chicken')
+  @Roles('admin', 'kitchen')
   findAll() {
     return this.unityService.findAll();
   }
@@ -39,7 +39,7 @@ export class UnityController {
   @Get(':id')
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'chicken')
+  @Roles('admin', 'kitchen')
   findOne(@Param('id') id: string) {
     return this.unityService.findOne(id);
   }
@@ -47,7 +47,7 @@ export class UnityController {
   @Patch(':id')
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'chicken')
+  @Roles('admin', 'kitchen')
   update(@Param('id') id: string, @Body() updateUnityDto: UpdateUnityDto) {
     return this.unityService.update(id, updateUnityDto);
   }
@@ -55,7 +55,7 @@ export class UnityController {
   @Delete(':id')
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'chicken')
+  @Roles('admin', 'kitchen')
   remove(@Param('id') id: string) {
     return this.unityService.remove(id);
   }

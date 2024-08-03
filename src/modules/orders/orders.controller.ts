@@ -1,12 +1,12 @@
 import {
-  Body,
-  Controller,
-  Get,
-  Param,
-  Patch,
-  Post,
-  Query,
-  UseGuards,
+    Body,
+    Controller,
+    Get,
+    Param,
+    Patch,
+    Post,
+    Query,
+    UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from 'src/shared/auth/roles.decorator';
@@ -22,7 +22,7 @@ export class OrdersController {
 
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'chicken')
+  @Roles('admin', 'kitchen')
   create(
     @Body() createOrderDto: CreateOrderControllerDto,
     @GetUserId() userId: string,
@@ -33,7 +33,7 @@ export class OrdersController {
 
   @Get()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'chicken')
+  @Roles('admin', 'kitchen')
   findAll(
     @Query()
     { page, pageSize }: { page?: string | number; pageSize?: string | number },
@@ -45,7 +45,7 @@ export class OrdersController {
 
   @Get(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'chicken')
+  @Roles('admin', 'kitchen')
   findOne(@Param('id') id: string) {
     return this.ordersService.findOne(id);
   }

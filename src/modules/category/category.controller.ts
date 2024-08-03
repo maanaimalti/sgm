@@ -22,28 +22,28 @@ export class CategoryController {
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'chicken')
+  @Roles('admin', 'kitchen')
   create(@Body() createCategoryDto: CreateCategoryDto) {
     return this.categoryService.create(createCategoryDto);
   }
 
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'chicken')
+  @Roles('admin', 'kitchen')
   findAll() {
     return this.categoryService.findAll();
   }
 
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'chicken')
+  @Roles('admin', 'kitchen')
   findOne(@Param('id') id: string) {
     return this.categoryService.findOne(id);
   }
 
   @Patch(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'chicken')
+  @Roles('admin', 'kitchen')
   update(
     @Param('id') id: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
@@ -53,7 +53,7 @@ export class CategoryController {
 
   @Delete(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'chicken')
+  @Roles('admin', 'kitchen')
   remove(@Param('id') id: string) {
     return this.categoryService.remove(id);
   }

@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsNumber, IsString } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 class OrderItem {
   @IsString()
@@ -12,4 +12,12 @@ class OrderItem {
 
 export class CreateOrderControllerDto {
   items: OrderItem[];
+
+  @IsOptional()
+  @IsString()
+  observation?: string;
+
+  @IsOptional()
+  @IsString()
+  event?: string;
 }

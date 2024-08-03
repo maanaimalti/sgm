@@ -1,12 +1,12 @@
 import {
-  Body,
-  Controller,
-  Delete,
-  Get,
-  Param,
-  Patch,
-  Post,
-  UseGuards,
+    Body,
+    Controller,
+    Delete,
+    Get,
+    Param,
+    Patch,
+    Post,
+    UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from 'src/shared/auth/roles.decorator';
@@ -23,7 +23,7 @@ export class MovementController {
   @Post()
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'chicken')
+  @Roles('admin', 'kitchen')
   create(@Body() createMovementDto: CreateMovementDto) {
     return this.movementService.create(createMovementDto);
   }
@@ -31,7 +31,7 @@ export class MovementController {
   @Get()
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'chicken')
+  @Roles('admin', 'kitchen')
   findAll() {
     return this.movementService.findAll({});
   }
@@ -39,7 +39,7 @@ export class MovementController {
   @Get(':id')
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'chicken')
+  @Roles('admin', 'kitchen')
   findOne(@Param('id') id: string) {
     return this.movementService.findOne(id);
   }
@@ -47,7 +47,7 @@ export class MovementController {
   @Patch(':id')
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'chicken')
+  @Roles('admin', 'kitchen')
   update(
     @Param('id') id: string,
     @Body() updateMovementDto: UpdateMovementDto,
@@ -58,7 +58,7 @@ export class MovementController {
   @Delete(':id')
   @Post()
   @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'chicken')
+  @Roles('admin', 'kitchen')
   remove(@Param('id') id: string) {
     return this.movementService.remove(id);
   }
