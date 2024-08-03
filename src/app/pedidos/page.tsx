@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useOrdersPage } from "@/hooks/pages/use-orders";
-import { DownloadIcon, EditIcon, LoaderCircleIcon } from "lucide-react";
+import { DownloadIcon } from "@radix-ui/react-icons";
+import { EditIcon, LoaderCircleIcon } from "lucide-react";
 
 const PedidosPage = () => {
   const {
@@ -20,7 +21,10 @@ const PedidosPage = () => {
     total,
     isLoading,
     orders,
-    isAdmin
+    isAdmin,
+    isBuyer,
+    isKitchen,
+    isManager
   } = useOrdersPage();
   return (
     <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
@@ -32,7 +36,11 @@ const PedidosPage = () => {
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
           <div className="flex items-center justify-between">
             <h1 className="font-semibold text-lg md:text-2xl">Pedidos</h1>
-            <Button size="sm" onClick={handleClickNewOrder}>Novo pedido</Button>
+            {
+              (isKitchen || isAdmin) && (
+                <Button size="sm" onClick={handleClickNewOrder}>Novo pedido</Button>
+              )
+            }
           </div>
           <div className="border shadow-sm rounded-lg p-6">
             <Table>
@@ -74,15 +82,21 @@ const PedidosPage = () => {
                           </TableCell>
                           <TableCell>
                             {
-                              isAdmin && (
+                              (isAdmin || isManager) && (
                                 <div className="flex gap-2">
-                                  <Button 
-                                    variant="outline" 
+                                  <Button
+                                    variant="outline"
                                     size="icon"
                                     onClick={() => handleEditOrder(order.id)}
                                   >
                                     <EditIcon className="h-4 w-4" />
                                   </Button>
+                                </div>
+                              )
+                            }
+                            {
+                              (isAdmin || isManager || isBuyer) && (
+                                <div className="flex gap-2">
                                   {
                                     order?.status === "APPROVED" && (
                                       <Button

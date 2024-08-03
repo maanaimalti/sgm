@@ -80,6 +80,9 @@ export const useOrdersPage = () => {
     currentPage,
     total: data?.total,
     isAdmin: userData?.roles.includes("admin"),
+    isManager: userData?.roles.includes("manager"),
+    isKitchen: userData?.roles.includes("kitchen"),
+    isBuyer: userData?.roles.includes("buyer"),
   };
 };
 

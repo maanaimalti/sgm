@@ -1,9 +1,11 @@
 import { api } from "@/services/api";
-import type { OrderForm } from "../schemas/order-schema";
 
-export const newOrderMutation = async (data: OrderForm) => {
+// biome-ignore lint/suspicious/noExplicitAny: <explanation>
+export const newOrderMutation = async (data: any) => {
   const response = await api.post("/orders", {
-    items: data.items
+    items: data.items,
+    eventName: data?.eventName,
+    observation: data?.observation,
   });
   return response.data;
 };

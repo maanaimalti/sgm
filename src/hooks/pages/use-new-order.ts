@@ -1,21 +1,23 @@
 import { toast } from "@/components/ui/use-toast";
 import { GetAllProductsFetcher } from "@/data/fetchers/products/get-all";
 import { newOrderMutation } from "@/data/mutations/new-order";
-import { type OrderForm, orderSchema } from "@/data/schemas/order-schema";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useForm } from "react-hook-form";
 
 export const useNewOrderPage = () => {
   const router = useRouter();
-  const [items, setItems] = useState<{id: string, quantity: number, name: string}[]>([]);
-  const [currentProduct, setCurrentProduct] = useState<{id: string, name: string} | null>(null);
+  const [items, setItems] = 
+    useState<{id: string, quantity: number, name: string, unity: string}[]>([]);
+  const [currentProduct, setCurrentProduct] = 
+    useState<{id: string, name: string, unity: string} | null>(null);
   const [currentQuantity, setCurrentQuantity] = useState(0);
+  const [currentEventName, setCurrentEventName] = useState("");
+  const [currentObservation, setCurrentObservation] = useState("");
 
   const orderMutation = useMutation({
-    mutationFn: (order: OrderForm) => newOrderMutation(order),
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    mutationFn: (order: any) => newOrderMutation(order),
     retry: 3,
     retryDelay: 2000,
     onSuccess: (data) => {
@@ -46,14 +48,6 @@ export const useNewOrderPage = () => {
     getNextPageParam: (lastPage: any, allPages) => lastPage.nextCursor,
     queryFn: ({ pageParam = 1 }) => GetAllProductsFetcher({ page: pageParam }),
   });
-
-  const form = useForm<OrderForm>({
-    resolver: zodResolver(orderSchema),
-  });
-
-  const onSubmit = (data: OrderForm) => {
-    // productMutation.mutate(data);
-  };
 
   const handleAddProduct = () => {
     if (!currentProduct || !currentQuantity) return;
@@ -87,13 +81,15 @@ export const useNewOrderPage = () => {
     orderMutation.mutate({ 
       items: items.map(item => ({ 
         productId: item.id, quantity: item.quantity 
-      })) 
+      })),
+      eventName: currentEventName,
+      observation: currentObservation
     });
   }
 
   const handleSelectProduct = (productInfo: string) => {
-    const [id, name] = productInfo.split("-");
-    setCurrentProduct({ id, name });
+    const [id, name, unity] = productInfo.split("-");
+    setCurrentProduct({ id, name, unity });
   }
 
   const handleRemoveItem = (id: string) => {
@@ -101,14 +97,16 @@ export const useNewOrderPage = () => {
   }
 
   return {
-    form,
     items,
     products: data?.pages.flatMap(page => page.products),
     currentProduct,
     currentQuantity,
     hasNextPage,
+    currentEventName,
+    currentObservation,
+    setCurrentObservation,
+    setCurrentEventName,
     handleRemoveItem,
-    onSubmit,
     handleSelectProduct,
     handleAddProduct,
     setCurrentProduct,

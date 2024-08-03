@@ -8,10 +8,8 @@ export interface ProductResponse {
     name: string;
     id: string;
   };
-  brandName: string;
   description: string;
   name: string;
-  quantity: number;
   status: string;
 }
 
