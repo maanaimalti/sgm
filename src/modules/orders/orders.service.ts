@@ -1,4 +1,9 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  InternalServerErrorException,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import { orderStatus } from '@prisma/client';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 // biome-ignore lint/style/useImportType: <explanation>
@@ -161,85 +166,90 @@ export class OrdersService {
   }
 
   async generateReport(id: string, userId: string) {
-    const order = await this.prismaService.orders.findUnique({
-      where: {
-        id,
-      },
-      select: {
-        id: true,
-        user: {
-          select: {
-            id: true,
-            name: true,
-          },
+    try {
+      const order = await this.prismaService.orders.findUnique({
+        where: {
+          id,
         },
-        status: true,
-        createdAt: true,
-        observation: true,
-        orderItem: {
-          select: {
-            id: true,
-            quantity: true,
-            product: {
-              select: {
-                id: true,
-                name: true,
-                unity: {
-                  select: {
-                    name: true,
+        select: {
+          id: true,
+          user: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+          status: true,
+          createdAt: true,
+          observation: true,
+          orderItem: {
+            select: {
+              id: true,
+              quantity: true,
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                  unity: {
+                    select: {
+                      name: true,
+                    },
+                  },
+                  category: {
+                    select: {
+                      name: true,
+                    },
                   },
                 },
-                category: {
-                  select: {
-                    name: true,
-                  },
-                },
               },
             },
           },
         },
-      },
-    });
-    if (!order) {
-      Logger.error(
-        `Order with id: ${id} not found. Request by: ${id} for report`,
-      );
-      throw new NotFoundException(`Order with id: ${id} not found`);
-    }
-    const result = await this.generatePdf(order);
-    (async () => {
-      try {
-        const pdfBytes = await result.save();
-        Logger.log('generated file');
-        const filename = `/cozinha/pedidos/relatorio-pedido-${id.toLowerCase()}.pdf`;
-        await this.uploadFileService.uploadFile(filename, pdfBytes);
-        Logger.log(`uploaded file with key: ${filename}`);
-        await this.prismaService.orderReports.create({
-          data: {
-            id: this.helpersService.generateId(),
-            url: filename,
-            order: {
-              connect: {
-                id,
-              },
-            },
-            user: {
-              connect: {
-                id: userId,
-              },
-            },
-          },
-        });
-        await this.notificationService.create({
-          userId: order.user.id,
-          text: 'Você tem um novo relatório de pedido disponível.',
-          type: 'ORDER_REPORT',
-        });
-      } catch (error) {
-        Logger.error(error?.message, { error: error });
+      });
+      if (!order) {
+        Logger.error(
+          `Order with id: ${id} not found. Request by: ${id} for report generation`,
+        );
+        throw new NotFoundException(`Order with id: ${id} not found`);
       }
-    })();
-    return true;
+      const result = await this.generatePdf(order);
+      (async () => {
+        try {
+          const pdfBytes = await result.save();
+          Logger.log('generated file');
+          const filename = `/cozinha/pedidos/relatorio-pedido-${id.toLowerCase()}.pdf`;
+          await this.uploadFileService.uploadFile(filename, pdfBytes);
+          Logger.log(`uploaded file with key: ${filename}`);
+          await this.prismaService.orderReports.create({
+            data: {
+              id: this.helpersService.generateId(),
+              url: filename,
+              order: {
+                connect: {
+                  id,
+                },
+              },
+              user: {
+                connect: {
+                  id: userId,
+                },
+              },
+            },
+          });
+          await this.notificationService.create({
+            userId: order.user.id,
+            text: 'Você tem um novo relatório de pedido disponível.',
+            type: 'ORDER_REPORT',
+          });
+        } catch (error) {
+          Logger.error(error?.message, { error: error });
+        }
+      })();
+      return true;
+    } catch (error) {
+      Logger.error(error?.message, { error: error });
+      throw new InternalServerErrorException('Error generating report');
+    }
   }
 
   private async generatePdf(order: any) {
