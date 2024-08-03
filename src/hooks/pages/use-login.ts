@@ -33,7 +33,7 @@ export const useLogin = () => {
     },
     onSuccess: (data) => {
       localStorage.setItem('accessToken', data.accessToken);
-      router.push('/categorias');
+      router.push('/pedidos');
     }
   });
 
