@@ -5,7 +5,7 @@ import { generateOrderReportMutation } from "@/data/mutations/generate-order-rep
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useJwt } from "../use-jwt";
 
 export const useOrdersPage = () => {
@@ -14,6 +14,8 @@ export const useOrdersPage = () => {
   const [isLoadingDownload, setIsLoadingDownload] = useState(false);
   const userData = useJwt<UserData>("accessToken");
   const { toast } = useToast();
+  const [urlPdf, setUrlPdf] = useState<string | null>(null);
+  const [selectedOrderToReport, setSelectedOrderToReport] = useState<string | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["orders", currentPage],
@@ -33,27 +35,14 @@ export const useOrdersPage = () => {
     try {
       setIsLoadingDownload(true);
       const result = await GetOrderReportFetcher(id);
-      if (result?.url) {
-        return downloadByUrl(result.url, `pedido-${id}.pdf`);
-      }
-      await generateOrderReportMutation(id);
-      toast({
-        title: "O PDF está sendo gerado, aguarde alguns instantes.",
-        description: "Assim que estiver pronto, você poderá baixá-lo.",
-      });
-    } catch (error) {
-      toast({
-        title: "Erro ao baixar pedido",
-        description: "Ocorreu um erro ao baixar o pedido, tente novamente.",
-        variant: "destructive",
-      });
-      console.error("Error downloading order:", error);
+      setUrlPdf(result?.url ?? "");
+      setSelectedOrderToReport(id);
     } finally {
       setIsLoadingDownload(false);
     }
   }
 
-  const downloadByUrl = async (url: string, filename: string) => {
+  const downloadByUrl = useCallback(async (url: string, filename: string) => {
      try {
        const response = await axios.get(url, {
          responseType: "blob",
@@ -67,7 +56,29 @@ export const useOrdersPage = () => {
      } catch (error) {
        console.error("Error downloading PDF:", error);
      }
-  }
+  }, [])
+
+  useEffect(() => {
+    if (urlPdf) {
+      downloadByUrl(urlPdf, "pedido.pdf");
+      return;
+    }
+    generateOrderReportMutation(selectedOrderToReport ?? '')
+    .then(() => {
+      toast({
+        title: "O PDF está sendo gerado, aguarde alguns instantes.",
+        description: "Assim que estiver pronto, você poderá baixá-lo.",
+      });
+    })
+    .catch((error) => {
+      toast({
+        title: "Erro ao baixar pedido",
+        description: "Ocorreu um erro ao baixar o pedido, tente novamente.",
+        variant: "destructive",
+      });
+      console.error("Error downloading order:", error);
+    });
+  }, [urlPdf, downloadByUrl, selectedOrderToReport, toast]);
 
   return {
     handleClickNewOrder,
