@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Logger,
   Param,
   Patch,
   Post,
@@ -78,6 +79,7 @@ export class OrdersController {
     @Body() data: { orderId: string },
     @GetUserId() userId: string,
   ) {
+    Logger.log('received request to generate report with data: ', data);
     return this.ordersService.generateReport(data.orderId, userId);
   }
 }

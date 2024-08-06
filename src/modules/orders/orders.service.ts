@@ -158,7 +158,7 @@ export class OrdersService {
     });
     if (!data) {
       Logger.error(`Order report with id: ${id} not found. Request by: ${id}`);
-      throw new NotFoundException(`Order with id: ${id} not found`);
+      throw new NotFoundException(`Order report with id: ${id} not found`);
     }
     Logger.log(`Order report with id: ${id} found. Request by: ${id}`);
     const url = this.uploadFileService.getFileUrl('sgm', data.url);
@@ -166,6 +166,7 @@ export class OrdersService {
   }
 
   async generateReport(id: string, userId: string) {
+    Logger.log(`getting order with id: ${id} by user: ${userId}`);
     try {
       const order = await this.prismaService.orders.findUnique({
         where: {
@@ -210,7 +211,9 @@ export class OrdersService {
         Logger.error(
           `Order with id: ${id} not found. Request by: ${id} for report generation`,
         );
-        throw new NotFoundException(`Order with id: ${id} not found`);
+        throw new NotFoundException(
+          `Order with id: ${id} not found for report generation`,
+        );
       }
       const result = await this.generatePdf(order);
       (async () => {
