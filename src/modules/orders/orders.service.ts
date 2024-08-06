@@ -168,9 +168,10 @@ export class OrdersService {
   async generateReport(id: string, userId: string) {
     Logger.log(`getting order with id: ${id} by user: ${userId}`);
     try {
-      const order = await this.prismaService.orders.findUnique({
+      console.log({ id, userId });
+      const order = await this.prismaService.orders.findFirst({
         where: {
-          id,
+          id: id,
         },
         select: {
           id: true,
@@ -207,6 +208,7 @@ export class OrdersService {
           },
         },
       });
+      Logger.log(`order found: ${order}`);
       if (!order) {
         Logger.error(
           `Order with id: ${id} not found. Request by: ${id} for report generation`,
@@ -250,7 +252,7 @@ export class OrdersService {
       })();
       return true;
     } catch (error) {
-      Logger.error(error?.message, { error: error });
+      Logger.error(error?.message, { details: error });
       throw new InternalServerErrorException('Error generating report');
     }
   }
