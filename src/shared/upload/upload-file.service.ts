@@ -3,7 +3,7 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 @Injectable()
 export class UploadFileService {
@@ -18,6 +18,9 @@ export class UploadFileService {
   }
 
   async uploadFile(filename: string, file: Uint8Array) {
+    Logger.log(
+      `Uploading file ${filename} to R2 with endpoint: ${this.endpoint} and configs: ${JSON.stringify(this.#client.config)}`,
+    );
     const command = new PutObjectCommand({
       Bucket: 'sgm',
       Key: filename,
