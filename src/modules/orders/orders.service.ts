@@ -168,7 +168,6 @@ export class OrdersService {
   async generateReport(id: string, userId: string) {
     Logger.log(`getting order with id: ${id} by user: ${userId}`);
     try {
-      console.log({ id, userId });
       const order = await this.prismaService.orders.findFirst({
         where: {
           id: id,
@@ -208,7 +207,6 @@ export class OrdersService {
           },
         },
       });
-      Logger.log(`order found: ${order}`);
       if (!order) {
         Logger.error(
           `Order with id: ${id} not found. Request by: ${id} for report generation`,
@@ -217,6 +215,7 @@ export class OrdersService {
           `Order with id: ${id} not found for report generation`,
         );
       }
+      Logger.log(`Generating report for order ${JSON.stringify(order)}`);
       const result = await this.generatePdf(order);
       (async () => {
         try {
@@ -315,8 +314,7 @@ export class OrdersService {
       const cellHeight = 20;
       const columns = [
         { name: 'Nome', x: 50 },
-        { name: 'Categoria', x: 300 },
-        { name: 'Marca', x: 400 },
+        { name: 'Categoria', x: 400 },
         { name: 'Quantidade', x: 500 },
       ];
 
@@ -369,12 +367,6 @@ export class OrdersService {
         });
         currentPage.drawText(item.product.category.name, {
           x: 300,
-          y: yPosition - 20,
-          size: fontSize,
-          font: timesRomanFont,
-        });
-        currentPage.drawText(item.product.brandName, {
-          x: 400,
           y: yPosition - 20,
           size: fontSize,
           font: timesRomanFont,
