@@ -64,15 +64,16 @@ export const useOrdersPage = () => {
 
   const downloadByUrl = useCallback(async (url: string, filename: string) => {
     try {
-      console.log({url, filename});
-      const response = await axios.get(url, {
-        headers: {
-          "Content-Type": "application/pdf",
-          "Access-Control-Allow-Origin": "*",
-        },
-        responseType: "blob",
-      });
-      const urlItem = window.URL.createObjectURL(new Blob([response.data]));
+      const result = await axios.get(`/api/report?pdfUrl=${url}`);
+      console.log(result?.data);
+      // const response = await axios.get(url, {
+      //   headers: {
+      //     "Content-Type": "application/pdf",
+      //     "Access-Control-Allow-Origin": "*",
+      //   },
+      //   responseType: "blob",
+      // });
+      const urlItem = window.URL.createObjectURL(new Blob([result.data]));
       console.log({urlItem});
       const link = document.createElement("a");
       link.setAttribute("href", urlItem);
