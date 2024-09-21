@@ -314,7 +314,7 @@ export class OrdersService {
       const cellHeight = 20;
       const columns = [
         { name: 'Nome', x: 50 },
-        { name: 'Categoria', x: 400 },
+        { name: 'Categoria', x: 350 },
         { name: 'Quantidade', x: 500 },
       ];
 
@@ -366,7 +366,7 @@ export class OrdersService {
           font: timesRomanFont,
         });
         currentPage.drawText(item.product.category.name, {
-          x: 300,
+          x: 350,
           y: yPosition - 20,
           size: fontSize,
           font: timesRomanFont,
