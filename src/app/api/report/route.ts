@@ -3,6 +3,7 @@ import type { NextRequest } from "next/server";
 export const GET = async (request: NextRequest) => {
   const searchParams = request.nextUrl.searchParams;
   const pdfUrl = searchParams.get("url");
+  console.log({ pdfUrl });
   if (!pdfUrl) {
     return new Response("Missing PDF URL", { status: 400 });
   }
