@@ -1,5 +1,5 @@
 import axios from "axios";
-import type { NextRequest } from "next/server";
+import { type NextRequest, NextResponse } from "next/server";
 
 export const GET = async (request: NextRequest) => {
   try {
@@ -10,8 +10,9 @@ export const GET = async (request: NextRequest) => {
         "Content-Type": "application/pdf"
       }
     });
-    return new Response('OK', { status: 200 });
+    return NextResponse.json({ok: true});
   } catch (error) {
     console.error("Error downloading PDF:", error);
+    return NextResponse.json({ok: false});
   }
 }
