@@ -3,7 +3,6 @@ import { GetAllOrdersFetcher } from "@/data/fetchers/orders/get-all";
 import { GetOrderReportFetcher } from "@/data/fetchers/orders/get-report-url";
 import { generateOrderReportMutation } from "@/data/mutations/generate-order-report";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import axios from "axios";
 import { useRouter } from "next/navigation";
 import { useCallback, useState } from "react";
 import { useJwt } from "../use-jwt";
@@ -64,17 +63,9 @@ export const useOrdersPage = () => {
 
   const downloadByUrl = useCallback(async (url: string, filename: string) => {
     try {
-      const result = await axios.get(`/api/report?pdfUrl=${url}`);
-      console.log(result);
-      console.log(result?.data);
-      // const response = await axios.get(url, {
-      //   headers: {
-      //     "Content-Type": "application/pdf",
-      //     "Access-Control-Allow-Origin": "*",
-      //   },
-      //   responseType: "blob",
-      // });
-      const urlItem = window.URL.createObjectURL(new Blob([result.data]));
+      const response = await fetch(url)
+      const result = await response.blob()
+      const urlItem = window.URL.createObjectURL(new Blob([result]));
       console.log({urlItem});
       const link = document.createElement("a");
       link.setAttribute("href", urlItem);
