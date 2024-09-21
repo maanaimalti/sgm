@@ -36,6 +36,6 @@ export class UploadFileService {
 
   getFileUrl(fileKey: string): string {
     const endpoint = 'https://images-sgm.icmalagoas.org.br/';
-    return `${endpoint}/${fileKey}`;
+    return `${endpoint}${fileKey}`;
   }
 }
