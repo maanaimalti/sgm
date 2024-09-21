@@ -85,6 +85,32 @@ const NewProductsPage = () => {
                       </FormItem>
                     )}
                   />
+                  <FormField
+                    control={form.control}
+                    name="unity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Unidade de medida</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a unidade de medida" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {
+                              unities?.map((unity) => (
+                                <SelectItem key={unity.id} value={unity.id}>
+                                  {unity.name}
+                                </SelectItem>
+                              ))
+                            }
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button variant="outline">Cancelar</Button>
