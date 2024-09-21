@@ -161,7 +161,7 @@ export class OrdersService {
       throw new NotFoundException(`Order report with id: ${id} not found`);
     }
     Logger.log(`Order report with id: ${id} found. Request by: ${id}`);
-    const url = this.uploadFileService.getFileUrl('sgm', data.url);
+    const url = this.uploadFileService.getFileUrl(data.url);
     return { url };
   }
 

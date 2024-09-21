@@ -34,8 +34,8 @@ export class UploadFileService {
     await this.#client.send(command);
   }
 
-  getFileUrl(bucketName: string, fileKey: string): string {
-    const endpoint = 'https://sgm.icmalagoas.org.br/';
-    return `${endpoint}/${bucketName}/${fileKey}`;
+  getFileUrl(fileKey: string): string {
+    const endpoint = 'https://images-sgm.icmalagoas.org.br/';
+    return `${endpoint}/${fileKey}`;
   }
 }
