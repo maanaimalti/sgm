@@ -64,17 +64,9 @@ export const useOrdersPage = () => {
 
   const downloadByUrl = useCallback(async (url: string, filename: string) => {
      try {
-       const response = await axios.get(url, {
-         responseType: "blob",
-       });
-       const blob = new Blob([response.data], { type: "application/pdf" });
-       const link = document.createElement("a");
-       link.href = window.URL.createObjectURL(blob);
-       link.download = filename;
-       link.click();
-       window.URL.revokeObjectURL(link.href);
+      await axios.get(`/api/report?pdfurl=${url}`);
      } catch (error) {
-       console.error("Error downloading PDF:", error);
+      console.error("Error downloading PDF:", error);
      }
   }, [])
 
