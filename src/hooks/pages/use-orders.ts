@@ -65,6 +65,7 @@ export const useOrdersPage = () => {
   const downloadByUrl = useCallback(async (url: string, filename: string) => {
     try {
       const result = await axios.get(`/api/report?pdfUrl=${url}`);
+      console.log(result);
       console.log(result?.data);
       // const response = await axios.get(url, {
       //   headers: {
