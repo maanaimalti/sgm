@@ -5,7 +5,7 @@ import { generateOrderReportMutation } from "@/data/mutations/generate-order-rep
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import axios from "axios";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useJwt } from "../use-jwt";
 
 export const useOrdersPage = () => {
@@ -35,8 +35,28 @@ export const useOrdersPage = () => {
     try {
       setIsLoadingDownload(true);
       const result = await GetOrderReportFetcher(id);
-      setUrlPdf(result?.url ?? "");
-      setSelectedOrderToReport(id);
+      if (!result) {
+        generateOrderReportMutation(id)
+          .then(() =>{
+            toast({
+              title: "O PDF está sendo gerado, aguarde alguns instantes.",
+              description: "Assim que estiver pronto, você poderá baixá-lo.",
+            });
+          })
+          .catch((error) => {
+            toast({
+              title: "Erro ao baixar pedido",
+              description: "Ocorreu um erro ao baixar o pedido, tente novamente.",
+              variant: "destructive",
+            });
+            console.error("Error downloading order:", error);
+          });
+        return;
+      }
+      downloadByUrl(result.url, "pedido.pdf");
+      return;
+    } catch(e) {
+      console.error(e);
     } finally {
       setIsLoadingDownload(false);
     }
@@ -58,27 +78,27 @@ export const useOrdersPage = () => {
      }
   }, [])
 
-  useEffect(() => {
-    if (urlPdf) {
-      downloadByUrl(urlPdf, "pedido.pdf");
-      return;
-    }
-    generateOrderReportMutation(selectedOrderToReport ?? '')
-    .then(() => {
-      toast({
-        title: "O PDF está sendo gerado, aguarde alguns instantes.",
-        description: "Assim que estiver pronto, você poderá baixá-lo.",
-      });
-    })
-    .catch((error) => {
-      toast({
-        title: "Erro ao baixar pedido",
-        description: "Ocorreu um erro ao baixar o pedido, tente novamente.",
-        variant: "destructive",
-      });
-      console.error("Error downloading order:", error);
-    });
-  }, [urlPdf, downloadByUrl, selectedOrderToReport, toast]);
+  // useEffect(() => {
+  //   if (urlPdf) {
+  //     downloadByUrl(urlPdf, "pedido.pdf");
+  //     return;
+  //   }
+  //   generateOrderReportMutation(selectedOrderToReport ?? '')
+  //   .then(() => {
+  //     toast({
+  //       title: "O PDF está sendo gerado, aguarde alguns instantes.",
+  //       description: "Assim que estiver pronto, você poderá baixá-lo.",
+  //     });
+  //   })
+  //   .catch((error) => {
+  //     toast({
+  //       title: "Erro ao baixar pedido",
+  //       description: "Ocorreu um erro ao baixar o pedido, tente novamente.",
+  //       variant: "destructive",
+  //     });
+  //     console.error("Error downloading order:", error);
+  //   });
+  // }, [urlPdf, downloadByUrl, selectedOrderToReport, toast]);
 
   return {
     handleClickNewOrder,

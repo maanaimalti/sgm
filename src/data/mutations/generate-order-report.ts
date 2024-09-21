@@ -1,5 +1,5 @@
 import { api } from "@/services/api";
 
-export const generateOrderReportMutation = async (id: string) => {
-  await api.post<{url: string}>(`/orders/report/${id}`);
+export const generateOrderReportMutation = async (orderId: string) => {
+  await api.post('/orders/report', { orderId });
 }
