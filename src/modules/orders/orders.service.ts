@@ -221,7 +221,7 @@ export class OrdersService {
         try {
           const pdfBytes = await result.save();
           Logger.log('generated file');
-          const filename = `/cozinha/pedidos/relatorio-pedido-${id.toLowerCase()}.pdf`;
+          const filename = `cozinha/pedidos/relatorio-pedido-${id.toLowerCase()}.pdf`;
           await this.uploadFileService.uploadFile(filename, pdfBytes);
           Logger.log(`uploaded file with key: ${filename}`);
           await this.prismaService.orderReports.create({
