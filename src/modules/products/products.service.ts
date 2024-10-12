@@ -35,22 +35,57 @@ export class ProductsService {
           },
         },
         description: product.description,
+        productValues: {
+          create: {
+            costValue: product.costValue,
+            saleValue: product.saleValue,
+            id: this.helpersService.generateId(),
+          },
+        },
+        department: {
+          connect: {
+            id: product.departmentId,
+          },
+        },
       },
     });
     return product;
   }
 
   async findAll(findAllProductDto: FindAllProductDto) {
-    const { page = 1, pageSize = 10 } = findAllProductDto;
+    const { page = 1, pageSize = 10, search, departmentId } = findAllProductDto;
     Logger.log(
       `Request all products with page: ${page} and page-size: ${pageSize}`,
     );
+    let where: any = {
+      status: 'active',
+      department: {
+        id: departmentId,
+      },
+    };
+    if (search) {
+      where = {
+        ...where,
+        OR: [
+          {
+            name: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+          {
+            description: {
+              contains: search,
+              mode: 'insensitive',
+            },
+          },
+        ],
+      };
+    }
     const products = await this.prismaService.product.findMany({
       skip: (page - 1) * pageSize,
       take: pageSize,
-      where: {
-        status: 'active',
-      },
+      where,
       select: {
         category: {
           select: {
@@ -79,10 +114,13 @@ export class ProductsService {
     };
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, departmentId: string) {
     const result = await this.prismaService.product.findUnique({
       where: {
         id,
+        department: {
+          id: departmentId,
+        },
       },
       select: {
         category: {
@@ -101,6 +139,8 @@ export class ProductsService {
         id: true,
         name: true,
         status: true,
+        productValues: true,
+        department: true,
       },
     });
     return result;
@@ -111,6 +151,9 @@ export class ProductsService {
     await this.prismaService.product.update({
       where: {
         id,
+        department: {
+          id: updateProductDto.departmentId,
+        },
       },
       data: {
         categoryId: updateProductDto.categoryId,
