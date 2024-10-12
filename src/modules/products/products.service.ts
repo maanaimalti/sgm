@@ -158,6 +158,9 @@ export class ProductsService {
       data: {
         categoryId: updateProductDto.categoryId,
         description: updateProductDto.description,
+        unityId: updateProductDto.unityId,
+        departmentId: updateProductDto.departmentId,
+        productValuesId: updateProductDto.productValuesId,
         name: updateProductDto.name,
       },
     });
