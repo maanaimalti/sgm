@@ -10,6 +10,7 @@ import { UnityModule } from './modules/unity/unity.module';
 import { AuthModule } from './shared/auth/auth.module';
 import { HelpersModule } from './shared/helpers/helpers.module';
 import { NotificationModule } from './modules/notification/notification.module';
+import { DepartmentModule } from './modules/department/department.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { NotificationModule } from './modules/notification/notification.module';
     ConfigModule.forRoot({}),
     OrdersModule,
     NotificationModule,
+    DepartmentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
