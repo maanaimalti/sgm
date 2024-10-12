@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   Param,
   Patch,
   Post,
@@ -33,18 +34,32 @@ export class ProductsController {
   @Roles('admin', 'kitchen')
   findAll(
     @Query()
-    { page, pageSize }: { page?: string | number; pageSize?: string | number },
+    {
+      page,
+      pageSize,
+      search,
+    }: { page?: string | number; pageSize?: string | number; search?: string },
+    @Headers('departmentId') departmentId: string,
   ) {
     page = page ? Number.parseInt(page as string) : 1;
     pageSize = pageSize ? Number.parseInt(pageSize as string) : 10;
-    return this.productsService.findAll({ page, pageSize });
+    search = search || undefined;
+    return this.productsService.findAll({
+      page,
+      pageSize,
+      search,
+      departmentId,
+    });
   }
 
   @Get(':id')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'kitchen')
-  findOne(@Param('id') id: string) {
-    return this.productsService.findOne(id);
+  findOne(
+    @Param('id') id: string,
+    @Headers('departmentId') departmentId: string,
+  ) {
+    return this.productsService.findOne(id, departmentId);
   }
 
   @Patch(':id')
