@@ -40,22 +40,23 @@ model unity {
 }
 
 model product {
-  id           String   @id
-  name         String
-  description  String?
-  categoryId   String
-  departmentId String
-  unityId      String
-  status       String   @default("active")
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id              String   @id
+  name            String
+  description     String?
+  categoryId      String
+  departmentId    String?
+  productValuesId String?
+  unityId         String
+  status          String   @default("active")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  department    department      @relation(fields: [departmentId], references: [id])
-  category      category        @relation(fields: [categoryId], references: [id])
-  unity         unity           @relation(fields: [unityId], references: [id])
+  department    department?    @relation(fields: [departmentId], references: [id])
+  productValues productValues? @relation(fields: [productValuesId], references: [id])
+  category      category       @relation(fields: [categoryId], references: [id])
+  unity         unity          @relation(fields: [unityId], references: [id])
   movement      movement[]
   orderItem     orderItem[]
-  productValues productValues[]
 
   @@map("products")
 }
@@ -181,14 +182,12 @@ model department {
 
 model productValues {
   id        String @id
-  productId String @map("product_id")
   costValue Float  @map("cost_value")
   saleValue Float? @map("sale_value")
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  product product @relation(fields: [productId], references: [id])
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  product   product[]
 
   @@map("product_values")
 }

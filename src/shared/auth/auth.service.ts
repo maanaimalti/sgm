@@ -16,7 +16,7 @@ export class AuthService {
   async validateUser(username: string, password: string): Promise<any> {
     const user = await this.prismaService.user.findUnique({
       where: { username },
-      include: { roles: true },
+      include: { roles: true, department: true },
     });
     if (user && (await bcrypt.compare(password, user.password))) {
       // eslint-disable-next-line @typescript-eslint/no-unused-vars
@@ -35,6 +35,7 @@ export class AuthService {
       username: data.username,
       sub: data.id,
       roles: data.roles.map((role) => role.name),
+      departament: data.departament,
     };
     return {
       accessToken: this.jwtService.sign(payload),
