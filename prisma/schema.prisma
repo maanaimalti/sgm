@@ -40,21 +40,20 @@ model unity {
 }
 
 model product {
-  id              String   @id
-  name            String
-  description     String?
-  categoryId      String
-  departmentId    String?
-  productValuesId String?
-  unityId         String
-  status          String   @default("active")
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id           String   @id
+  name         String
+  description  String?
+  categoryId   String
+  departmentId String?
+  unityId      String
+  status       String   @default("active")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  department    department?    @relation(fields: [departmentId], references: [id])
-  productValues productValues? @relation(fields: [productValuesId], references: [id])
-  category      category       @relation(fields: [categoryId], references: [id])
-  unity         unity          @relation(fields: [unityId], references: [id])
+  department    department?     @relation(fields: [departmentId], references: [id])
+  productValues productValues[]
+  category      category        @relation(fields: [categoryId], references: [id])
+  unity         unity           @relation(fields: [unityId], references: [id])
   movement      movement[]
   orderItem     orderItem[]
 
@@ -83,8 +82,7 @@ model user {
   orders       orders[]
   orderReports orderReports[]
   notification notification[]
-  department   department?    @relation(fields: [departmentId], references: [id])
-  departmentId String?
+  department   department[]
 
   @@map("users")
 }
