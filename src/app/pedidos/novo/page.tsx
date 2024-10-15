@@ -25,7 +25,8 @@ const NewOrderPage = () => {
     setCurrentQuantity,
     handleRemoveItem,
     handleConfirmOrder,
-    setCurrentEventName
+    setCurrentEventName,
+    setProductSearchValue
   } = useNewOrderPage();
 
   return (
@@ -55,6 +56,25 @@ const NewOrderPage = () => {
             <div className="flex w-full items-center gap-3">
               <div className="flex-1">
                 <Label>Produto</Label>
+                {/* <Command>
+                  <CommandInput placeholder="Digite o nome do produto" />
+                  <CommandEmpty>Produto não encontrado</CommandEmpty>
+                  <CommandGroup>
+                    {
+                      products?.map(product => (
+                        <CommandItem
+                          key={product.id}
+                          onSelect={(currentValue) => {
+                            setProductSearchValue(currentValue);
+                          }}
+                          // value={`${product.id}-${product.name}-${product.unity.name}`}
+                        >
+                          {product.name}
+                        </CommandItem>
+                      ))
+                    }
+                  </CommandGroup>
+                </Command> */}
                 <Select 
                   onValueChange={(value) => handleSelectProduct(value)}
                   value={`${currentProduct?.id}-${currentProduct?.name}-${currentProduct?.unity}`}
@@ -63,6 +83,12 @@ const NewOrderPage = () => {
                     <SelectValue placeholder="Selecione o produto" />
                   </SelectTrigger>
                   <SelectContent>
+                    <Input 
+                      placeholder="Digite o nome do produto" 
+                      className="mb-2"
+                      autoFocus={false}
+                      onChange={(e) => setProductSearchValue(e.target.value)}
+                    />
                     {
                       products?.map(product => (
                         <SelectItem 

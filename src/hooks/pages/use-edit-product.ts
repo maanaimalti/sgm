@@ -1,5 +1,6 @@
 import { toast } from "@/components/ui/use-toast";
 import { GetAllCategoriesFetcher } from "@/data/fetchers/categories/get-all";
+import { GetAllDepartmentsFetcher } from "@/data/fetchers/departments/get-all";
 import { GetProductByIdFetcher } from "@/data/fetchers/products/get-by-id";
 import { GetAllUnitiesFetcher } from "@/data/fetchers/unities/get-all";
 import { updateProductMutation } from "@/data/mutations/update-product";
@@ -14,7 +15,7 @@ export const useEditProductPage = () => {
   const {id} = useParams();
 
   const editProductMutation = useMutation({
-    mutationFn: (product: ProductForm) => updateProductMutation(product),
+    mutationFn: (product: ProductForm) => updateProductMutation(product, id as string),
     retry: 3,
     retryDelay: 2000,
     onSuccess: (data) => {
@@ -48,18 +49,27 @@ export const useEditProductPage = () => {
     queryFn: GetAllUnitiesFetcher,
   });
 
+  const { data: departments } = useQuery({
+    queryKey: ["departments"],
+    queryFn: GetAllDepartmentsFetcher,
+  });
+
   const form = useForm<ProductForm>({
     resolver: zodResolver(productSchema),
     defaultValues: {
       description: product?.description ?? "",
       name: product?.name ?? "",
       category: product?.category.id ?? "",
+      department: product?.department.id ?? "",
     },
     values: {
       description: product?.description ?? "",
       name: product?.name ?? "",
       category: product?.category.id ?? "",
       unity: product?.unity.id ?? "",
+      department: product?.department.id ?? "",
+      costValue: product?.productValues.costValue ?? 0,
+      saleValue: product?.productValues.saleValue ?? 0,
     }
   });
 
@@ -72,6 +82,7 @@ export const useEditProductPage = () => {
     unities,
     categories,
     product,
+    departments,
     onSubmit
   }
 }

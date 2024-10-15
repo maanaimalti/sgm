@@ -58,7 +58,6 @@ const ProductsPage = () => {
                             <Button
                               size="icon"
                               variant="outline"
-                              disabled
                               onClick={() => handleEditProduct(product.id)}
                             >
                               <EditIcon className="h-4 w-4" />

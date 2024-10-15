@@ -19,7 +19,7 @@ export const Sidebar = () => {
     isBuyer,
     isManager
   } = useSidebar();
-  
+
 
   return (
     <div className="flex h-full max-h-screen flex-col gap-2">
@@ -38,7 +38,7 @@ export const Sidebar = () => {
               <BellIcon className="h-4 w-4" />
               <span className="sr-only">Notificações</span>
             </Button>
-          </PopoverTrigger>  
+          </PopoverTrigger>
           <PopoverContent className={!(notifications?.length) ? "hidden" : ""}>
             <section className="flex p-1 flex-col gap-3 items-center">
               {
@@ -58,14 +58,13 @@ export const Sidebar = () => {
                         <ChevronRightIcon width={15} height={15} />
                       </Button>
                     </div>
-                    <Separator key={`${notification.id}-separator`}/>   
+                    <Separator key={`${notification.id}-separator`} />
                   </>
                 ))
               }
             </section>
           </PopoverContent>
         </Popover>
-        
       </div>
       <div className="flex-1 overflow-auto py-2">
         <nav className="grid items-start px-4 text-sm font-medium">
@@ -105,6 +104,17 @@ export const Sidebar = () => {
                   <PackageIcon className="h-4 w-4" />
                   Produtos{" "}
                 </Link>
+                {/* <Link
+                  href="/estoque"
+                  className={
+                    `
+                      flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary ${pathname.includes("/estoque") ? "text-primary bg-muted" : ""}
+                    `
+                  }
+                >
+                  <LayersIcon className="h-4 w-4" />
+                  Estoque{" "}
+                </Link> */}
                 <Separator className="my-4" />
               </>
             )

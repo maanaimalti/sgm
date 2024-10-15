@@ -10,6 +10,9 @@ export const newProductMutation = async (
     categoryId: product.category,
     name: product.name,
     description: product.description,
+    departmentId: product.department,
+    costValue: product.costValue,
+    saleValue: product.saleValue,
   });
 
   return data;

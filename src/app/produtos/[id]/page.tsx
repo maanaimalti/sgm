@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useEditProductPage } from "@/hooks/pages/use-edit-product";
 
 const NewProductsPage = () => {
-  const { form, categories, unities, product, onSubmit } = useEditProductPage();
+  const { form, categories, unities, product, departments, onSubmit } = useEditProductPage();
 
   return (
     <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
@@ -62,6 +62,32 @@ const NewProductsPage = () => {
                 <div className="grid gap-3">
                   <FormField
                     control={form.control}
+                    name="department"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Departamento</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione o departamento" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {
+                              departments?.map((department) => (
+                                <SelectItem key={department.id} value={department.id}>
+                                  {department.name}
+                                </SelectItem>
+                              ))
+                            }
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
                     name="category"
                     render={({ field }) => (
                       <FormItem>
@@ -82,6 +108,70 @@ const NewProductsPage = () => {
                             }
                           </SelectContent>
                         </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="unity"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Unidade de medida</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Selecione a unidade de medida" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {
+                              unities?.map((unity) => (
+                                <SelectItem key={unity.id} value={unity.id}>
+                                  {unity.name}
+                                </SelectItem>
+                              ))
+                            }
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="costValue"
+                    defaultValue={product?.productValues.costValue ?? 0}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Preço de compra</FormLabel>
+                        <Input 
+                          type="number" 
+                          placeholder="Digite o preço de compra" 
+                          {...field} 
+                          onChange={
+                            (value) => field.onChange(value.target.valueAsNumber)
+                          }
+                        />
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="saleValue"
+                    defaultValue={product?.productValues.saleValue ?? 0}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Preço de venda</FormLabel>
+                        <Input 
+                          type="number" 
+                          placeholder="Digite o preço de venda (se houver)"
+                          {...field} 
+                          onChange={
+                            (value) => field.onChange(value.target.valueAsNumber)
+                          }
+                        />
                         <FormMessage />
                       </FormItem>
                     )}

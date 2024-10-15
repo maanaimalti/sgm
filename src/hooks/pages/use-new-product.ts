@@ -1,5 +1,6 @@
 import { toast } from "@/components/ui/use-toast";
 import { GetAllCategoriesFetcher } from "@/data/fetchers/categories/get-all";
+import { GetAllDepartmentsFetcher } from "@/data/fetchers/departments/get-all";
 import { GetAllUnitiesFetcher } from "@/data/fetchers/unities/get-all";
 import { newProductMutation } from "@/data/mutations/new-product-mutation";
 import { type ProductForm, productSchema } from "@/data/schemas/product-schema";
@@ -41,6 +42,11 @@ export const useNewProductPage = () => {
     queryFn: GetAllUnitiesFetcher,
   });
 
+  const { data: departments } = useQuery({
+    queryKey: ["departments"],
+    queryFn: GetAllDepartmentsFetcher
+  });
+
   const form = useForm<ProductForm>({
     resolver: zodResolver(productSchema),
   });
@@ -53,6 +59,7 @@ export const useNewProductPage = () => {
     form,
     unities,
     categories,
+    departments,
     onSubmit
   }
 }

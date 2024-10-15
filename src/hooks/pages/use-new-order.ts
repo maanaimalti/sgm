@@ -1,9 +1,10 @@
 import { toast } from "@/components/ui/use-toast";
 import { GetAllProductsFetcher } from "@/data/fetchers/products/get-all";
 import { newOrderMutation } from "@/data/mutations/new-order";
-import { useInfiniteQuery, useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { useDebounce } from "../use-debounce";
 
 export const useNewOrderPage = () => {
   const router = useRouter();
@@ -14,6 +15,9 @@ export const useNewOrderPage = () => {
   const [currentQuantity, setCurrentQuantity] = useState(0);
   const [currentEventName, setCurrentEventName] = useState("");
   const [currentObservation, setCurrentObservation] = useState("");
+  const [productSearchValue, setProductSearchValue] = useState("");
+  // const [debouncedProductSearchValue, setDebouncedProductSearchValue] = useState("");
+  const debouncedProductSearchValue = useDebounce(productSearchValue, 500);
 
   const orderMutation = useMutation({
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
@@ -38,15 +42,9 @@ export const useNewOrderPage = () => {
 
   const { 
     data,
-    hasNextPage,
-    fetchNextPage,
-    status
-  } = useInfiniteQuery({
-    initialPageParam: 1,
-    queryKey: ["products"],
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    getNextPageParam: (lastPage: any, allPages) => lastPage.nextCursor,
-    queryFn: ({ pageParam = 1 }) => GetAllProductsFetcher({ page: pageParam }),
+  } = useQuery({
+    queryKey: ["products", productSearchValue],
+    queryFn: () => GetAllProductsFetcher({ page: 1, pageSize: 900, search: debouncedProductSearchValue }),
   });
 
   const handleAddProduct = () => {
@@ -98,10 +96,9 @@ export const useNewOrderPage = () => {
 
   return {
     items,
-    products: data?.pages.flatMap(page => page.products),
+    products: data?.products,
     currentProduct,
     currentQuantity,
-    hasNextPage,
     currentEventName,
     currentObservation,
     setCurrentObservation,
@@ -110,8 +107,8 @@ export const useNewOrderPage = () => {
     handleSelectProduct,
     handleAddProduct,
     setCurrentProduct,
-    fetchNextPage,
     setCurrentQuantity,
     handleConfirmOrder,
+    setProductSearchValue,
   };
 };
