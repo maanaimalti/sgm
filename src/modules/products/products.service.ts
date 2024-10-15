@@ -64,19 +64,18 @@ export class ProductsService {
       },
     };
     if (search) {
+      Logger.log(`Request all products search: ${search}`);
       where = {
         ...where,
         OR: [
           {
             name: {
               contains: search,
-              mode: 'insensitive',
             },
           },
           {
             description: {
               contains: search,
-              mode: 'insensitive',
             },
           },
         ],
@@ -86,6 +85,9 @@ export class ProductsService {
       skip: (page - 1) * pageSize,
       take: pageSize,
       where,
+      orderBy: {
+        name: 'asc',
+      },
       select: {
         category: {
           select: {
