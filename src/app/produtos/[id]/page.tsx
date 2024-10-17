@@ -47,6 +47,7 @@ const NewProductsPage = () => {
                 <div className="grid gap-3">
                   <FormField
                     control={form.control}
+                    defaultValue={product?.description}
                     name="description"
                     render={({ field }) => (
                       <FormItem>
@@ -63,10 +64,11 @@ const NewProductsPage = () => {
                   <FormField
                     control={form.control}
                     name="department"
+                    defaultValue={product?.department.id}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Departamento</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione o departamento" />
@@ -92,7 +94,7 @@ const NewProductsPage = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Categoria</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione a categoria" />
@@ -118,7 +120,7 @@ const NewProductsPage = () => {
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Unidade de medida</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <Select onValueChange={field.onChange} value={field.value}>
                           <FormControl>
                             <SelectTrigger>
                               <SelectValue placeholder="Selecione a unidade de medida" />

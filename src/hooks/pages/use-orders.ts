@@ -66,7 +66,6 @@ export const useOrdersPage = () => {
       const response = await fetch(url)
       const result = await response.blob()
       const urlItem = window.URL.createObjectURL(new Blob([result]));
-      console.log({urlItem});
       const link = document.createElement("a");
       link.setAttribute("href", urlItem);
       link.setAttribute("download", filename);

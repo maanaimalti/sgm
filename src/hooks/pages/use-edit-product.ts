@@ -61,6 +61,9 @@ export const useEditProductPage = () => {
       name: product?.name ?? "",
       category: product?.category.id ?? "",
       department: product?.department.id ?? "",
+      unity: product?.unity.id ?? "",
+      costValue: product?.productValues.costValue ?? 0,
+      saleValue: product?.productValues.saleValue ?? 0,
     },
     values: {
       description: product?.description ?? "",
