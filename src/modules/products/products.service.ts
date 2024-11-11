@@ -35,13 +35,8 @@ export class ProductsService {
           },
         },
         description: product.description,
-        productValues: {
-          create: {
-            costValue: product.costValue,
-            saleValue: product.saleValue,
-            id: this.helpersService.generateId(),
-          },
-        },
+        costValue: product.costValue,
+        saleValue: product.saleValue,
         department: {
           connect: {
             id: product.departmentId,
@@ -141,7 +136,8 @@ export class ProductsService {
         id: true,
         name: true,
         status: true,
-        productValues: true,
+        costValue: true,
+        saleValue: true,
         department: true,
       },
     });
@@ -162,7 +158,8 @@ export class ProductsService {
         description: updateProductDto.description,
         unityId: updateProductDto.unityId,
         departmentId: updateProductDto.departmentId,
-        productValuesId: updateProductDto.productValuesId,
+        costValue: updateProductDto.costValue,
+        saleValue: updateProductDto.saleValue,
         name: updateProductDto.name,
       },
     });

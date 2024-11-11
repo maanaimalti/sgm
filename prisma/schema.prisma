@@ -50,13 +50,14 @@ model product {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   productValuesId String?
+  costValue       Float    @map("cost_value")
+  saleValue       Float?   @map("sale_value")
 
-  department    department?    @relation(fields: [departmentId], references: [id])
-  productValues productValues? @relation(fields: [productValuesId], references: [id])
-  category      category       @relation(fields: [categoryId], references: [id])
-  unity         unity          @relation(fields: [unityId], references: [id])
-  movement      movement[]
-  orderItem     orderItem[]
+  department department? @relation(fields: [departmentId], references: [id])
+  category   category    @relation(fields: [categoryId], references: [id])
+  unity      unity       @relation(fields: [unityId], references: [id])
+  movement   movement[]
+  orderItem  orderItem[]
 
   @@map("products")
 }
@@ -177,16 +178,4 @@ model department {
   product     product[]
 
   @@map("departments")
-}
-
-model productValues {
-  id        String @id
-  costValue Float  @map("cost_value")
-  saleValue Float? @map("sale_value")
-
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  product   product[]
-
-  @@map("product_values")
 }
