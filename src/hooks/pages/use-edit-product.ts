@@ -62,8 +62,8 @@ export const useEditProductPage = () => {
       category: product?.category.id ?? "",
       department: product?.department.id ?? "",
       unity: product?.unity.id ?? "",
-      costValue: product?.productValues.costValue ?? 0,
-      saleValue: product?.productValues.saleValue ?? 0,
+      costValue: product?.costValue ?? 0,
+      saleValue: product?.saleValue ?? 0,
     },
     values: {
       description: product?.description ?? "",
@@ -71,8 +71,8 @@ export const useEditProductPage = () => {
       category: product?.category.id ?? "",
       unity: product?.unity.id ?? "",
       department: product?.department.id ?? "",
-      costValue: product?.productValues.costValue ?? 0,
-      saleValue: product?.productValues.saleValue ?? 0,
+      costValue: product?.costValue ?? 0,
+      saleValue: product?.saleValue ?? 0,
     }
   });
 
@@ -81,6 +81,7 @@ export const useEditProductPage = () => {
   };
 
   return {
+    isLoading: editProductMutation.isPending,
     form,
     unities,
     categories,

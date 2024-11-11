@@ -8,9 +8,18 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useEditProductPage } from "@/hooks/pages/use-edit-product";
+import { LoaderCircleIcon } from "lucide-react";
 
 const NewProductsPage = () => {
-  const { form, categories, unities, product, departments, onSubmit } = useEditProductPage();
+  const {
+    form,
+    categories,
+    unities,
+    product,
+    departments,
+    isLoading,
+    onSubmit
+  } = useEditProductPage();
 
   return (
     <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
@@ -91,6 +100,7 @@ const NewProductsPage = () => {
                   <FormField
                     control={form.control}
                     name="category"
+                    defaultValue={product?.category.id}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Categoria</FormLabel>
@@ -117,6 +127,7 @@ const NewProductsPage = () => {
                   <FormField
                     control={form.control}
                     name="unity"
+                    defaultValue={product?.unity.id}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Unidade de medida</FormLabel>
@@ -143,7 +154,7 @@ const NewProductsPage = () => {
                   <FormField
                     control={form.control}
                     name="costValue"
-                    defaultValue={product?.productValues.costValue ?? 0}
+                    defaultValue={product?.costValue ?? 0}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Preço de compra</FormLabel>
@@ -162,7 +173,7 @@ const NewProductsPage = () => {
                   <FormField
                     control={form.control}
                     name="saleValue"
-                    defaultValue={product?.productValues.saleValue ?? 0}
+                    defaultValue={product?.saleValue ?? 0}
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Preço de venda</FormLabel>
@@ -181,7 +192,13 @@ const NewProductsPage = () => {
                 </div>
                 <div className="flex justify-end gap-2">
                   <Button variant="outline">Cancelar</Button>
-                  <Button>Salvar produto</Button>
+                  <Button disabled={isLoading}>
+                    {
+                      isLoading ? (
+                        <LoaderCircleIcon className="animate-spin" />
+                      ) : "Salvar produto"
+                    }
+                  </Button>
                 </div>
               </form>
             </Form>

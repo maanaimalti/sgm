@@ -12,11 +12,8 @@ export interface ProductResponse {
     name: string;
     id: string;
   };
-  productValues: {
-    costValue: number;
-    saleValue: number;
-    id: string;
-  };
+  costValue: number;
+  saleValue: number;
   description: string;
   name: string;
   status: string;
