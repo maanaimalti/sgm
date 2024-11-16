@@ -35,6 +35,11 @@ export class MovementService {
         id: true,
         quantity: true,
       },
+      where: {
+        product: {
+          id: productId,
+        },
+      },
     });
     if (!stock) {
       await this.prismaService.stock.create({
