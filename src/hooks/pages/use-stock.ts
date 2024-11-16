@@ -17,7 +17,7 @@ export const useStockPage = () => {
 
   return {
     isLoading,
-    stock: data?.stock,
+    stock: data,
     handleUpdateStock
   }
 }

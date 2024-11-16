@@ -1,11 +1,17 @@
 export interface StockReponse {
   id: string;
-  productName: string;
-  area: string;
-  quantity: string;
+  quantity: number;
+  product: {
+    id: string;
+    name: string;
+    department: {
+      name: string;
+      id: string;
+    };
+    unity: {
+      id: string;
+      name: string;
+    };
+  };
 }
 
-export interface StockReponseAll {
-  stock: StockReponse[];
-  total: number;
-}

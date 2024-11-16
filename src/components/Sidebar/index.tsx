@@ -1,7 +1,7 @@
 "use client";
 
 import { useSidebar } from "@/hooks/pages/use-sidebar";
-import { BellIcon, ChevronRightIcon, LogsIcon, PackageIcon, PaperclipIcon, WeightIcon } from "lucide-react";
+import { BellIcon, ChevronRightIcon, LayersIcon, LogsIcon, PackageIcon, PaperclipIcon, WeightIcon } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -104,7 +104,7 @@ export const Sidebar = () => {
                   <PackageIcon className="h-4 w-4" />
                   Produtos{" "}
                 </Link>
-                {/* <Link
+                <Link
                   href="/estoque"
                   className={
                     `
@@ -114,7 +114,7 @@ export const Sidebar = () => {
                 >
                   <LayersIcon className="h-4 w-4" />
                   Estoque{" "}
-                </Link> */}
+                </Link>
                 <Separator className="my-4" />
               </>
             )

@@ -29,7 +29,7 @@ const EstoquePage = () => {
                   <TableHead>Código</TableHead>
                   <TableHead>Produto</TableHead>
                   <TableHead>Quantidade</TableHead>
-                  <TableHead>Área</TableHead>
+                  <TableHead>Setor</TableHead>
                 </TableRow>
               </TableHeader>
 
@@ -42,9 +42,10 @@ const EstoquePage = () => {
                       stock?.map(item => (
                         <TableRow key={item.id}>
                           <TableCell>{item.id}</TableCell>
-                          <TableCell>{item.productName}</TableCell>
-                          <TableCell>{item.quantity}</TableCell>
-                          <TableCell>{item.area}</TableCell>
+                          <TableCell>{item.product.name}</TableCell>
+                          <TableCell>{item.quantity}{item.product.unity.name}</TableCell>
+                          {/* <TableCell>{item.product.department.name}</TableCell> */}
+                          <TableCell>cozinha</TableCell>
                         </TableRow>
                       ))
                     }
