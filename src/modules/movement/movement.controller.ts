@@ -36,7 +36,7 @@ export class MovementController {
     return this.movementService.createBatch(createMovementDto);
   }
 
-  @Get()
+  @Get('/stock')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'kitchen')
   findAllStock(

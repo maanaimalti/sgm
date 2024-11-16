@@ -173,6 +173,12 @@ export class MovementService {
           select: {
             id: true,
             name: true,
+            department: {
+              select: {
+                name: true,
+                id: true,
+              },
+            },
             unity: {
               select: {
                 id: true,
