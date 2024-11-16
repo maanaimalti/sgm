@@ -1,18 +1,19 @@
 import {
-    Body,
-    Controller,
-    Delete,
-    Get,
-    Param,
-    Patch,
-    Post,
-    UseGuards,
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Headers,
+  Param,
+  Post,
+  Query,
+  UseGuards,
 } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { Roles } from 'src/shared/auth/roles.decorator';
 import { RolesGuard } from 'src/shared/auth/roles.guard';
+import type { CreateMovementBatchDto } from './dto/create-movement-batch.dto';
 import type { CreateMovementDto } from './dto/create-movement.dto';
-import type { UpdateMovementDto } from './dto/update-movement.dto';
 // biome-ignore lint/style/useImportType: <explanation>
 import { MovementService } from './movement.service';
 
@@ -28,12 +29,57 @@ export class MovementController {
     return this.movementService.create(createMovementDto);
   }
 
-  @Get()
-  @Post()
+  @Post('/batch')
   @UseGuards(AuthGuard('jwt'), RolesGuard)
   @Roles('admin', 'kitchen')
-  findAll() {
-    return this.movementService.findAll({});
+  createBatch(@Body() createMovementDto: CreateMovementBatchDto) {
+    return this.movementService.createBatch(createMovementDto);
+  }
+
+  @Get()
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'kitchen')
+  findAllStock(
+    @Query()
+    {
+      page,
+      pageSize,
+      search,
+    }: { page?: string | number; pageSize?: string | number; search?: string },
+    @Headers('departmentId') departmentId: string,
+  ) {
+    page = page ? Number.parseInt(page as string) : 1;
+    pageSize = pageSize ? Number.parseInt(pageSize as string) : 10;
+    search = search || undefined;
+    return this.movementService.findAllStock({
+      page,
+      pageSize,
+      search,
+      departmentId,
+    });
+  }
+
+  @Get()
+  @UseGuards(AuthGuard('jwt'), RolesGuard)
+  @Roles('admin', 'kitchen')
+  findAll(
+    @Query()
+    {
+      page,
+      pageSize,
+      search,
+    }: { page?: string | number; pageSize?: string | number; search?: string },
+    @Headers('departmentId') departmentId: string,
+  ) {
+    page = page ? Number.parseInt(page as string) : 1;
+    pageSize = pageSize ? Number.parseInt(pageSize as string) : 10;
+    search = search || undefined;
+    return this.movementService.findAll({
+      page,
+      pageSize,
+      search,
+      departmentId,
+    });
   }
 
   @Get(':id')
@@ -42,17 +88,6 @@ export class MovementController {
   @Roles('admin', 'kitchen')
   findOne(@Param('id') id: string) {
     return this.movementService.findOne(id);
-  }
-
-  @Patch(':id')
-  @Post()
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'kitchen')
-  update(
-    @Param('id') id: string,
-    @Body() updateMovementDto: UpdateMovementDto,
-  ) {
-    return this.movementService.update(id, updateMovementDto);
   }
 
   @Delete(':id')

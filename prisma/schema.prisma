@@ -16,6 +16,11 @@ enum orderStatus {
   @@map("order_status")
 }
 
+enum movementType {
+  in
+  out
+}
+
 model category {
   id          String  @id
   name        String
@@ -58,21 +63,34 @@ model product {
   unity      unity       @relation(fields: [unityId], references: [id])
   movement   movement[]
   orderItem  orderItem[]
+  stock      stock[]
 
   @@map("products")
 }
 
 model movement {
+  id        String       @id
+  productId String
+  quantity  Float
+  type      movementType
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  product product @relation(fields: [productId], references: [id])
+
+  @@map("movements")
+}
+
+model stock {
   id        String   @id
   productId String
-  quantity  Int
-  type      String
+  quantity  Float
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   product product @relation(fields: [productId], references: [id])
 
-  @@map("movements")
+  @@map("stocks")
 }
 
 model user {

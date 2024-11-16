@@ -1,11 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
+import { movementType } from '@prisma/client';
 // biome-ignore lint/style/useImportType: <explanation>
 import { PrismaService } from 'src/shared/db/prisma.service';
 // biome-ignore lint/style/useImportType: <explanation>
 import { HelpersService } from 'src/shared/helpers/helpers.service';
+import type { CreateMovementBatchDto } from './dto/create-movement-batch.dto';
 import type { CreateMovementDto } from './dto/create-movement.dto';
 import type { FindAllMovementDTO } from './dto/find-all-movement.dto';
-import type { UpdateMovementDto } from './dto/update-movement.dto';
 
 @Injectable()
 export class MovementService {
@@ -14,14 +15,14 @@ export class MovementService {
     private readonly helpersService: HelpersService,
   ) {}
 
-  create(createMovementDto: CreateMovementDto) {
+  async create(createMovementDto: CreateMovementDto) {
     const { productId, quantity, type } = createMovementDto;
     const id = this.helpersService.generateId();
-    return this.prismaService.movement.create({
+    const result = await this.prismaService.movement.create({
       data: {
         id,
         quantity,
-        type,
+        type: type === 'in' ? movementType.in : movementType.out,
         product: {
           connect: {
             id: productId,
@@ -29,16 +30,164 @@ export class MovementService {
         },
       },
     });
+    const stock = await this.prismaService.stock.findFirst({
+      select: {
+        id: true,
+        quantity: true,
+      },
+    });
+    if (!stock) {
+      await this.prismaService.stock.create({
+        data: {
+          id: this.helpersService.generateId(),
+          quantity: quantity < 0 ? 0 : quantity,
+          product: {
+            connect: {
+              id: productId,
+            },
+          },
+        },
+      });
+      return result;
+    }
+    let newQuantity = stock.quantity ?? 0;
+    if (type === 'in') {
+      newQuantity += quantity;
+    }
+    if (type === 'out') {
+      newQuantity =
+        stock.quantity - quantity < 0 ? 0 : stock.quantity - quantity;
+    }
+
+    await this.prismaService.stock.update({
+      where: {
+        id: stock.id,
+      },
+      data: {
+        quantity: newQuantity,
+        updatedAt: new Date(),
+      },
+    });
+    return result;
+  }
+
+  async createBatch(createMovementDto: CreateMovementBatchDto) {
+    const { items } = createMovementDto;
+
+    const promises = items.map((item) => this.create(item));
+
+    await Promise.allSettled(promises);
   }
 
   findAll(findAllMovementDto: FindAllMovementDTO) {
-    const { page = 1, pageSize = 10 } = findAllMovementDto;
+    const {
+      page = 1,
+      pageSize = 10,
+      search,
+      departmentId,
+    } = findAllMovementDto;
+    Logger.log(
+      `Request all movements with page: ${page} and page-size: ${pageSize}`,
+    );
+    let where: any = {
+      product: {
+        product: {
+          department: {
+            id: departmentId,
+          },
+        },
+      },
+    };
+    if (search) {
+      Logger.log(`Request all movements search: ${search}`);
+      where = {
+        ...where,
+        OR: [
+          {
+            name: {
+              contains: search,
+            },
+          },
+          {
+            description: {
+              contains: search,
+            },
+          },
+        ],
+      };
+    }
     return this.prismaService.movement.findMany({
-      include: {
-        product: true,
+      select: {
+        id: true,
+        type: true,
+        quantity: true,
+        createdAt: true,
+        updatedAt: true,
+        product: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
       skip: (page - 1) * pageSize,
       take: pageSize,
+      where,
+      orderBy: {
+        createdAt: 'desc',
+      },
+    });
+  }
+
+  findAllStock(findAllMovementDto: FindAllMovementDTO) {
+    const { page = 1, pageSize = 10, search } = findAllMovementDto;
+    Logger.log(
+      `Request all stocks with page: ${page} and page-size: ${pageSize}`,
+    );
+    let where: any = {};
+    if (search) {
+      Logger.log(`Request all movements search: ${search}`);
+      where = {
+        ...where,
+        OR: [
+          {
+            name: {
+              contains: search,
+            },
+          },
+          {
+            description: {
+              contains: search,
+            },
+          },
+        ],
+      };
+    }
+    return this.prismaService.stock.findMany({
+      select: {
+        id: true,
+        quantity: true,
+        createdAt: true,
+        updatedAt: true,
+        product: {
+          select: {
+            id: true,
+            name: true,
+            unity: {
+              select: {
+                id: true,
+                name: true,
+              },
+            },
+          },
+        },
+      },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      where,
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
   }
 
@@ -49,18 +198,6 @@ export class MovementService {
       },
       include: {
         product: true,
-      },
-    });
-  }
-
-  async update(id: string, updateMovementDto: UpdateMovementDto) {
-    await this.prismaService.movement.update({
-      where: {
-        id,
-      },
-      data: {
-        type: updateMovementDto.type,
-        quantity: updateMovementDto.quantity,
       },
     });
   }

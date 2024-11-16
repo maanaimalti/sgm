@@ -1,11 +1,18 @@
-import { IsNumber, IsOptional } from 'class-validator';
+import { IsNotEmpty, IsNumber, IsOptional, IsString } from 'class-validator';
 
 export class FindAllMovementDTO {
   @IsNumber()
   @IsOptional()
-  page?: number;
+  page? = 1;
 
   @IsNumber()
   @IsOptional()
-  pageSize?: number;
+  pageSize? = 10;
+
+  @IsOptional()
+  search?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  departmentId: string;
 }
