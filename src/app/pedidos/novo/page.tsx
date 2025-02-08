@@ -3,13 +3,16 @@
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverTrigger } from "@/components/ui/popover";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useNewOrderPage } from "@/hooks/pages/use-new-order";
-import { TrashIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { PopoverContent } from "@radix-ui/react-popover";
+import { CheckIcon, ChevronsUpDownIcon, TrashIcon } from "lucide-react";
 
 const NewOrderPage = () => {
   const {
@@ -75,7 +78,51 @@ const NewOrderPage = () => {
                     }
                   </CommandGroup>
                 </Command> */}
-                <Select 
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      // aria-expanded={open}
+                      className="w-full justify-between"
+                    >
+                      {currentProduct?.name
+                        ? currentProduct.name
+                        : "Selecione o produto"}
+                      <ChevronsUpDownIcon className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="p-0 z-20">
+                    <Command className="z-30">
+                      <CommandInput placeholder="Pesquisar produto" />
+                      <CommandList>
+                        <CommandEmpty>Produto não encontrado.</CommandEmpty>
+                      </CommandList>
+                      <CommandGroup>
+                        {
+                          products?.map(product => (
+                            <CommandItem
+                              key={product.id}
+                              value={`${product.id}-${product.name}-${product.unity.name}`}
+                              onSelect={(currentValue) => {
+                                setProductSearchValue(currentValue)
+                              }}
+                            >
+                              <CheckIcon 
+                                className={cn(
+                                  "mr-2 h-4 w-4",
+                                  currentProduct?.id === product.id ? "opacity-100" : "opacity-0"
+                                )}
+                              />
+                              {product.name}
+                            </CommandItem>
+                          ))
+                        }
+                      </CommandGroup>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+                {/* <Select 
                   onValueChange={(value) => handleSelectProduct(value)}
                   value={`${currentProduct?.id}-${currentProduct?.name}-${currentProduct?.unity}`}
                 >
@@ -100,7 +147,7 @@ const NewOrderPage = () => {
                       ))
                     }
                   </SelectContent>
-                </Select>
+                </Select> */}
               </div>
               <div className="flex-1">
                 <Label>Quantidade</Label>

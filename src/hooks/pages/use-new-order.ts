@@ -3,7 +3,7 @@ import { GetAllProductsFetcher } from "@/data/fetchers/products/get-all";
 import { newOrderMutation } from "@/data/mutations/new-order";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useDebounce } from "../use-debounce";
 
 export const useNewOrderPage = () => {
@@ -93,6 +93,10 @@ export const useNewOrderPage = () => {
   const handleRemoveItem = (id: string) => {
     setItems(prevItems => prevItems.filter(item => item.id !== id));
   }
+
+  useEffect(() => {
+    console.log({productSearchValue})
+  }, [productSearchValue])
 
   return {
     items,
