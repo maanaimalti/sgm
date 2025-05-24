@@ -106,6 +106,7 @@ const NewOrderPage = () => {
                               value={`${product.id}-${product.name}-${product.unity.name}`}
                               onSelect={(currentValue) => {
                                 setProductSearchValue(currentValue)
+                                handleSelectProduct(currentValue);
                               }}
                             >
                               <CheckIcon 

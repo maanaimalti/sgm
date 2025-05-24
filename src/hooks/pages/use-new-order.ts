@@ -64,6 +64,7 @@ export const useNewOrderPage = () => {
       ]
     );
     setCurrentProduct(null);
+    setProductSearchValue("");
     setCurrentQuantity(0);
   };
 
