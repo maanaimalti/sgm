@@ -11,6 +11,7 @@ import { AuthModule } from './shared/auth/auth.module';
 import { HelpersModule } from './shared/helpers/helpers.module';
 import { NotificationModule } from './modules/notification/notification.module';
 import { DepartmentModule } from './modules/department/department.module';
+import { ReportsModule } from './modules/reports/reports.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { DepartmentModule } from './modules/department/department.module';
     OrdersModule,
     NotificationModule,
     DepartmentModule,
+    ReportsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -103,6 +103,7 @@ model user {
   orderReports orderReports[]
   notification notification[]
   department   department[]
+  reports      report[]
 
   @@map("users")
 }
@@ -179,6 +180,7 @@ model notification {
   text       String
   type       String
   to         String
+  metadata   String?   // JSON string for additional data like download URLs
   readableAt DateTime? @map("readable_at")
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
@@ -196,4 +198,41 @@ model department {
   product     product[]
 
   @@map("departments")
+}
+
+enum reportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+
+  @@map("report_status")
+}
+
+enum reportType {
+  PRODUCTS
+  ORDERS
+  MOVEMENTS
+  STOCK
+  USERS
+
+  @@map("report_type")
+}
+
+model report {
+  id           String       @id
+  type         reportType
+  userId       String
+  departmentId String?
+  fileName     String
+  filePath     String?
+  status       reportStatus @default(PENDING)
+  parameters   String?      // JSON string for report filters/parameters
+  errorMessage String?      @map("error_message")
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  user user @relation(fields: [userId], references: [id])
+
+  @@map("reports")
 }

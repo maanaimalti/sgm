@@ -15,16 +15,17 @@ export class NotificationService {
   ) {}
 
   async create(createNotificationDto: CreateNotificationDto) {
-    const { userId, type, text } = createNotificationDto;
+    const { to, type, text, metadata } = createNotificationDto;
     const id = this.helpersService.generateId();
     await this.prismaService.notification.create({
       data: {
         id,
         text,
         type,
+        metadata,
         user: {
           connect: {
-            id: userId,
+            id: to,
           },
         },
       },

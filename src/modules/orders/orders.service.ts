@@ -241,7 +241,7 @@ export class OrdersService {
             },
           });
           await this.notificationService.create({
-            userId: order.user.id,
+            to: order.user.id,
             text: 'Você tem um novo relatório de pedido disponível.',
             type: 'ORDER_REPORT',
           });

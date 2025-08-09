@@ -13,7 +13,7 @@ export class CategoryService {
   ) {}
 
   create(CreateCategoryDto: CreateCategoryDto) {
-    const { name, description} = CreateCategoryDto;
+    const { name, description } = CreateCategoryDto;
     const id = this.helpersService.generateId();
     return this.prismaService.category.create({
       data: {
@@ -36,24 +36,23 @@ export class CategoryService {
     });
   }
 
-async update(id: string, updateCategoryDto: UpdateCategoryDto) {
-  await this.prismaService.category.update({
-    where: {
-      id,
-    },
-    data: {
-      description: updateCategoryDto.description,
-      name: updateCategoryDto.name
-    },
-  });
-}
+  async update(id: string, updateCategoryDto: UpdateCategoryDto) {
+    await this.prismaService.category.update({
+      where: {
+        id,
+      },
+      data: {
+        description: updateCategoryDto.description,
+        name: updateCategoryDto.name,
+      },
+    });
+  }
 
   async remove(id: string) {
     await this.prismaService.category.delete({
       where: {
         id,
-      }
-    })
-}
-
+      },
+    });
+  }
 }
