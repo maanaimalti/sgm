@@ -1,12 +1,15 @@
-FROM node:20
-
-WORKDIR /app
-
-COPY package*.json ./
+FROM node:20-alpine AS base
 
 RUN npm install -g pnpm
 
-RUN pnpm install
+WORKDIR /app
+
+COPY package.json ./
+COPY pnpm-lock.yaml ./
+
+RUN pnpm fetch --frozen-lockfile
+
+RUN pnpm install --frozen-lockfile --prod
 
 COPY . .
 
