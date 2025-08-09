@@ -4,12 +4,12 @@ WORKDIR /app
 
 COPY package.json ./
 
-# Use npm instead of pnpm - no external downloads needed
-RUN npm ci --only=production
+# Generate package-lock.json and install
+RUN npm install --package-lock-only && \
+    npm ci --omit=dev
 
 COPY . .
 
-# Run your Prisma commands with npx instead of pnpm
 RUN npx prisma migrate deploy
 
 RUN npx prisma generate
