@@ -1,6 +1,8 @@
 FROM node:20-alpine AS base
 
-RUN npm install -g pnpm
+# Enable corepack and use it to install pnpm (avoids npm registry issues)
+RUN corepack enable
+RUN corepack prepare pnpm@latest --activate
 
 WORKDIR /app
 
