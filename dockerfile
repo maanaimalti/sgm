@@ -1,21 +1,21 @@
-FROM node:20-alpine AS base
+FROM node:20
 
 WORKDIR /app
 
-COPY package.json ./
+COPY package*.json ./
 
-# Generate package-lock.json and install
-RUN npm install --package-lock-only && \
-    npm ci --omit=dev
+RUN npm install -g pnpm
+
+RUN pnpm install
 
 COPY . .
 
-RUN npx prisma migrate deploy
+RUN pnpm migrate:prod
 
-RUN npx prisma generate
+RUN pnpm run prisma:generate
 
-RUN npm run build
+RUN pnpm run build
 
 EXPOSE 3000
 
-CMD ["npm", "run", "start:prod"]
+CMD ["pnpm", "run", "start:prod"]
