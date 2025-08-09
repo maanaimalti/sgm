@@ -1,8 +1,10 @@
 FROM node:20-alpine AS base
 
-# Enable corepack and use it to install pnpm (avoids npm registry issues)
-RUN corepack enable
-RUN corepack prepare pnpm@latest --activate
+# Install pnpm directly without relying on npm registry
+RUN apk add --no-cache curl && \
+    curl -fsSL https://get.pnpm.io/install.sh | sh - && \
+    ln -s /root/.local/share/pnpm/pnpm /usr/local/bin/pnpm && \
+    pnpm --version
 
 WORKDIR /app
 
