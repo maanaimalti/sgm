@@ -3,16 +3,14 @@ FROM node:20
 WORKDIR /app
 
 COPY package*.json ./
+COPY pnpm-lock.yaml ./
+COPY prisma ./prisma/
 
 RUN npm install -g pnpm
 
 RUN pnpm install
 
 COPY . .
-
-RUN pnpm migrate:prod
-
-RUN pnpm run prisma:generate
 
 RUN pnpm run build
 

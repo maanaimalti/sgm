@@ -6,7 +6,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "3000:3000"
+      - "3333:3000"
     environment:
       - NODE_ENV=development
       - DATABASE_URL=mysql://root:sgm@db:3306/sgm
