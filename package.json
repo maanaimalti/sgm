@@ -1,8 +1,9 @@
 {
   "name": "sgm-api",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "",
   "author": "",
+  "packageManager": "pnpm@9.15.0",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
