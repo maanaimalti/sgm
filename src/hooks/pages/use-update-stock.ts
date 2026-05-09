@@ -9,14 +9,20 @@ import { useDebounce } from "../use-debounce";
 export const useUpdateStock = () => {
   const router = useRouter();
   const [items, setItems] = useState<
-    { id: string; quantity: number; name: string; unity: string; type: 'in' | 'out' }[]
+    {
+      id: string;
+      quantity: number;
+      name: string;
+      unity: string;
+      type: "in" | "out";
+    }[]
   >([]);
   const [currentProduct, setCurrentProduct] = useState<{
     id: string;
     name: string;
     unity: string;
   } | null>(null);
-  const [transactionType, setTransactionType] = useState<'in' | 'out'>('in');
+  const [transactionType, setTransactionType] = useState<"in" | "out">("in");
   const [currentQuantity, setCurrentQuantity] = useState(0);
   const [productSearchValue, setProductSearchValue] = useState("");
   const debouncedProductSearchValue = useDebounce(productSearchValue, 500);
@@ -92,9 +98,9 @@ export const useUpdateStock = () => {
     setCurrentProduct({ id, name, unity });
   };
 
-  const handleSelectTransactionType = (transactionType: 'in' | 'out') => {
+  const handleSelectTransactionType = (transactionType: "in" | "out") => {
     setTransactionType(transactionType);
-  }
+  };
 
   const handleRemoveItem = (id: string) => {
     setItems((prevItems) => prevItems.filter((item) => item.id !== id));

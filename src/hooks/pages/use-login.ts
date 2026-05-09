@@ -4,6 +4,7 @@ import { type LoginForm, loginSchema } from "@/data/schemas/login-schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation } from "@tanstack/react-query";
 import type { AxiosError } from "axios";
+import { jwtDecode } from "jwt-decode";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
@@ -12,7 +13,7 @@ export const useLogin = () => {
   const router = useRouter();
 
   const loginMutate = useMutation({
-    mutationKey: ['login'],
+    mutationKey: ["login"],
     mutationFn: loginMutation,
     onError: (error: AxiosError) => {
       if (error?.response?.status === 401) {
@@ -32,9 +33,15 @@ export const useLogin = () => {
       }
     },
     onSuccess: (data) => {
-      localStorage.setItem('accessToken', data.accessToken);
-      router.push('/pedidos');
-    }
+      localStorage.setItem("accessToken", data.accessToken);
+      const { exp } = jwtDecode<{ exp?: number }>(data.accessToken);
+      const expires = exp
+        ? `; expires=${new Date(exp * 1000).toUTCString()}`
+        : "";
+      const secure = window.location.protocol === "https:" ? "; Secure" : "";
+      document.cookie = `accessToken=${data.accessToken}; path=/; SameSite=Lax${expires}${secure}`;
+      router.push("/pedidos");
+    },
   });
 
   const form = useForm<LoginForm>({
@@ -50,4 +57,4 @@ export const useLogin = () => {
     loginMutateIsLoading: loginMutate.isPending,
     onSubmit,
   };
-}
+};

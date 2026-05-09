@@ -18,7 +18,7 @@ export const useJwt = <T>(tokenKey: string) => {
   }, [tokenKey]);
 
   return jwtData;
-}
+};
 
 export const getJwtData = <T>(token: string) => {
   try {
@@ -27,4 +27,4 @@ export const getJwtData = <T>(token: string) => {
     console.error("Invalid token:", error);
     return null;
   }
-}
+};

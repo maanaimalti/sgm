@@ -2,7 +2,12 @@ import { useToast } from "@/components/ui/use-toast";
 import { GetAllProductsFetcher } from "@/data/fetchers/products/get-all";
 import { deleteProductMutation } from "@/data/mutations/delete-product";
 
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -20,7 +25,7 @@ export const useProductPage = () => {
         title: "Produto deletado com sucesso",
         duration: 2000,
       });
-      queryClient.invalidateQueries({queryKey: ["products", currentPage]});
+      queryClient.invalidateQueries({ queryKey: ["products", currentPage] });
     },
     onError: () => {
       toast({
@@ -35,7 +40,7 @@ export const useProductPage = () => {
   const { data, isLoading } = useQuery({
     queryKey: ["products", currentPage],
     queryFn: () => GetAllProductsFetcher({ page: currentPage }),
-    placeholderData: keepPreviousData
+    placeholderData: keepPreviousData,
   });
 
   const handleDeleteProduct = (id: string) => {

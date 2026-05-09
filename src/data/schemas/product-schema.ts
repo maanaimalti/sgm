@@ -10,8 +10,10 @@ export const productSchema = z.object({
   saleValue: z.number().optional(),
 });
 
-export const productUpdateSchema = z.object({
-  id: z.string({ message: "ID é obrigatório" }),
-}).merge(productSchema);
+export const productUpdateSchema = z
+  .object({
+    id: z.string({ message: "ID é obrigatório" }),
+  })
+  .merge(productSchema);
 
 export type ProductForm = z.infer<typeof productSchema>;

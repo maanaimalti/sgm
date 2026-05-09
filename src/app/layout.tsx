@@ -11,14 +11,12 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "Sistema de gestão de maanaim",
   description: "Sistema destinado a gerenciar o maanaim de alagoas",
-  manifest: '/site.webmanifest',
+  manifest: "/site.webmanifest",
   openGraph: {
     title: "Sistema de gestão de maanaim",
     description: "Sistema destinado a gerenciar o maanaim de alagoas",
-    images: [
-      '/logo.png',
-    ]
-  }
+    images: ["/logo.png"],
+  },
 };
 
 export default function RootLayout({

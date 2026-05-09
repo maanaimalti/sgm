@@ -3,11 +3,25 @@
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverTrigger } from "@/components/ui/popover";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { useNewOrderPage } from "@/hooks/pages/use-new-order";
 import { cn } from "@/lib/utils";
@@ -29,7 +43,7 @@ const NewOrderPage = () => {
     handleRemoveItem,
     handleConfirmOrder,
     setCurrentEventName,
-    setProductSearchValue
+    setProductSearchValue,
   } = useNewOrderPage();
 
   return (
@@ -41,16 +55,14 @@ const NewOrderPage = () => {
         <Header />
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
           <div className="flex items-center gap-2">
-            <h1 className="font-semibold text-lg md:text-2xl">
-              Pedido  
-            </h1>
+            <h1 className="font-semibold text-lg md:text-2xl">Pedido</h1>
           </div>
           <div className="border shadow-sm rounded-lg p-6 gap-8 flex flex-col">
             <div className="flex flex-col gap-2">
               <Label>Nome do evento</Label>
-              <Input 
-                placeholder="Digite o nome do evento" 
-                value={currentEventName} 
+              <Input
+                placeholder="Digite o nome do evento"
+                value={currentEventName}
                 onChange={(e) => setCurrentEventName(e.target.value)}
               />
             </div>
@@ -59,31 +71,12 @@ const NewOrderPage = () => {
             <div className="flex w-full items-center gap-3">
               <div className="flex-1">
                 <Label>Produto</Label>
-                {/* <Command>
-                  <CommandInput placeholder="Digite o nome do produto" />
-                  <CommandEmpty>Produto não encontrado</CommandEmpty>
-                  <CommandGroup>
-                    {
-                      products?.map(product => (
-                        <CommandItem
-                          key={product.id}
-                          onSelect={(currentValue) => {
-                            setProductSearchValue(currentValue);
-                          }}
-                          // value={`${product.id}-${product.name}-${product.unity.name}`}
-                        >
-                          {product.name}
-                        </CommandItem>
-                      ))
-                    }
-                  </CommandGroup>
-                </Command> */}
                 <Popover>
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
+                      // biome-ignore lint/a11y/useSemanticElements: combobox pattern uses Popover+Command, not native <select>
                       role="combobox"
-                      // aria-expanded={open}
                       className="w-full justify-between"
                     >
                       {currentProduct?.name
@@ -99,72 +92,46 @@ const NewOrderPage = () => {
                         <CommandEmpty>Produto não encontrado.</CommandEmpty>
                       </CommandList>
                       <CommandGroup>
-                        {
-                          products?.map(product => (
-                            <CommandItem
-                              key={product.id}
-                              value={`${product.id}-${product.name}-${product.unity.name}`}
-                              onSelect={(currentValue) => {
-                                setProductSearchValue(currentValue)
-                                handleSelectProduct(currentValue);
-                              }}
-                            >
-                              <CheckIcon 
-                                className={cn(
-                                  "mr-2 h-4 w-4",
-                                  currentProduct?.id === product.id ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              {product.name}
-                            </CommandItem>
-                          ))
-                        }
+                        {products?.map((product) => (
+                          <CommandItem
+                            key={product.id}
+                            value={`${product.id}-${product.name}-${product.unity.name}`}
+                            onSelect={(currentValue) => {
+                              setProductSearchValue(currentValue);
+                              handleSelectProduct(currentValue);
+                            }}
+                          >
+                            <CheckIcon
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                currentProduct?.id === product.id
+                                  ? "opacity-100"
+                                  : "opacity-0",
+                              )}
+                            />
+                            {product.name}
+                          </CommandItem>
+                        ))}
                       </CommandGroup>
                     </Command>
                   </PopoverContent>
                 </Popover>
-                {/* <Select 
-                  onValueChange={(value) => handleSelectProduct(value)}
-                  value={`${currentProduct?.id}-${currentProduct?.name}-${currentProduct?.unity}`}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione o produto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <Input 
-                      placeholder="Digite o nome do produto" 
-                      className="mb-2"
-                      autoFocus={false}
-                      onChange={(e) => setProductSearchValue(e.target.value)}
-                    />
-                    {
-                      products?.map(product => (
-                        <SelectItem 
-                          key={product.id} 
-                          value={`${product.id}-${product.name}-${product.unity.name}`}
-                        >
-                          {product.name}
-                        </SelectItem>
-                      ))
-                    }
-                  </SelectContent>
-                </Select> */}
               </div>
               <div className="flex-1">
                 <Label>Quantidade</Label>
                 <Input
                   className="w-full"
-                  placeholder="Digite a quantidade" 
-                  type="number" 
+                  placeholder="Digite a quantidade"
+                  type="number"
                   value={currentQuantity || ""}
                   onChange={(e) => setCurrentQuantity(Number(e.target.value))}
                 />
               </div>
             </div>
             <div className="flex w-full">
-              <Button 
-                onClick={handleAddProduct} 
-                className="w-full" 
+              <Button
+                onClick={handleAddProduct}
+                className="w-full"
                 variant="outline"
                 disabled={!currentProduct || !currentQuantity}
               >
@@ -175,9 +142,9 @@ const NewOrderPage = () => {
           <div className="border shadow-sm rounded-lg p-6 flex flex-col gap-8">
             <div className="flex flex-col gap-2 w-full">
               <Label>Observação</Label>
-              <Textarea 
-                value={currentObservation} 
-                onChange={(e) => setCurrentObservation(e.target.value)} 
+              <Textarea
+                value={currentObservation}
+                onChange={(e) => setCurrentObservation(e.target.value)}
               />
             </div>
           </div>
@@ -191,24 +158,22 @@ const NewOrderPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {
-                  items?.map(item => (
-                    <TableRow key={item.id}>
-                      <TableCell>{item.name}</TableCell>
-                      <TableCell>
-                        {item.quantity || " - "} {item.unity}
-                      </TableCell>
-                      <TableCell>
-                        <Button 
-                          onClick={() => handleRemoveItem(item.id)} 
-                          variant="ghost"
-                        >
-                          <TrashIcon />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                }
+                {items?.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell>
+                      {item.quantity || " - "} {item.unity}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        onClick={() => handleRemoveItem(item.id)}
+                        variant="ghost"
+                      >
+                        <TrashIcon />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
             <div>
@@ -225,6 +190,6 @@ const NewOrderPage = () => {
       </div>
     </div>
   );
-}
+};
 
 export default NewOrderPage;

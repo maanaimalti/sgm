@@ -44,7 +44,7 @@ export const useNewProductPage = () => {
 
   const { data: departments } = useQuery({
     queryKey: ["departments"],
-    queryFn: GetAllDepartmentsFetcher
+    queryFn: GetAllDepartmentsFetcher,
   });
 
   const form = useForm<ProductForm>({
@@ -60,6 +60,6 @@ export const useNewProductPage = () => {
     unities,
     categories,
     departments,
-    onSubmit
-  }
-}
+    onSubmit,
+  };
+};

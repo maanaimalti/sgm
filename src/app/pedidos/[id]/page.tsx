@@ -3,7 +3,14 @@
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useEditOrderPage } from "@/hooks/pages/use-edit-order";
 import { LoaderCircleIcon } from "lucide-react";
 
@@ -38,16 +45,14 @@ const EditOrderPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {
-                  order?.orderItem.map(item => (
-                    <TableRow key={item.id}>
-                      <TableCell>{item.product.name}</TableCell>
-                      <TableCell>
-                        {item.quantity || " - "} {item.product.unity.name}
-                      </TableCell>
-                    </TableRow>
-                  ))
-                }
+                {order?.orderItem.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>{item.product.name}</TableCell>
+                    <TableCell>
+                      {item.quantity || " - "} {item.product.unity.name}
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
             <div className="flex gap-6 mt-5">
@@ -57,29 +62,29 @@ const EditOrderPage = () => {
                 disabled={cancelIsLoading || order?.status === "CANCELED"}
                 onClick={handleCancelOrder}
               >
-                {
-                  cancelIsLoading ? 
-                    <LoaderCircleIcon className="animate-spin h-4 w-4" /> : 
-                    "Cancelar pedido"
-                }
+                {cancelIsLoading ? (
+                  <LoaderCircleIcon className="animate-spin h-4 w-4" />
+                ) : (
+                  "Cancelar pedido"
+                )}
               </Button>
               <Button
                 className="flex-1"
                 disabled={confirmIsLoading || order?.status === "APPROVED"}
                 onClick={handleConfirmOrder}
               >
-                {
-                  confirmIsLoading ?
-                    <LoaderCircleIcon className="animate-spin h-4 w-4" /> :
-                    "Confirmar pedido"
-                }
+                {confirmIsLoading ? (
+                  <LoaderCircleIcon className="animate-spin h-4 w-4" />
+                ) : (
+                  "Confirmar pedido"
+                )}
               </Button>
             </div>
           </div>
         </main>
       </div>
     </div>
-  )
+  );
 };
 
 export default EditOrderPage;

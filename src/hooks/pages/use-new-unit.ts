@@ -13,7 +13,7 @@ export const useNewUnit = () => {
   const queryClient = useQueryClient();
 
   const createUnitMutation = useMutation({
-    mutationKey: ['create-unit'],
+    mutationKey: ["create-unit"],
     mutationFn: newUnitMutation,
     onError: () => {
       toast({
@@ -31,7 +31,7 @@ export const useNewUnit = () => {
       queryClient.invalidateQueries({
         queryKey: ["unities"],
       });
-      router.push('/unidade-de-medida');
+      router.push("/unidade-de-medida");
     },
   });
 
@@ -46,6 +46,6 @@ export const useNewUnit = () => {
   return {
     form,
     createUnitIsLoading: createUnitMutation.isPending,
-    onSubmit
+    onSubmit,
   };
 };

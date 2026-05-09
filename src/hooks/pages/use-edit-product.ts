@@ -12,10 +12,11 @@ import { useForm } from "react-hook-form";
 
 export const useEditProductPage = () => {
   const router = useRouter();
-  const {id} = useParams();
+  const { id } = useParams();
 
   const editProductMutation = useMutation({
-    mutationFn: (product: ProductForm) => updateProductMutation(product, id as string),
+    mutationFn: (product: ProductForm) =>
+      updateProductMutation(product, id as string),
     retry: 3,
     retryDelay: 2000,
     onSuccess: (data) => {
@@ -73,7 +74,7 @@ export const useEditProductPage = () => {
       department: product?.department.id ?? "",
       costValue: product?.costValue ?? 0,
       saleValue: product?.saleValue ?? 0,
-    }
+    },
   });
 
   const onSubmit = (data: ProductForm) => {
@@ -87,6 +88,6 @@ export const useEditProductPage = () => {
     categories,
     product,
     departments,
-    onSubmit
-  }
-}
+    onSubmit,
+  };
+};

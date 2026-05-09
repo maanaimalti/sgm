@@ -3,7 +3,14 @@
 import { Sidebar } from "@/components/Sidebar";
 import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useNewUnit } from "@/hooks/pages/use-new-unit";
@@ -21,24 +28,26 @@ const NewUnitPage = () => {
         <Header />
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
           <div className="flex items-center justify-between">
-            <h1 className="font-semibold text-lg md:text-2xl">Nova unidade de medida</h1>
+            <h1 className="font-semibold text-lg md:text-2xl">
+              Nova unidade de medida
+            </h1>
           </div>
           <div className="border shadow-sm rounded-lg p-6">
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)}>
                 <div className="grid gap-4">
                   <div className="grid gap-2">
-                    <FormField 
+                    <FormField
                       control={form.control}
                       name="name"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel htmlFor="name">Name</FormLabel>
                           <FormControl>
-                            <Input 
-                              id="name" 
-                              placeholder="Digite a unidade de medida" 
-                              {...field} 
+                            <Input
+                              id="name"
+                              placeholder="Digite a unidade de medida"
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />
@@ -52,12 +61,14 @@ const NewUnitPage = () => {
                       name="description"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel htmlFor="description">Descrição (opcional)</FormLabel>
+                          <FormLabel htmlFor="description">
+                            Descrição (opcional)
+                          </FormLabel>
                           <FormControl>
-                            <Textarea 
-                              id="description" 
-                              placeholder="Digite a descrição da unidade de medida" 
-                              {...field} 
+                            <Textarea
+                              id="description"
+                              placeholder="Digite a descrição da unidade de medida"
+                              {...field}
                             />
                           </FormControl>
                           <FormMessage />
@@ -65,15 +76,12 @@ const NewUnitPage = () => {
                       )}
                     />
                   </div>
-                  <Button 
-                    type="submit" 
-                    disabled={createUnitIsLoading}
-                  >
-                    {
-                      createUnitIsLoading ? (
-                        <LoaderCircleIcon className="animate-spin h-4 w-4" />
-                      ) : "Salvar"
-                    }
+                  <Button type="submit" disabled={createUnitIsLoading}>
+                    {createUnitIsLoading ? (
+                      <LoaderCircleIcon className="animate-spin h-4 w-4" />
+                    ) : (
+                      "Salvar"
+                    )}
                   </Button>
                 </div>
               </form>
@@ -83,6 +91,6 @@ const NewUnitPage = () => {
       </section>
     </div>
   );
-}
+};
 
 export default NewUnitPage;

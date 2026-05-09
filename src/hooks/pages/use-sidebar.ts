@@ -5,17 +5,19 @@ import { useJwt } from "../use-jwt";
 
 export const useSidebar = () => {
   const { data, isLoading } = useQuery({
-    queryKey: ['notifications'],
+    queryKey: ["notifications"],
     queryFn: getAllNotifications,
-    refetchInterval: (1000 * 60) * 2
+    refetchInterval: 1000 * 60 * 2,
   });
   const userData = useJwt<UserData>("accessToken");
 
-  const handleClickNotification = async (notification: { id: string, type: string }) => {
+  const handleClickNotification = async (notification: {
+    id: string;
+    type: string;
+  }) => {
     if (notification.type !== "ORDER_REPORT") return;
     await Promise.all([readNotificationMutation(notification.id)]);
-
-  }
+  };
 
   return {
     notifications: data,
@@ -24,9 +26,9 @@ export const useSidebar = () => {
     isKitchen: userData?.roles.includes("kitchen"),
     isManager: userData?.roles.includes("manager"),
     isBuyer: userData?.roles.includes("buyer"),
-    handleClickNotification
+    handleClickNotification,
   };
-}
+};
 
 interface UserData {
   username: string;

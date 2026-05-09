@@ -1,6 +1,9 @@
 import { useToast } from "@/components/ui/use-toast";
 import { newCategoryMutation } from "@/data/mutations/new-category";
-import { type CategoryForm, categorySchema } from "@/data/schemas/category-schema";
+import {
+  type CategoryForm,
+  categorySchema,
+} from "@/data/schemas/category-schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
@@ -12,7 +15,7 @@ export const useNewCategory = () => {
   const queryClient = useQueryClient();
 
   const createCategoryMutation = useMutation({
-    mutationKey: ['create-category'],
+    mutationKey: ["create-category"],
     mutationFn: newCategoryMutation,
     onError: () => {
       toast({
@@ -30,7 +33,7 @@ export const useNewCategory = () => {
       queryClient.invalidateQueries({
         queryKey: ["categories"],
       });
-      router.push('/categorias');
+      router.push("/categorias");
     },
   });
 
@@ -45,6 +48,6 @@ export const useNewCategory = () => {
   return {
     form,
     createCategoryIsLoading: createCategoryMutation.isPending,
-    onSubmit
+    onSubmit,
   };
 };

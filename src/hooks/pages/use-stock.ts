@@ -8,7 +8,7 @@ export const useStockPage = () => {
   const { data, isLoading } = useQuery({
     queryKey: ["stock"],
     queryFn: () => getAllStockFetcher({}),
-    placeholderData: keepPreviousData
+    placeholderData: keepPreviousData,
   });
 
   const handleUpdateStock = () => {
@@ -18,6 +18,6 @@ export const useStockPage = () => {
   return {
     isLoading,
     stock: data,
-    handleUpdateStock
-  }
-}
+    handleUpdateStock,
+  };
+};

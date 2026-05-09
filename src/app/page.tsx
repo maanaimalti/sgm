@@ -1,8 +1,22 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { useLogin } from "@/hooks/pages/use-login";
 import { LoaderCircleIcon } from "lucide-react";
@@ -28,12 +42,14 @@ export default function LoginPage() {
             <form onSubmit={form.handleSubmit(onSubmit)}>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <FormField 
+                  <FormField
                     control={form.control}
                     name="username"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel htmlFor="username">Nome de usuário</FormLabel>
+                        <FormLabel htmlFor="username">
+                          Nome de usuário
+                        </FormLabel>
                         <FormControl>
                           <Input
                             id="username"
@@ -49,7 +65,7 @@ export default function LoginPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <FormField 
+                  <FormField
                     control={form.control}
                     name="password"
                     render={({ field }) => (
@@ -71,10 +87,16 @@ export default function LoginPage() {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button className="w-full" type="submit" disabled={loginMutateIsLoading}>
+                <Button
+                  className="w-full"
+                  type="submit"
+                  disabled={loginMutateIsLoading}
+                >
                   {loginMutateIsLoading ? (
                     <LoaderCircleIcon className="animate-spin h-4 w-4" />
-                  ) : "Entrar"}
+                  ) : (
+                    "Entrar"
+                  )}
                 </Button>
               </CardFooter>
             </form>
@@ -82,5 +104,5 @@ export default function LoginPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

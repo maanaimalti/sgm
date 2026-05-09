@@ -5,7 +5,14 @@ import { Header } from "@/components/header";
 import { TableLoading } from "@/components/table-loading";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useOrdersPage } from "@/hooks/pages/use-orders";
 import { DownloadIcon } from "@radix-ui/react-icons";
 import { EditIcon, LoaderCircleIcon } from "lucide-react";
@@ -24,7 +31,7 @@ const PedidosPage = () => {
     isAdmin,
     isBuyer,
     isKitchen,
-    isManager
+    isManager,
   } = useOrdersPage();
   return (
     <div className="grid min-h-screen w-full lg:grid-cols-[280px_1fr]">
@@ -36,11 +43,11 @@ const PedidosPage = () => {
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
           <div className="flex items-center justify-between">
             <h1 className="font-semibold text-lg md:text-2xl">Pedidos</h1>
-            {
-              (isKitchen || isAdmin) && (
-                <Button size="sm" onClick={handleClickNewOrder}>Novo pedido</Button>
-              )
-            }
+            {(isKitchen || isAdmin) && (
+              <Button size="sm" onClick={handleClickNewOrder}>
+                Novo pedido
+              </Button>
+            )}
           </div>
           <div className="border shadow-sm rounded-lg p-6">
             <Table>
@@ -54,71 +61,61 @@ const PedidosPage = () => {
                 </TableRow>
               </TableHeader>
 
-              {
-                isLoading ? (
-                  <TableLoading />
-                ) : (
-                  <TableBody>
-                    {
-                      orders?.map(order => (
-                        <TableRow key={order.id}>
-                          <TableCell>{order.id}</TableCell>
-                          <TableCell>{order.user.name || " - "}</TableCell>
-                          <TableCell>
-                            {new Date(order.createdAt).toLocaleString("pt-BR", {
-                              timeZone: "America/Sao_Paulo",
-                            })}
-                          </TableCell>
-                          <TableCell>
-                            {
-                              order?.status?.toLocaleLowerCase() === "pending" ? (
-                                <Badge variant="warning">Pendente</Badge>
-                              ) : (
-                                  order?.status?.toLocaleLowerCase() === "canceled" ? (
-                                  <Badge variant="destructive">Cancelado</Badge>
-                                ) : <Badge variant="success">Aprovado</Badge>
-                              )
-                            }
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex gap-2">
-                              {
-                                (isAdmin || isManager) && (
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      onClick={() => handleEditOrder(order.id)}
-                                    >
-                                      <EditIcon className="h-4 w-4" />
-                                    </Button>
-                                )
-                              }
-                              {
-                                (isAdmin || isManager || isBuyer) && (
-                                  order?.status === "APPROVED" && (
-                                    <Button
-                                      variant="warning"
-                                      size="icon"
-                                      disabled={isLoadingDownload}
-                                      onClick={() => handleDownloadOrder(order.id)}
-                                    >
-                                      {
-                                        isLoadingDownload ?
-                                          <LoaderCircleIcon className="animate-spin h-4 w-4" /> :
-                                          <DownloadIcon className="h-4 w-4" />
-                                      }
-                                    </Button>
-                                  )
-                                )
-                              }
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    }
-                  </TableBody>
-                )
-              }
+              {isLoading ? (
+                <TableLoading />
+              ) : (
+                <TableBody>
+                  {orders?.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell>{order.id}</TableCell>
+                      <TableCell>{order.user.name || " - "}</TableCell>
+                      <TableCell>
+                        {new Date(order.createdAt).toLocaleString("pt-BR", {
+                          timeZone: "America/Sao_Paulo",
+                        })}
+                      </TableCell>
+                      <TableCell>
+                        {order?.status?.toLocaleLowerCase() === "pending" ? (
+                          <Badge variant="warning">Pendente</Badge>
+                        ) : order?.status?.toLocaleLowerCase() ===
+                          "canceled" ? (
+                          <Badge variant="destructive">Cancelado</Badge>
+                        ) : (
+                          <Badge variant="success">Aprovado</Badge>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          {(isAdmin || isManager) && (
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleEditOrder(order.id)}
+                            >
+                              <EditIcon className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {(isAdmin || isManager || isBuyer) &&
+                            order?.status === "APPROVED" && (
+                              <Button
+                                variant="warning"
+                                size="icon"
+                                disabled={isLoadingDownload}
+                                onClick={() => handleDownloadOrder(order.id)}
+                              >
+                                {isLoadingDownload ? (
+                                  <LoaderCircleIcon className="animate-spin h-4 w-4" />
+                                ) : (
+                                  <DownloadIcon className="h-4 w-4" />
+                                )}
+                              </Button>
+                            )}
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              )}
             </Table>
           </div>
           <div className="flex justify-between items-center px-4 py-2 border-t">
@@ -145,7 +142,7 @@ const PedidosPage = () => {
               <Button
                 variant="ghost"
                 size="sm"
-                disabled={currentPage === (Math.ceil(total ?? 0 / 10))}
+                disabled={currentPage === Math.ceil(total ?? 0 / 10)}
                 onClick={() => setCurrentPage(currentPage + 1)}
               >
                 Próximo

@@ -1,7 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
-    domains: ['images-sgm.icmalagoas.org.br'],
+    domains: ["images-sgm.icmalagoas.org.br"],
   },
 };
 

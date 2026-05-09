@@ -29,20 +29,20 @@ export const useCategory = () => {
         duration: 2000,
       });
     },
-  })
+  });
 
   const { data, isLoading } = useQuery({
-    queryKey:[ "categories"],
+    queryKey: ["categories"],
     queryFn: GetAllCategoriesFetcher,
   });
 
   const handleDeleteCategory = (id: string) => {
     deleteCategory.mutate(id);
-  }
+  };
 
   const handleClickNewCategory = () => {
     router.push("/categorias/novo");
-  }
+  };
 
   const handleEditCategory = (id: string) => {
     router.push(`/categorias/${id}`);
@@ -56,4 +56,4 @@ export const useCategory = () => {
     handleClickNewCategory,
     handleEditCategory,
   };
-}
+};

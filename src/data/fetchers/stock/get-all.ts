@@ -6,7 +6,7 @@ export const getAllStockFetcher = async ({
   pageSize = 900,
 }: Props): Promise<StockReponse[]> => {
   const response = await api.get(
-    `/movement/stock?page=${page}&pageSize=${pageSize}`
+    `/movement/stock?page=${page}&pageSize=${pageSize}`,
   );
   return response.data;
 };

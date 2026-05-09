@@ -5,8 +5,21 @@ import { Header } from "@/components/header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { useUpdateStock } from "@/hooks/pages/use-update-stock";
 import { TrashIcon } from "lucide-react";
 
@@ -24,7 +37,7 @@ const UpdateStockPage = () => {
     setProductSearchValue,
     handleSelectTransactionType,
     handleUpdateStock,
-    setCurrentProduct
+    setCurrentProduct,
   } = useUpdateStock();
 
   return (
@@ -36,7 +49,9 @@ const UpdateStockPage = () => {
         <Header />
         <main className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
           <div className="flex items-center justify-between">
-            <h1 className="font-semibold text-lg md:text-2xl">Alterar estoque</h1>
+            <h1 className="font-semibold text-lg md:text-2xl">
+              Alterar estoque
+            </h1>
           </div>
           <div className="border shadow-sm rounded-lg p-6 gap-8 flex flex-col">
             <div className="flex w-full items-center gap-3">
@@ -56,16 +71,14 @@ const UpdateStockPage = () => {
                       autoFocus={false}
                       onChange={(e) => setProductSearchValue(e.target.value)}
                     />
-                    {
-                      products?.map(product => (
-                        <SelectItem
-                          key={product.id}
-                          value={`${product.id}-${product.name}-${product.unity.name}`}
-                        >
-                          {product.name}
-                        </SelectItem>
-                      ))
-                    }
+                    {products?.map((product) => (
+                      <SelectItem
+                        key={product.id}
+                        value={`${product.id}-${product.name}-${product.unity.name}`}
+                      >
+                        {product.name}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -84,19 +97,17 @@ const UpdateStockPage = () => {
               <div className="flex-1">
                 <Label>Tipo de transação</Label>
                 <Select
-                  onValueChange={(value: 'in' | 'out') => handleSelectTransactionType(value)}
+                  onValueChange={(value: "in" | "out") =>
+                    handleSelectTransactionType(value)
+                  }
                   value={transactionType}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Selecione o tipo de transação" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="in">
-                      Entrada
-                    </SelectItem>
-                    <SelectItem value="out">
-                      Saída
-                    </SelectItem>
+                    <SelectItem value="in">Entrada</SelectItem>
+                    <SelectItem value="out">Saída</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -123,25 +134,25 @@ const UpdateStockPage = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {
-                  items?.map(item => (
-                    <TableRow key={item.id}>
-                      <TableCell>{item.name}</TableCell>
-                      <TableCell>
-                        {item.quantity || " - "} {item.unity}
-                      </TableCell>
-                      <TableCell>{item.type === 'in' ? 'Entrada' : 'Saída'}</TableCell>
-                      <TableCell>
-                        <Button
-                          onClick={() => handleRemoveItem(item.id)}
-                          variant="ghost"
-                        >
-                          <TrashIcon />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                }
+                {items?.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell>{item.name}</TableCell>
+                    <TableCell>
+                      {item.quantity || " - "} {item.unity}
+                    </TableCell>
+                    <TableCell>
+                      {item.type === "in" ? "Entrada" : "Saída"}
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        onClick={() => handleRemoveItem(item.id)}
+                        variant="ghost"
+                      >
+                        <TrashIcon />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
             <div>

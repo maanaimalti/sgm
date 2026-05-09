@@ -1,7 +1,10 @@
 import { useToast } from "@/components/ui/use-toast";
 import { GetCategoryByIdFetcher } from "@/data/fetchers/categories/get-by-id";
 import { updateCategoryMutation } from "@/data/mutations/update-category";
-import { type CategoryWithIdForm, categorySchema } from "@/data/schemas/category-schema";
+import {
+  type CategoryWithIdForm,
+  categorySchema,
+} from "@/data/schemas/category-schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
@@ -34,7 +37,7 @@ export const useEditCategory = () => {
         title: "Categoria atualizada com sucesso",
         duration: 5000,
       });
-      queryClient.invalidateQueries({queryKey: ["categories"]});
+      queryClient.invalidateQueries({ queryKey: ["categories"] });
       router.push("/categorias");
     },
   });
@@ -50,12 +53,12 @@ export const useEditCategory = () => {
       id: categoryQuery.data?.id ?? "",
       name: categoryQuery.data?.name ?? "",
       description: categoryQuery.data?.description || undefined,
-    }
+    },
   });
 
   const onSubmit = (data: CategoryWithIdForm) => {
     const { id: _, ...rest } = data;
-    editCategoryMutation.mutate({...rest, id: String(id)});
+    editCategoryMutation.mutate({ ...rest, id: String(id) });
   };
 
   return {
@@ -65,4 +68,4 @@ export const useEditCategory = () => {
     editCategoryIsLoading: editCategoryMutation.isPending,
     onSubmit,
   };
-}
+};

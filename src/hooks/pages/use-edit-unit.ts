@@ -35,7 +35,7 @@ export const useEditUnit = () => {
         title: "Unidade de medida atualizada com sucesso",
         duration: 5000,
       });
-      queryClient.invalidateQueries({queryKey: ["unities"]});
+      queryClient.invalidateQueries({ queryKey: ["unities"] });
       router.push("/unidade-de-medida");
     },
   });
@@ -51,12 +51,12 @@ export const useEditUnit = () => {
       id: unitQuery.data?.id ?? "",
       name: unitQuery.data?.name ?? "",
       description: unitQuery.data?.description || undefined,
-    }
+    },
   });
 
   const onSubmit = (data: CategoryWithIdForm) => {
     const { id: _, ...rest } = data;
-    editCategoryMutation.mutate({...rest, id: String(id)});
+    editCategoryMutation.mutate({ ...rest, id: String(id) });
   };
 
   return {
@@ -66,4 +66,4 @@ export const useEditUnit = () => {
     editUnitIsLoading: editCategoryMutation.isPending,
     onSubmit,
   };
-}
+};

@@ -8,10 +8,14 @@ import { useDebounce } from "../use-debounce";
 
 export const useNewOrderPage = () => {
   const router = useRouter();
-  const [items, setItems] = 
-    useState<{id: string, quantity: number, name: string, unity: string}[]>([]);
-  const [currentProduct, setCurrentProduct] = 
-    useState<{id: string, name: string, unity: string} | null>(null);
+  const [items, setItems] = useState<
+    { id: string; quantity: number; name: string; unity: string }[]
+  >([]);
+  const [currentProduct, setCurrentProduct] = useState<{
+    id: string;
+    name: string;
+    unity: string;
+  } | null>(null);
   const [currentQuantity, setCurrentQuantity] = useState(0);
   const [currentEventName, setCurrentEventName] = useState("");
   const [currentObservation, setCurrentObservation] = useState("");
@@ -40,29 +44,30 @@ export const useNewOrderPage = () => {
     },
   });
 
-  const { 
-    data,
-  } = useQuery({
+  const { data } = useQuery({
     queryKey: ["products", productSearchValue],
-    queryFn: () => GetAllProductsFetcher({ page: 1, pageSize: 900, search: debouncedProductSearchValue }),
+    queryFn: () =>
+      GetAllProductsFetcher({
+        page: 1,
+        pageSize: 900,
+        search: debouncedProductSearchValue,
+      }),
   });
 
   const handleAddProduct = () => {
     if (!currentProduct || !currentQuantity) return;
-    if (items.some(item => item.id === currentProduct.id)) {
+    if (items.some((item) => item.id === currentProduct.id)) {
       toast({
         title: "Produto já adicionado",
         description: "O produto já foi adicionado ao pedido",
         variant: "destructive",
       });
       return;
-    };
-    setItems(
-      prevProducts => [
-        ...prevProducts, 
-        {...currentProduct, quantity: currentQuantity}
-      ]
-    );
+    }
+    setItems((prevProducts) => [
+      ...prevProducts,
+      { ...currentProduct, quantity: currentQuantity },
+    ]);
     setCurrentProduct(null);
     setProductSearchValue("");
     setCurrentQuantity(0);
@@ -77,27 +82,28 @@ export const useNewOrderPage = () => {
       });
       return;
     }
-    orderMutation.mutate({ 
-      items: items.map(item => ({ 
-        productId: item.id, quantity: item.quantity 
+    orderMutation.mutate({
+      items: items.map((item) => ({
+        productId: item.id,
+        quantity: item.quantity,
       })),
       eventName: currentEventName,
-      observation: currentObservation
+      observation: currentObservation,
     });
-  }
+  };
 
   const handleSelectProduct = (productInfo: string) => {
     const [id, name, unity] = productInfo.split("-");
     setCurrentProduct({ id, name, unity });
-  }
+  };
 
   const handleRemoveItem = (id: string) => {
-    setItems(prevItems => prevItems.filter(item => item.id !== id));
-  }
+    setItems((prevItems) => prevItems.filter((item) => item.id !== id));
+  };
 
   useEffect(() => {
-    console.log({productSearchValue})
-  }, [productSearchValue])
+    console.log({ productSearchValue });
+  }, [productSearchValue]);
 
   return {
     items,
