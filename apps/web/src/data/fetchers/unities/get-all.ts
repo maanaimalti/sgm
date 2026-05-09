@@ -1,14 +1,7 @@
+import type { UnityResponse } from "@sgm/shared";
 import { api } from "@/services/api";
 
 export const GetAllUnitiesFetcher = async () => {
-  const response = await api.get<UnitResponse[]>("/unity");
+  const response = await api.get<UnityResponse[]>("/unity");
   return response.data;
 };
-
-interface UnitResponse {
-  id: string;
-  name: string;
-  description?: string;
-  createdAt: string;
-  updatedAt: string;
-}

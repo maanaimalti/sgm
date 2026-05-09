@@ -1,12 +1,12 @@
+import type { ProductListResponse } from "@sgm/shared";
 import { api } from "@/services/api";
-import type { ProductResponseAll } from "./product-response.interface";
 
 export const GetAllProductsFetcher = async ({
   page = 1,
   pageSize = 10,
   search = "",
 }: Props) => {
-  const response = await api.get<ProductResponseAll>(
+  const response = await api.get<ProductListResponse>(
     `/products?page=${page}&pageSize=${pageSize}&search=${search}`,
   );
   return response.data;

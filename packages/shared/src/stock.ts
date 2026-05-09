@@ -1,4 +1,4 @@
-export interface StockReponse {
+export interface StockResponse {
   id: string;
   quantity: number;
   product: {

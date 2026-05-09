@@ -1,10 +1,10 @@
+import type { StockResponse } from "@sgm/shared";
 import { api } from "@/services/api";
-import type { StockReponse } from "./stock-response.interface";
 
 export const getAllStockFetcher = async ({
   page = 1,
   pageSize = 900,
-}: Props): Promise<StockReponse[]> => {
+}: Props): Promise<StockResponse[]> => {
   const response = await api.get(
     `/movement/stock?page=${page}&pageSize=${pageSize}`,
   );

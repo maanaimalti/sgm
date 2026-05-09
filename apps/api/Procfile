@@ -1,2 +1,2 @@
-release: pnpm run migrate:prod
-web: pnpm run start:prod
+release: pnpm --filter @sgm/api run migrate:prod
+web: pnpm --filter @sgm/api run start:prod

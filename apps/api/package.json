@@ -1,9 +1,8 @@
 {
-  "name": "sgm-api",
+  "name": "@sgm/api",
   "version": "1.0.0",
   "description": "",
   "author": "",
-  "packageManager": "pnpm@9.15.0",
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
@@ -24,6 +23,7 @@
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@sgm/shared": "workspace:*",
     "@aws-sdk/client-s3": "^3.1045.0",
     "@nestjs/common": "^11.1.19",
     "@nestjs/config": "^4.0.4",

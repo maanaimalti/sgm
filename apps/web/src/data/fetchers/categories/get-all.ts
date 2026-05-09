@@ -1,14 +1,7 @@
+import type { CategoryResponse } from "@sgm/shared";
 import { api } from "@/services/api";
 
 export const GetAllCategoriesFetcher = async () => {
-  const response = await api.get<CategoriesResponse[]>("/category");
+  const response = await api.get<CategoryResponse[]>("/category");
   return response.data;
 };
-
-interface CategoriesResponse {
-  id: string;
-  name: string;
-  description?: string;
-  createdAt: string;
-  updatedAt: string;
-}

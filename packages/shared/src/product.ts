@@ -19,7 +19,7 @@ export interface ProductResponse {
   status: string;
 }
 
-export interface ProductResponseAll {
+export interface ProductListResponse {
   products: ProductResponse[];
   total: number;
 }
