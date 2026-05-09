@@ -1,11 +1,11 @@
-import { IsEnum, IsOptional, IsString } from 'class-validator';
+import { IsEnum, IsOptional, IsString } from "class-validator";
 
 export enum ReportType {
-  PRODUCTS = 'PRODUCTS',
-  ORDERS = 'ORDERS',
-  MOVEMENTS = 'MOVEMENTS',
-  STOCK = 'STOCK',
-  USERS = 'USERS',
+  PRODUCTS = "PRODUCTS",
+  ORDERS = "ORDERS",
+  MOVEMENTS = "MOVEMENTS",
+  STOCK = "STOCK",
+  USERS = "USERS",
 }
 
 export class CreateReportDto {

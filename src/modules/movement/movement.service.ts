@@ -1,12 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { movementType } from '@prisma/client';
+import { Injectable, Logger } from "@nestjs/common";
+import { movementType } from "@prisma/client";
 // biome-ignore lint/style/useImportType: <explanation>
-import { PrismaService } from 'src/shared/db/prisma.service';
+import { PrismaService } from "src/shared/db/prisma.service";
 // biome-ignore lint/style/useImportType: <explanation>
-import { HelpersService } from 'src/shared/helpers/helpers.service';
-import type { CreateMovementBatchDto } from './dto/create-movement-batch.dto';
-import type { CreateMovementDto } from './dto/create-movement.dto';
-import type { FindAllMovementDTO } from './dto/find-all-movement.dto';
+import { HelpersService } from "src/shared/helpers/helpers.service";
+import { CreateMovementDto } from "./dto/create-movement.dto";
+import { CreateMovementBatchDto } from "./dto/create-movement-batch.dto";
+import { FindAllMovementDTO } from "./dto/find-all-movement.dto";
 
 @Injectable()
 export class MovementService {
@@ -22,7 +22,7 @@ export class MovementService {
       data: {
         id,
         quantity,
-        type: type === 'in' ? movementType.in : movementType.out,
+        type: type === "in" ? movementType.in : movementType.out,
         product: {
           connect: {
             id: productId,
@@ -56,10 +56,10 @@ export class MovementService {
       return result;
     }
     let newQuantity = stock.quantity ?? 0;
-    if (type === 'in') {
+    if (type === "in") {
       newQuantity += quantity;
     }
-    if (type === 'out') {
+    if (type === "out") {
       newQuantity =
         stock.quantity - quantity < 0 ? 0 : stock.quantity - quantity;
     }
@@ -139,7 +139,7 @@ export class MovementService {
       take: pageSize,
       where,
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
   }
@@ -197,7 +197,7 @@ export class MovementService {
       take: pageSize,
       where,
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
   }

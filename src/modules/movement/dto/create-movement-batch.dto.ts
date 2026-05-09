@@ -1,4 +1,4 @@
-import type { CreateMovementDto } from './create-movement.dto';
+import { CreateMovementDto } from "./create-movement.dto";
 
 export class CreateMovementBatchDto {
   items: CreateMovementDto[];

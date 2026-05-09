@@ -1,14 +1,13 @@
-FROM node:20
+FROM node:22
 
 WORKDIR /app
 
-COPY package*.json ./
-COPY pnpm-lock.yaml ./
+RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
+
+COPY package.json pnpm-lock.yaml ./
 COPY prisma ./prisma/
 
-RUN npm install -g pnpm
-
-RUN pnpm install
+RUN pnpm install --frozen-lockfile
 
 COPY . .
 

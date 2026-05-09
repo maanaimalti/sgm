@@ -1,10 +1,10 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable } from "@nestjs/common";
 // biome-ignore lint/style/useImportType: <explanation>
-import { PrismaService } from 'src/shared/db/prisma.service';
+import { PrismaService } from "src/shared/db/prisma.service";
 // biome-ignore lint/style/useImportType: <explanation>
-import { HelpersService } from 'src/shared/helpers/helpers.service';
-import type { CreateUnityDto } from './dto/create-unity.dto';
-import type { UpdateUnityDto } from './dto/update-unity.dto';
+import { HelpersService } from "src/shared/helpers/helpers.service";
+import { CreateUnityDto } from "./dto/create-unity.dto";
+import { UpdateUnityDto } from "./dto/update-unity.dto";
 
 @Injectable()
 export class UnityService {

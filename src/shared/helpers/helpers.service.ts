@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { ulid } from 'ulid';
+import { Injectable } from "@nestjs/common";
+import { ulid } from "ulid";
 
 @Injectable()
 export class HelpersService {

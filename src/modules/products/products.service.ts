@@ -1,11 +1,11 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable, Logger } from "@nestjs/common";
 // biome-ignore lint/style/useImportType: <explanation>
-import { PrismaService } from 'src/shared/db/prisma.service';
+import { PrismaService } from "src/shared/db/prisma.service";
 // biome-ignore lint/style/useImportType: <explanation>
-import { HelpersService } from 'src/shared/helpers/helpers.service';
-import type { CreateProductDto } from './dto/create-product.dto';
-import type { FindAllProductDto } from './dto/find-all-product.dto';
-import type { UpdateProductDto } from './dto/update-product.dto';
+import { HelpersService } from "src/shared/helpers/helpers.service";
+import { CreateProductDto } from "./dto/create-product.dto";
+import { FindAllProductDto } from "./dto/find-all-product.dto";
+import { UpdateProductDto } from "./dto/update-product.dto";
 
 @Injectable()
 export class ProductsService {
@@ -53,7 +53,7 @@ export class ProductsService {
       `Request all products with page: ${page} and page-size: ${pageSize}`,
     );
     let where: any = {
-      status: 'active',
+      status: "active",
       department: {
         id: departmentId,
       },
@@ -81,7 +81,7 @@ export class ProductsService {
       take: pageSize,
       where,
       orderBy: {
-        name: 'asc',
+        name: "asc",
       },
       select: {
         category: {
@@ -103,7 +103,7 @@ export class ProductsService {
       },
     });
     const total = await this.prismaService.product.count({
-      where: { status: 'active' },
+      where: { status: "active" },
     });
     return {
       products,

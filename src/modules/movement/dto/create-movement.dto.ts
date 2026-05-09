@@ -1,5 +1,5 @@
-import { IsEnum, IsNotEmpty, IsNumber, IsString } from 'class-validator';
-import { MovementType } from '../movement-type.enum';
+import { IsEnum, IsNotEmpty, IsNumber, IsString } from "class-validator";
+import { MovementType } from "../movement-type.enum";
 
 export class CreateMovementDto {
   @IsString()

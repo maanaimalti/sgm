@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
-import { reportStatus, reportType } from '@prisma/client';
-import { PrismaService } from 'src/shared/db/prisma.service';
-import { HelpersService } from 'src/shared/helpers/helpers.service';
-import type { CreateReportDto } from './dto/create-report.dto';
+import { Injectable, Logger } from "@nestjs/common";
+import { EventEmitter2 } from "@nestjs/event-emitter";
+import { reportStatus, type reportType } from "@prisma/client";
+import { PrismaService } from "src/shared/db/prisma.service";
+import { HelpersService } from "src/shared/helpers/helpers.service";
+import { CreateReportDto } from "./dto/create-report.dto";
 
 @Injectable()
 export class ReportsService {
@@ -36,7 +36,7 @@ export class ReportsService {
     });
 
     // Emit event for async processing
-    this.eventEmitter.emit('report.generate', {
+    this.eventEmitter.emit("report.generate", {
       reportId,
       type: createReportDto.type,
       userId,
@@ -48,9 +48,9 @@ export class ReportsService {
 
     return {
       reportId,
-      status: 'PENDING',
+      status: "PENDING",
       message:
-        'Geração do relatório iniciada. Você será notificado quando estiver pronto.',
+        "Geração do relatório iniciada. Você será notificado quando estiver pronto.",
     };
   }
 
@@ -59,7 +59,7 @@ export class ReportsService {
       where: { userId },
       skip: (page - 1) * pageSize,
       take: pageSize,
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       select: {
         id: true,
         type: true,

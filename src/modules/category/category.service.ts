@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common';
-import { CreateCategoryDto } from './dto/create-category.dto';
-import { UpdateCategoryDto } from './dto/update-category.dto';
-import { HelpersService } from 'src/shared/helpers/helpers.service';
-import { PrismaService } from 'src/shared/db/prisma.service';
-import { CreateMovementDto } from '../movement/dto/create-movement.dto';
+import { Injectable } from "@nestjs/common";
+import { PrismaService } from "src/shared/db/prisma.service";
+import { HelpersService } from "src/shared/helpers/helpers.service";
+import { CreateMovementDto } from "../movement/dto/create-movement.dto";
+import { CreateCategoryDto } from "./dto/create-category.dto";
+import { UpdateCategoryDto } from "./dto/update-category.dto";
 
 @Injectable()
 export class CategoryService {

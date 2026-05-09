@@ -1,7 +1,7 @@
-import { Injectable, Logger, ForbiddenException } from '@nestjs/common';
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
-import { PrismaService } from 'src/shared/db/prisma.service';
-import { UploadFileService } from 'src/shared/upload/upload-file.service';
+import { ForbiddenException, Injectable, Logger } from "@nestjs/common";
+import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
+import { PrismaService } from "src/shared/db/prisma.service";
+import { UploadFileService } from "src/shared/upload/upload-file.service";
 
 @Injectable()
 export class ProductReportService {
@@ -56,7 +56,7 @@ export class ProductReportService {
     });
 
     if (!user) {
-      throw new ForbiddenException('Usuário não encontrado');
+      throw new ForbiddenException("Usuário não encontrado");
     }
 
     // Se um departmentId específico foi solicitado, verificar se o usuário pertence a ele
@@ -65,14 +65,14 @@ export class ProductReportService {
         (dept) => dept.id === departmentId,
       );
       if (!userBelongsToDepartment) {
-        throw new ForbiddenException('Você não tem acesso a este departamento');
+        throw new ForbiddenException("Você não tem acesso a este departamento");
       }
     }
   }
 
   private async fetchProductsData(departmentId?: string, parameters: any = {}) {
     const where: any = {
-      status: 'active',
+      status: "active",
     };
 
     if (departmentId) {
@@ -105,7 +105,7 @@ export class ProductReportService {
         },
       },
       orderBy: {
-        name: 'asc',
+        name: "asc",
       },
     });
   }
@@ -123,7 +123,7 @@ export class ProductReportService {
     let yPosition = height - 50;
 
     // Título
-    page.drawText('Relatório de Produtos Cadastrados', {
+    page.drawText("Relatório de Produtos Cadastrados", {
       x: 50,
       y: yPosition,
       size: 20,
@@ -135,12 +135,12 @@ export class ProductReportService {
 
     // Data de geração
     const today = new Date();
-    const dateStr = today.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
+    const dateStr = today.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     });
 
     page.drawText(`Gerado em: ${dateStr}`, {
@@ -155,7 +155,7 @@ export class ProductReportService {
 
     // Informação do departamento se especificado
     if (departmentId && products.length > 0) {
-      const deptName = products[0].department?.name || 'N/A';
+      const deptName = products[0].department?.name || "N/A";
       page.drawText(`Departamento: ${deptName}`, {
         x: 50,
         y: yPosition,
@@ -170,15 +170,15 @@ export class ProductReportService {
 
     // Cabeçalhos da tabela
     const headers = [
-      'Código',
-      'Nome',
-      'Descrição',
-      'Categoria',
-      'Unidade',
-      'Departamento',
-      'Preço Custo',
-      'Preço Venda',
-      'Data Cadastro',
+      "Código",
+      "Nome",
+      "Descrição",
+      "Categoria",
+      "Unidade",
+      "Departamento",
+      "Preço Custo",
+      "Preço Venda",
+      "Data Cadastro",
     ];
     const columnWidths = [50, 90, 80, 70, 50, 80, 65, 65, 75];
     let xPosition = 25;
@@ -217,15 +217,15 @@ export class ProductReportService {
 
       xPosition = 25;
       const rowData = [
-        product.id.substring(0, 6) + '...', // ID truncado
+        product.id.substring(0, 6) + "...", // ID truncado
         this.truncateText(product.name, 12),
-        this.truncateText(product.description || 'N/A', 10),
-        this.truncateText(product.category?.name || 'N/A', 9),
-        product.unity?.name || 'N/A',
-        this.truncateText(product.department?.name || 'N/A', 10),
+        this.truncateText(product.description || "N/A", 10),
+        this.truncateText(product.category?.name || "N/A", 9),
+        product.unity?.name || "N/A",
+        this.truncateText(product.department?.name || "N/A", 10),
         `R$ ${product.costValue.toFixed(2)}`,
-        product.saleValue ? `R$ ${product.saleValue.toFixed(2)}` : 'N/A',
-        new Date(product.createdAt).toLocaleDateString('pt-BR'),
+        product.saleValue ? `R$ ${product.saleValue.toFixed(2)}` : "N/A",
+        new Date(product.createdAt).toLocaleDateString("pt-BR"),
       ];
 
       rowData.forEach((data, index) => {
@@ -258,7 +258,7 @@ export class ProductReportService {
     });
 
     // Linha de rodapé
-    page.drawText('Sistema de Gerenciamento - SGM', {
+    page.drawText("Sistema de Gerenciamento - SGM", {
       x: 50,
       y: yPosition - 20,
       size: 10,
@@ -271,6 +271,6 @@ export class ProductReportService {
 
   private truncateText(text: string, maxLength: number): string {
     if (!text || text.length <= maxLength) return text;
-    return text.substring(0, maxLength - 3) + '...';
+    return text.substring(0, maxLength - 3) + "...";
   }
 }

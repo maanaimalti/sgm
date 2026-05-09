@@ -3,19 +3,19 @@ import {
   InternalServerErrorException,
   Logger,
   NotFoundException,
-} from '@nestjs/common';
-import { orderStatus } from '@prisma/client';
-import { PDFDocument, StandardFonts } from 'pdf-lib';
+} from "@nestjs/common";
+import { orderStatus } from "@prisma/client";
+import { PDFDocument, StandardFonts } from "pdf-lib";
 // biome-ignore lint/style/useImportType: <explanation>
-import { PrismaService } from 'src/shared/db/prisma.service';
+import { PrismaService } from "src/shared/db/prisma.service";
 // biome-ignore lint/style/useImportType: <explanation>
-import { HelpersService } from 'src/shared/helpers/helpers.service';
+import { HelpersService } from "src/shared/helpers/helpers.service";
 // biome-ignore lint/style/useImportType: <explanation>
-import { UploadFileService } from 'src/shared/upload/upload-file.service';
+import { UploadFileService } from "src/shared/upload/upload-file.service";
 // biome-ignore lint/style/useImportType: <explanation>
-import { NotificationService } from '../notification/notification.service';
-import type { CreateOrderDto } from './dto/create-order.dto';
-import type { FindAllOrdersDto } from './dto/find-all-orders.dto';
+import { NotificationService } from "../notification/notification.service";
+import { CreateOrderDto } from "./dto/create-order.dto";
+import { FindAllOrdersDto } from "./dto/find-all-orders.dto";
 
 @Injectable()
 export class OrdersService {
@@ -220,7 +220,7 @@ export class OrdersService {
       (async () => {
         try {
           const pdfBytes = await result.save();
-          Logger.log('generated file');
+          Logger.log("generated file");
           const filename = `cozinha/pedidos/relatorio-pedido-${id.toLowerCase()}.pdf`;
           await this.uploadFileService.uploadFile(filename, pdfBytes);
           Logger.log(`uploaded file with key: ${filename}`);
@@ -242,8 +242,8 @@ export class OrdersService {
           });
           await this.notificationService.create({
             to: order.user.id,
-            text: 'Você tem um novo relatório de pedido disponível.',
-            type: 'ORDER_REPORT',
+            text: "Você tem um novo relatório de pedido disponível.",
+            type: "ORDER_REPORT",
           });
         } catch (error) {
           Logger.error(error?.message, { error: error });
@@ -252,7 +252,7 @@ export class OrdersService {
       return true;
     } catch (error) {
       Logger.error(error?.message, { details: error });
-      throw new InternalServerErrorException('Error generating report');
+      throw new InternalServerErrorException("Error generating report");
     }
   }
 
@@ -271,7 +271,7 @@ export class OrdersService {
     let yPosition = height - pageMargin;
 
     function addHeader(page) {
-      page.drawText('Relatório de Pedido', {
+      page.drawText("Relatório de Pedido", {
         x: width / 2 - 95,
         y: yPosition - 20,
         size: 24,
@@ -295,9 +295,9 @@ export class OrdersService {
       });
       page.drawText(
         `Data de Criação: ${new Date(order.createdAt).toLocaleDateString(
-          'pt-BR',
+          "pt-BR",
           {
-            timeZone: 'America/Sao_Paulo',
+            timeZone: "America/Sao_Paulo",
           },
         )}`,
         {
@@ -313,9 +313,9 @@ export class OrdersService {
     function addTableHeader(page) {
       const cellHeight = 20;
       const columns = [
-        { name: 'Nome', x: 50 },
-        { name: 'Categoria', x: 350 },
-        { name: 'Quantidade', x: 500 },
+        { name: "Nome", x: 50 },
+        { name: "Categoria", x: 350 },
+        { name: "Quantidade", x: 500 },
       ];
 
       for (const column of columns) {
@@ -392,7 +392,7 @@ export class OrdersService {
         currentPage = addNewPage();
       }
       currentPage.drawText(
-        '______________________________________________________',
+        "______________________________________________________",
         {
           x: width / 2 - 150,
           y: yPosition - 100,
@@ -400,7 +400,7 @@ export class OrdersService {
           font: timesRomanFont,
         },
       );
-      currentPage.drawText('Assinatura do pastor responsável', {
+      currentPage.drawText("Assinatura do pastor responsável", {
         x: width / 2 - 75,
         y: yPosition - 120,
         size: fontSize,
@@ -421,14 +421,14 @@ export class OrdersService {
       if (yPosition < pageMargin + 100) {
         newPage = addNewPage();
       }
-      newPage.drawText('Observações:', {
+      newPage.drawText("Observações:", {
         x: pageMargin,
         y: yPosition - 20,
         size: fontSize,
         font: timesRomanBoldFont,
       });
       yPosition -= 40;
-      const lines = observation.split('\n');
+      const lines = observation.split("\n");
       for (const line of lines) {
         if (yPosition < pageMargin + 50) {
           newPage = addNewPage();

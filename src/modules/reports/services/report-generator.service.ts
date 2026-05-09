@@ -1,9 +1,9 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
-import { reportStatus } from '@prisma/client';
-import { NotificationService } from 'src/modules/notification/notification.service';
-import { ReportsService } from '../reports.service';
-import { ProductReportService } from './product-report.service';
+import { Injectable, Logger } from "@nestjs/common";
+import { OnEvent } from "@nestjs/event-emitter";
+import { reportStatus } from "@prisma/client";
+import { NotificationService } from "src/modules/notification/notification.service";
+import { ReportsService } from "../reports.service";
+import { ProductReportService } from "./product-report.service";
 
 @Injectable()
 export class ReportGeneratorService {
@@ -15,7 +15,7 @@ export class ReportGeneratorService {
     private readonly notificationService: NotificationService,
   ) {}
 
-  @OnEvent('report.generate')
+  @OnEvent("report.generate")
   async handleReportGeneration(payload: {
     reportId: string;
     type: string;
@@ -36,7 +36,7 @@ export class ReportGeneratorService {
 
       // Route to specific report generator based on type
       switch (payload.type) {
-        case 'PRODUCTS':
+        case "PRODUCTS":
           filePath = await this.productReportService.generateProductReport(
             payload.reportId,
             payload.userId,
@@ -44,18 +44,18 @@ export class ReportGeneratorService {
             payload.parameters,
           );
           break;
-        case 'ORDERS':
+        case "ORDERS":
           // TODO: Implement order report generator
-          throw new Error('Order reports not implemented yet');
-        case 'MOVEMENTS':
+          throw new Error("Order reports not implemented yet");
+        case "MOVEMENTS":
           // TODO: Implement movement report generator
-          throw new Error('Movement reports not implemented yet');
-        case 'STOCK':
+          throw new Error("Movement reports not implemented yet");
+        case "STOCK":
           // TODO: Implement stock report generator
-          throw new Error('Stock reports not implemented yet');
-        case 'USERS':
+          throw new Error("Stock reports not implemented yet");
+        case "USERS":
           // TODO: Implement user report generator
-          throw new Error('User reports not implemented yet');
+          throw new Error("User reports not implemented yet");
         default:
           throw new Error(`Unknown report type: ${payload.type}`);
       }
@@ -71,7 +71,7 @@ export class ReportGeneratorService {
       const reportTypeName = this.getReportTypeName(payload.type);
       await this.notificationService.create({
         text: `Seu relatório de ${reportTypeName} está pronto para download`,
-        type: 'REPORT_READY',
+        type: "REPORT_READY",
         to: payload.userId,
         metadata: JSON.stringify({
           reportId: payload.reportId,
@@ -99,7 +99,7 @@ export class ReportGeneratorService {
       const reportTypeName = this.getReportTypeName(payload.type);
       await this.notificationService.create({
         text: `Falha ao gerar relatório de ${reportTypeName}: ${error.message}`,
-        type: 'REPORT_FAILED',
+        type: "REPORT_FAILED",
         to: payload.userId,
       });
     }
@@ -107,12 +107,12 @@ export class ReportGeneratorService {
 
   private getReportTypeName(type: string): string {
     const typeNames = {
-      PRODUCTS: 'produtos',
-      ORDERS: 'pedidos',
-      MOVEMENTS: 'movimentações',
-      STOCK: 'estoque',
-      USERS: 'usuários',
+      PRODUCTS: "produtos",
+      ORDERS: "pedidos",
+      MOVEMENTS: "movimentações",
+      STOCK: "estoque",
+      USERS: "usuários",
     };
-    return typeNames[type] || 'relatório';
+    return typeNames[type] || "relatório";
   }
 }

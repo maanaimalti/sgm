@@ -1,10 +1,10 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 // biome-ignore lint/style/useImportType: <explanation>
-import { JwtService } from '@nestjs/jwt';
-import type { role, user } from '@prisma/client';
-import * as bcrypt from 'bcrypt';
+import { JwtService } from "@nestjs/jwt";
+import type { role, user } from "@prisma/client";
+import * as bcrypt from "bcrypt";
 // biome-ignore lint/style/useImportType: <explanation>
-import { PrismaService } from '../db/prisma.service';
+import { PrismaService } from "../db/prisma.service";
 
 @Injectable()
 export class AuthService {
@@ -32,7 +32,7 @@ export class AuthService {
   async login(user: user & { roles: role[] }) {
     const data = await this.validateUser(user.username, user.password);
     if (!data) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new UnauthorizedException("Invalid credentials");
     }
     const payload = {
       username: data.username,

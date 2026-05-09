@@ -8,37 +8,37 @@ import {
   Post,
   Query,
   UseGuards,
-} from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
-import { Roles } from 'src/shared/auth/roles.decorator';
-import { RolesGuard } from 'src/shared/auth/roles.guard';
-import type { CreateMovementBatchDto } from './dto/create-movement-batch.dto';
-import type { CreateMovementDto } from './dto/create-movement.dto';
+} from "@nestjs/common";
+import { AuthGuard } from "@nestjs/passport";
+import { Roles } from "src/shared/auth/roles.decorator";
+import { RolesGuard } from "src/shared/auth/roles.guard";
+import { CreateMovementDto } from "./dto/create-movement.dto";
+import { CreateMovementBatchDto } from "./dto/create-movement-batch.dto";
 // biome-ignore lint/style/useImportType: <explanation>
-import { MovementService } from './movement.service';
+import { MovementService } from "./movement.service";
 
-@Controller('movement')
+@Controller("movement")
 export class MovementController {
   constructor(private readonly movementService: MovementService) {}
 
   @Post()
   @Post()
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'kitchen')
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles("admin", "kitchen")
   create(@Body() createMovementDto: CreateMovementDto) {
     return this.movementService.create(createMovementDto);
   }
 
-  @Post('/batch')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'kitchen')
+  @Post("/batch")
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles("admin", "kitchen")
   createBatch(@Body() createMovementDto: CreateMovementBatchDto) {
     return this.movementService.createBatch(createMovementDto);
   }
 
-  @Get('/stock')
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'kitchen')
+  @Get("/stock")
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles("admin", "kitchen")
   findAllStock(
     @Query()
     {
@@ -46,7 +46,7 @@ export class MovementController {
       pageSize,
       search,
     }: { page?: string | number; pageSize?: string | number; search?: string },
-    @Headers('departmentId') departmentId: string,
+    @Headers("departmentId") departmentId: string,
   ) {
     page = page ? Number.parseInt(page as string) : 1;
     pageSize = pageSize ? Number.parseInt(pageSize as string) : 10;
@@ -60,8 +60,8 @@ export class MovementController {
   }
 
   @Get()
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'kitchen')
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles("admin", "kitchen")
   findAll(
     @Query()
     {
@@ -69,7 +69,7 @@ export class MovementController {
       pageSize,
       search,
     }: { page?: string | number; pageSize?: string | number; search?: string },
-    @Headers('departmentId') departmentId: string,
+    @Headers("departmentId") departmentId: string,
   ) {
     page = page ? Number.parseInt(page as string) : 1;
     pageSize = pageSize ? Number.parseInt(pageSize as string) : 10;
@@ -82,19 +82,19 @@ export class MovementController {
     });
   }
 
-  @Get(':id')
+  @Get(":id")
   @Post()
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'kitchen')
-  findOne(@Param('id') id: string) {
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles("admin", "kitchen")
+  findOne(@Param("id") id: string) {
     return this.movementService.findOne(id);
   }
 
-  @Delete(':id')
+  @Delete(":id")
   @Post()
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'kitchen')
-  remove(@Param('id') id: string) {
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles("admin", "kitchen")
+  remove(@Param("id") id: string) {
     return this.movementService.remove(id);
   }
 }

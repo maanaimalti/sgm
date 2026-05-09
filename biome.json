@@ -1,34 +1,36 @@
 {
-  "$schema": "https://biomejs.dev/schemas/1.8.3/schema.json",
-  "organizeImports": {
-    "enabled": true
-  },
+  "$schema": "https://biomejs.dev/schemas/2.4.14/schema.json",
   "files": {
-    "ignore": ["node_modules/**", ".vscode/**", ".github/**"]
+    "includes": ["**", "!node_modules", "!.vscode", "!.github", "!dist"]
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
   },
   "linter": {
     "enabled": true,
     "rules": {
+      "recommended": true,
       "complexity": {
         "noStaticOnlyClass": "off"
       },
-      "recommended": true,
       "suspicious": {
         "noExplicitAny": "off",
         "noDebugger": "off",
-        "noConsoleLog": "off"
+        "noConsole": "off"
       },
       "style": {
-        "noShoutyConstants": "warn",
         "useNamingConvention": "off",
-        "useImportType": "info"
+        "useImportType": "off"
       }
     }
   },
   "formatter": {
     "enabled": true,
     "formatWithErrors": false,
-    "ignore": [],
     "attributePosition": "auto",
     "indentStyle": "space",
     "indentWidth": 2,

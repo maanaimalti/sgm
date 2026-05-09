@@ -7,56 +7,56 @@ import {
   Patch,
   Post,
   UseGuards,
-} from '@nestjs/common';
-import { AuthGuard } from '@nestjs/passport';
-import { Roles } from 'src/shared/auth/roles.decorator';
-import { RolesGuard } from 'src/shared/auth/roles.guard';
-import type { CreateUnityDto } from './dto/create-unity.dto';
-import type { UpdateUnityDto } from './dto/update-unity.dto';
+} from "@nestjs/common";
+import { AuthGuard } from "@nestjs/passport";
+import { Roles } from "src/shared/auth/roles.decorator";
+import { RolesGuard } from "src/shared/auth/roles.guard";
+import { CreateUnityDto } from "./dto/create-unity.dto";
+import { UpdateUnityDto } from "./dto/update-unity.dto";
 // biome-ignore lint/style/useImportType: <explanation>
-import { UnityService } from './unity.service';
+import { UnityService } from "./unity.service";
 
-@Controller('unity')
+@Controller("unity")
 export class UnityController {
   constructor(private readonly unityService: UnityService) {}
 
   @Post()
   @Post()
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'kitchen')
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles("admin", "kitchen")
   create(@Body() createUnityDto: CreateUnityDto) {
     return this.unityService.create(createUnityDto);
   }
 
   @Get()
   @Post()
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'kitchen')
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles("admin", "kitchen")
   findAll() {
     return this.unityService.findAll();
   }
 
-  @Get(':id')
+  @Get(":id")
   @Post()
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'kitchen')
-  findOne(@Param('id') id: string) {
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles("admin", "kitchen")
+  findOne(@Param("id") id: string) {
     return this.unityService.findOne(id);
   }
 
-  @Patch(':id')
+  @Patch(":id")
   @Post()
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'kitchen')
-  update(@Param('id') id: string, @Body() updateUnityDto: UpdateUnityDto) {
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles("admin", "kitchen")
+  update(@Param("id") id: string, @Body() updateUnityDto: UpdateUnityDto) {
     return this.unityService.update(id, updateUnityDto);
   }
 
-  @Delete(':id')
+  @Delete(":id")
   @Post()
-  @UseGuards(AuthGuard('jwt'), RolesGuard)
-  @Roles('admin', 'kitchen')
-  remove(@Param('id') id: string) {
+  @UseGuards(AuthGuard("jwt"), RolesGuard)
+  @Roles("admin", "kitchen")
+  remove(@Param("id") id: string) {
     return this.unityService.remove(id);
   }
 }

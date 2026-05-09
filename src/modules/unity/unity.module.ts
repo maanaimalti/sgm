@@ -1,6 +1,6 @@
-import { Module } from '@nestjs/common';
-import { UnityService } from './unity.service';
-import { UnityController } from './unity.controller';
+import { Module } from "@nestjs/common";
+import { UnityController } from "./unity.controller";
+import { UnityService } from "./unity.service";
 
 @Module({
   controllers: [UnityController],

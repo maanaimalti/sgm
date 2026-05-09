@@ -2,8 +2,8 @@ import {
   DeleteObjectCommand,
   PutObjectCommand,
   S3Client,
-} from '@aws-sdk/client-s3';
-import { Injectable } from '@nestjs/common';
+} from "@aws-sdk/client-s3";
+import { Injectable } from "@nestjs/common";
 
 @Injectable()
 export class UploadFileService {
@@ -19,7 +19,7 @@ export class UploadFileService {
 
   async uploadFile(filename: string, file: Uint8Array) {
     const command = new PutObjectCommand({
-      Bucket: 'sgm',
+      Bucket: "sgm",
       Key: filename,
       Body: file,
     });
@@ -35,7 +35,7 @@ export class UploadFileService {
   }
 
   getFileUrl(fileKey: string): string {
-    const endpoint = 'https://pub-02162cc0773546efb6b651c10eb87288.r2.dev/';
+    const endpoint = "https://pub-02162cc0773546efb6b651c10eb87288.r2.dev/";
     return `${endpoint}${fileKey}`;
   }
 }

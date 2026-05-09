@@ -7,54 +7,54 @@ import {
   Patch,
   Post,
   UseGuards,
-} from '@nestjs/common';
-import { JwtAuthGuard } from 'src/shared/auth/jwt-auth.guard';
-import { Roles } from 'src/shared/auth/roles.decorator';
-import { RolesGuard } from 'src/shared/auth/roles.guard';
+} from "@nestjs/common";
+import { JwtAuthGuard } from "src/shared/auth/jwt-auth.guard";
+import { Roles } from "src/shared/auth/roles.decorator";
+import { RolesGuard } from "src/shared/auth/roles.guard";
 // biome-ignore lint/style/useImportType: <explanation>
-import { CategoryService } from './category.service';
-import type { CreateCategoryDto } from './dto/create-category.dto';
-import type { UpdateCategoryDto } from './dto/update-category.dto';
+import { CategoryService } from "./category.service";
+import { CreateCategoryDto } from "./dto/create-category.dto";
+import { UpdateCategoryDto } from "./dto/update-category.dto";
 
-@Controller('category')
+@Controller("category")
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
   @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'kitchen')
+  @Roles("admin", "kitchen")
   create(@Body() createCategoryDto: CreateCategoryDto) {
     return this.categoryService.create(createCategoryDto);
   }
 
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'kitchen')
+  @Roles("admin", "kitchen")
   findAll() {
     return this.categoryService.findAll();
   }
 
-  @Get(':id')
+  @Get(":id")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'kitchen')
-  findOne(@Param('id') id: string) {
+  @Roles("admin", "kitchen")
+  findOne(@Param("id") id: string) {
     return this.categoryService.findOne(id);
   }
 
-  @Patch(':id')
+  @Patch(":id")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'kitchen')
+  @Roles("admin", "kitchen")
   update(
-    @Param('id') id: string,
+    @Param("id") id: string,
     @Body() updateCategoryDto: UpdateCategoryDto,
   ) {
     return this.categoryService.update(id, updateCategoryDto);
   }
 
-  @Delete(':id')
+  @Delete(":id")
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles('admin', 'kitchen')
-  remove(@Param('id') id: string) {
+  @Roles("admin", "kitchen")
+  remove(@Param("id") id: string) {
     return this.categoryService.remove(id);
   }
 }
