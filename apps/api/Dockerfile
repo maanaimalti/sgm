@@ -8,19 +8,18 @@ RUN apk add --no-cache openssl \
   && corepack enable \
   && corepack prepare pnpm@9.15.0 --activate
 
-# Copy manifests first for cacheable install layer.
+# packages/shared has a `prepare` script (tsc) that fires during install,
+# so its tsconfig.json + src must be present before `pnpm install` runs.
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY apps/api/package.json ./apps/api/
-COPY packages/shared/package.json ./packages/shared/
 COPY apps/api/prisma ./apps/api/prisma/
+COPY packages/shared ./packages/shared
 
 RUN pnpm install --frozen-lockfile
 
-COPY packages/shared ./packages/shared
 COPY apps/api ./apps/api
 
-RUN pnpm --filter @sgm/shared build \
-  && pnpm --filter @sgm/api exec prisma generate \
+RUN pnpm --filter @sgm/api exec prisma generate \
   && pnpm --filter @sgm/api build
 
 WORKDIR /repo/apps/api
