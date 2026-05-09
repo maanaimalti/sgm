@@ -1,0 +1,238 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum orderStatus {
+  PENDING
+  APPROVED
+  PURCHASED
+  CANCELED
+
+  @@map("order_status")
+}
+
+enum movementType {
+  in
+  out
+}
+
+model category {
+  id          String  @id
+  name        String
+  description String?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  product   product[]
+
+  @@map("categories")
+}
+
+model unity {
+  id          String    @id
+  name        String
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  product     product[]
+
+  @@map("unities")
+}
+
+model product {
+  id              String   @id
+  name            String
+  description     String?
+  categoryId      String
+  departmentId    String?
+  unityId         String
+  status          String   @default("active")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  productValuesId String?
+  costValue       Float    @map("cost_value")
+  saleValue       Float?   @map("sale_value")
+
+  department department? @relation(fields: [departmentId], references: [id])
+  category   category    @relation(fields: [categoryId], references: [id])
+  unity      unity       @relation(fields: [unityId], references: [id])
+  movement   movement[]
+  orderItem  orderItem[]
+  stock      stock[]
+
+  @@map("products")
+}
+
+model movement {
+  id        String       @id
+  productId String
+  quantity  Float
+  type      movementType
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  product product @relation(fields: [productId], references: [id])
+
+  @@map("movements")
+}
+
+model stock {
+  id        String   @id
+  productId String
+  quantity  Float
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  product product @relation(fields: [productId], references: [id])
+
+  @@map("stocks")
+}
+
+model user {
+  id           String         @id
+  name         String
+  username     String         @unique
+  password     String
+  roles        role[]
+  orders       orders[]
+  orderReports orderReports[]
+  notification notification[]
+  department   department[]
+  reports      report[]
+
+  @@map("users")
+}
+
+model role {
+  id          String       @id
+  name        String       @unique
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  users       user[]
+  permissions permission[]
+
+  @@map("roles")
+}
+
+model permission {
+  id        String   @id
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  roles     role[]
+
+  @@map("permissions")
+}
+
+model orders {
+  id          String   @id
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  observation String?
+  event       String?
+
+  status              orderStatus @default(PENDING)
+  statusOberservation String?     @map("status_observation")
+
+  user         user           @relation(fields: [userId], references: [id])
+  orderItem    orderItem[]
+  orderReports orderReports[]
+
+  @@map("orders")
+}
+
+model orderItem {
+  id        String   @id
+  orderId   String
+  productId String
+  quantity  Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  order   orders  @relation(fields: [orderId], references: [id])
+  product product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+model orderReports {
+  id        String   @id
+  orderId   String
+  userId    String
+  url       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user  user   @relation(fields: [userId], references: [id])
+  order orders @relation(fields: [orderId], references: [id])
+
+  @@map("order_reports")
+}
+
+model notification {
+  id         String    @id
+  text       String
+  type       String
+  to         String
+  metadata   String?   // JSON string for additional data like download URLs
+  readableAt DateTime? @map("readable_at")
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  user user @relation(fields: [to], references: [id])
+}
+
+model department {
+  id          String    @id
+  name        String
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  user        user[]
+  product     product[]
+
+  @@map("departments")
+}
+
+enum reportStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+
+  @@map("report_status")
+}
+
+enum reportType {
+  PRODUCTS
+  ORDERS
+  MOVEMENTS
+  STOCK
+  USERS
+
+  @@map("report_type")
+}
+
+model report {
+  id           String       @id
+  type         reportType
+  userId       String
+  departmentId String?
+  fileName     String
+  filePath     String?
+  status       reportStatus @default(PENDING)
+  parameters   String?      // JSON string for report filters/parameters
+  errorMessage String?      @map("error_message")
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  user user @relation(fields: [userId], references: [id])
+
+  @@map("reports")
+}
