@@ -17,9 +17,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **Test with watch**: `pnpm run test:watch`
 
 ### Code Quality
-- **Linting**: `pnpm run lint` (ESLint with auto-fix)
-- **Formatting**: `pnpm run format` (Prettier)
-- **Biome check**: `biome check` (linting and formatting with Biome)
+- **Lint + format**: `pnpm run lint` (Biome, with auto-fix)
+- **Format only**: `pnpm run format` (Biome)
 
 ### Database
 - **Generate Prisma client**: `pnpm run prisma:generate`
@@ -28,8 +27,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **View database**: `prisma studio`
 
 ### Docker
-- **Start with Docker**: `docker-compose up`
-- **Build Docker image**: `docker build -t sgm-api .`
+- **Start with Docker**: `docker compose -f apps/api/docker-compose.yaml up` (run from repo root)
+- **Build Docker image**: `docker build -f apps/api/Dockerfile -t sgm-api .` (run from repo root — build context must be the monorepo root so `packages/shared/` is reachable)
 
 ## Architecture Overview
 
