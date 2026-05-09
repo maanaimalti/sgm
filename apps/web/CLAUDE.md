@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-`sgm-web` — "Sistema de Gestão de Maanaim" (management system for Maanaim de Alagoas). Next.js 14 (App Router) frontend in Portuguese (pt-BR) that talks to an external REST API. Package manager: **pnpm**.
+`@sgm/web` — "Sistema de Gestão de Maanaim" (management system for Maanaim de Alagoas). Next.js 15 (App Router) + React 19 frontend in Portuguese (pt-BR) that talks to an external REST API. Package manager: **pnpm**. Lives in the `apps/web` workspace of the `sgm` monorepo.
 
 ## Commands
 
@@ -36,7 +36,7 @@ Routes are in Portuguese and follow a consistent CRUD shape:
 The codebase enforces a strict three-layer split. Follow it when adding a feature:
 
 1. **`src/data/schemas/*`** — Zod schemas (form validation + types).
-2. **`src/data/fetchers/<resource>/*`** — read-side functions calling `api` (axios), grouped per resource (`get-all.ts`, `get-by-id.ts`, response interfaces).
+2. **`src/data/fetchers/<resource>/*`** — read-side functions calling `api` (axios), grouped per resource (`get-all.ts`, `get-by-id.ts`). API response shapes are imported from `@sgm/shared` (workspace package), not declared locally.
 3. **`src/data/mutations/*.ts`** — write-side functions (one file per action: `new-*`, `update-*`, `delete-*`, etc.).
 4. **`src/hooks/pages/use-*.ts`** — page-level hooks that compose `useQuery`/`useMutation` with toasts, routing, and `react-hook-form`. Pages stay thin; logic lives in these hooks (see `src/app/page.tsx` → `useLogin`, `produtos/page.tsx` → `useProductPage`).
 
