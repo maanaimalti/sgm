@@ -1,25 +1,35 @@
 import { useToast } from "@/components/ui/use-toast";
 import { GetAllUnitiesFetcher } from "@/data/fetchers/unities/get-all";
 import { deleteUnitMutation } from "@/data/mutations/delete-unit";
+import { useDebounce } from "@/hooks/use-debounce";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
 
 export const useUnit = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const urlQ = searchParams.get("q") ?? "";
+  const [q, setQ] = useState(urlQ);
+  const debouncedQ = useDebounce(q, 300);
+
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams.toString());
+    if (debouncedQ) next.set("q", debouncedQ);
+    else next.delete("q");
+    router.replace(`?${next.toString()}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQ]);
 
   const deleteUnit = useMutation({
     mutationKey: ["delete-unit"],
     mutationFn: deleteUnitMutation,
     onSuccess: () => {
-      toast({
-        title: "Unidade deletada com sucesso",
-        duration: 2000,
-      });
-      queryClient.invalidateQueries({
-        queryKey: ["unities"],
-      });
+      toast({ title: "Unidade deletada com sucesso", duration: 2000 });
+      queryClient.invalidateQueries({ queryKey: ["unities"] });
     },
     onError: () => {
       toast({
@@ -36,24 +46,26 @@ export const useUnit = () => {
     queryFn: GetAllUnitiesFetcher,
   });
 
-  const handleDeleteUnit = (id: string) => {
-    deleteUnit.mutate(id);
-  };
-
-  const handleClickNewUnit = () => {
-    router.push("/unidade-de-medida/novo");
-  };
-
-  const handleEditUnit = (id: string) => {
-    router.push(`/unidade-de-medida/${id}`);
-  };
+  const filtered = useMemo(() => {
+    if (!data) return [];
+    if (!debouncedQ) return data;
+    const needle = debouncedQ.toLowerCase();
+    return data.filter(
+      (u) =>
+        u.name.toLowerCase().includes(needle) ||
+        (u.description ?? "").toLowerCase().includes(needle),
+    );
+  }, [data, debouncedQ]);
 
   return {
-    unities: data,
+    unities: filtered,
+    total: data?.length ?? 0,
     isLoading,
+    q,
+    setQ,
     deleteIsLoading: deleteUnit.isPending,
-    handleDeleteUnit,
-    handleClickNewUnit,
-    handleEditUnit,
+    handleDeleteUnit: (id: string) => deleteUnit.mutate(id),
+    handleClickNewUnit: () => router.push("/unidade-de-medida/novo"),
+    handleEditUnit: (id: string) => router.push(`/unidade-de-medida/${id}`),
   };
 };

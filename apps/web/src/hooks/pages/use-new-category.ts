@@ -39,6 +39,10 @@ export const useNewCategory = () => {
 
   const form = useForm<CategoryForm>({
     resolver: zodResolver(categorySchema),
+    defaultValues: {
+      name: "",
+      description: "",
+    },
   });
 
   const onSubmit = (data: CategoryForm) => {
