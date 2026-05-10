@@ -5,28 +5,30 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 rounded-pill font-medium tracking-[-0.005em] transition-all duration-150 ease-out whitespace-nowrap disabled:opacity-50 disabled:pointer-events-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-soft",
   {
     variants: {
       variant: {
-        default:
-          "bg-primary text-primary-foreground shadow hover:bg-primary/90",
-        destructive:
-          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90",
-        outline:
-          "border border-input bg-background shadow-sm hover:bg-accent hover:text-accent-foreground",
+        default: "bg-brand text-card border border-brand hover:bg-brand-ink",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80",
-        warning:
-          "border-transparent bg-amber-400 text-secondary-foreground hover:bg-amber-400/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary underline-offset-4 hover:underline",
+          "bg-card text-ink border border-line-2 hover:bg-soft",
+        outline:
+          "bg-card text-ink border border-line-2 hover:bg-soft",
+        ghost:
+          "bg-transparent text-ink-2 hover:bg-soft border border-transparent",
+        soft:
+          "bg-brand-soft text-brand-ink border border-transparent hover:brightness-95",
+        warning: "bg-warn text-card border border-warn",
+        destructive: "bg-bad text-card border border-bad",
+        dangerOutline:
+          "bg-transparent text-bad-ink border border-bad-soft hover:bg-bad-soft",
+        link: "bg-transparent text-brand underline-offset-4 hover:underline border border-transparent",
       },
       size: {
-        default: "h-9 px-4 py-2",
-        sm: "h-8 rounded-md px-3 text-xs",
-        lg: "h-10 rounded-md px-8",
-        icon: "h-9 w-9",
+        default: "h-10 px-4 text-[14px]",
+        sm: "h-8 px-3 text-[13px] gap-1.5",
+        lg: "h-12 px-5 text-[15px] gap-2.5",
+        icon: "h-10 w-10",
       },
     },
     defaultVariants: {

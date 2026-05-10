@@ -11,7 +11,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
       <input
         type={type}
         className={cn(
-          "flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50",
+          "h-11 w-full rounded-2 border border-line-2 bg-card px-3 text-[14px] text-ink placeholder:text-muted focus-visible:outline-none focus-visible:border-brand focus-visible:ring-2 focus-visible:ring-brand-soft disabled:opacity-50 disabled:cursor-not-allowed",
           className,
         )}
         ref={ref}
@@ -22,4 +22,47 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 );
 Input.displayName = "Input";
 
-export { Input };
+export interface InputGroupProps
+  extends React.HTMLAttributes<HTMLDivElement> {
+  leading?: React.ReactNode;
+  trailing?: React.ReactNode;
+  suffix?: string;
+}
+
+const InputGroup = React.forwardRef<HTMLDivElement, InputGroupProps>(
+  ({ className, leading, trailing, suffix, children, ...props }, ref) => {
+    return (
+      <div
+        ref={ref}
+        className={cn(
+          "flex items-center gap-2 h-11 rounded-2 border border-line-2 bg-card px-3 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand-soft transition-shadow",
+          className,
+        )}
+        {...props}
+      >
+        {leading && (
+          <span className="flex items-center text-muted shrink-0">
+            {leading}
+          </span>
+        )}
+        <div className="flex-1 min-w-0">
+          {/* Strip border/height from inner Input via override classes */}
+          <div className="[&_input]:h-full [&_input]:w-full [&_input]:border-0 [&_input]:bg-transparent [&_input]:px-0 [&_input]:focus-visible:ring-0 [&_input]:focus-visible:border-0 [&_input]:rounded-none [&_input]:outline-none">
+            {children}
+          </div>
+        </div>
+        {suffix && (
+          <span className="text-[12.5px] text-muted shrink-0">{suffix}</span>
+        )}
+        {trailing && (
+          <span className="flex items-center text-muted shrink-0">
+            {trailing}
+          </span>
+        )}
+      </div>
+    );
+  },
+);
+InputGroup.displayName = "InputGroup";
+
+export { Input, InputGroup };

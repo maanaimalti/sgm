@@ -1,7 +1,6 @@
 import type { Config } from "tailwindcss";
 
 const config = {
-  darkMode: ["class"],
   content: [
     "./pages/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
@@ -19,68 +18,99 @@ const config = {
     },
     extend: {
       colors: {
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        bg: "var(--bg)",
+        surface: "var(--surface)",
+        card: "var(--card)",
+        soft: "var(--soft)",
+        ink: "var(--ink)",
+        "ink-2": "var(--ink-2)",
+        muted: "var(--muted)",
+        faint: "var(--faint)",
+        line: "var(--line)",
+        "line-2": "var(--line-2)",
+        brand: {
+          DEFAULT: "var(--brand)",
+          ink: "var(--brand-ink)",
+          soft: "var(--brand-soft)",
+          mid: "var(--brand-mid)",
+        },
+        red: {
+          DEFAULT: "var(--red)",
+          soft: "var(--red-soft)",
+          ink: "var(--red-ink)",
+        },
+        ok: {
+          DEFAULT: "var(--ok)",
+          soft: "var(--ok-soft)",
+          ink: "var(--ok-ink)",
+        },
+        warn: {
+          DEFAULT: "var(--warn)",
+          soft: "var(--warn-soft)",
+          ink: "var(--warn-ink)",
+        },
+        bad: {
+          DEFAULT: "var(--bad)",
+          soft: "var(--bad-soft)",
+          ink: "var(--bad-ink)",
+        },
+        info: "var(--info)",
+        border: "var(--border)",
+        input: "var(--input)",
+        ring: "var(--ring)",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+          DEFAULT: "var(--secondary)",
+          foreground: "var(--secondary-foreground)",
         },
         destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+          DEFAULT: "var(--destructive)",
+          foreground: "var(--destructive-foreground)",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: "var(--accent)",
+          foreground: "var(--accent-foreground)",
         },
         popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
+          DEFAULT: "var(--popover)",
+          foreground: "var(--popover-foreground)",
         },
-        card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
-        },
-        chart: {
-          "1": "hsl(var(--chart-1))",
-          "2": "hsl(var(--chart-2))",
-          "3": "hsl(var(--chart-3))",
-          "4": "hsl(var(--chart-4))",
-          "5": "hsl(var(--chart-5))",
-        },
+        "muted-foreground": "var(--muted-foreground)",
+        "card-foreground": "var(--card-foreground)",
       },
       borderRadius: {
+        "1": "var(--radius-1)",
+        "2": "var(--radius-2)",
+        "3": "var(--radius-3)",
+        "4": "var(--radius-4)",
+        pill: "999px",
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
       },
+      fontFamily: {
+        serif: ["var(--font-instrument)", "Georgia", "serif"],
+        sans: ["var(--font-geist)", "system-ui", "sans-serif"],
+        mono: ["var(--font-jetbrains)", "ui-monospace", "monospace"],
+      },
+      boxShadow: {
+        "sm-warm": "var(--shadow-sm)",
+        "md-warm": "var(--shadow-md)",
+        "lg-warm": "var(--shadow-lg)",
+      },
       keyframes: {
         "accordion-down": {
-          from: {
-            height: "0",
-          },
-          to: {
-            height: "var(--radix-accordion-content-height)",
-          },
+          from: { height: "0" },
+          to: { height: "var(--radix-accordion-content-height)" },
         },
         "accordion-up": {
-          from: {
-            height: "var(--radix-accordion-content-height)",
-          },
-          to: {
-            height: "0",
-          },
+          from: { height: "var(--radix-accordion-content-height)" },
+          to: { height: "0" },
         },
       },
       animation: {

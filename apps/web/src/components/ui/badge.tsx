@@ -4,21 +4,16 @@ import type * as React from "react";
 import { cn } from "@/lib/utils";
 
 const badgeVariants = cva(
-  "inline-flex items-center rounded-md border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
+  "inline-flex items-center rounded-pill px-2.5 py-0.5 text-[11.5px] font-medium tracking-[0.005em]",
   {
     variants: {
       variant: {
-        default:
-          "border-transparent bg-primary text-primary-foreground shadow hover:bg-primary/80",
-        secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        destructive:
-          "border-transparent bg-destructive text-destructive-foreground shadow hover:bg-destructive/80",
-        outline: "text-foreground",
-        warning:
-          "border-transparent bg-amber-400 text-secondary-foreground hover:bg-amber-400/80",
-        success:
-          "border-transparent bg-emerald-500 text-secondary-foreground hover:bg-green-500/80",
+        default: "bg-soft text-ink-2",
+        secondary: "bg-brand-soft text-brand-ink",
+        success: "bg-ok-soft text-ok-ink",
+        warning: "bg-warn-soft text-warn-ink",
+        destructive: "bg-bad-soft text-bad-ink",
+        outline: "bg-transparent border border-line-2 text-ink-2",
       },
     },
     defaultVariants: {
@@ -29,11 +24,21 @@ const badgeVariants = cva(
 
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLDivElement>,
-    VariantProps<typeof badgeVariants> {}
+    VariantProps<typeof badgeVariants> {
+  dot?: boolean;
+}
 
-function Badge({ className, variant, ...props }: BadgeProps) {
+function Badge({ className, variant, dot, children, ...props }: BadgeProps) {
   return (
-    <div className={cn(badgeVariants({ variant }), className)} {...props} />
+    <div className={cn(badgeVariants({ variant }), className)} {...props}>
+      {dot && (
+        <span
+          aria-hidden="true"
+          className="size-1.5 rounded-full bg-current mr-1.5"
+        />
+      )}
+      {children}
+    </div>
   );
 }
 
