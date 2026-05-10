@@ -1,5 +1,5 @@
-import type { StockResponse } from "@sgm/shared";
 import { api } from "@/services/api";
+import type { StockResponse } from "@sgm/shared";
 
 export const getAllStockFetcher = async ({
   page = 1,

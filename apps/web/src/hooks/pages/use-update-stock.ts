@@ -1,124 +1,82 @@
 import { toast } from "@/components/ui/use-toast";
 import { GetAllProductsFetcher } from "@/data/fetchers/products/get-all";
 import { updateStockMutation } from "@/data/mutations/update-stock";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import {
+  type StockMovementForm,
+  stockMovementSchema,
+} from "@/data/schemas/stock-movement-schema";
+import { useDebounce } from "@/hooks/use-debounce";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
-import { useDebounce } from "../use-debounce";
+import { useForm } from "react-hook-form";
 
 export const useUpdateStock = () => {
   const router = useRouter();
-  const [items, setItems] = useState<
-    {
-      id: string;
-      quantity: number;
-      name: string;
-      unity: string;
-      type: "in" | "out";
-    }[]
-  >([]);
-  const [currentProduct, setCurrentProduct] = useState<{
-    id: string;
-    name: string;
-    unity: string;
-  } | null>(null);
-  const [transactionType, setTransactionType] = useState<"in" | "out">("in");
-  const [currentQuantity, setCurrentQuantity] = useState(0);
-  const [productSearchValue, setProductSearchValue] = useState("");
-  const debouncedProductSearchValue = useDebounce(productSearchValue, 500);
+  const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+
+  const initialProductId = searchParams.get("productId") ?? "";
+  const initialType =
+    (searchParams.get("type") as "in" | "out" | null) ?? "in";
+
+  const [productSearch, setProductSearch] = useState("");
+  const debouncedSearch = useDebounce(productSearch, 300);
+
+  const form = useForm<StockMovementForm>({
+    resolver: zodResolver(stockMovementSchema),
+    defaultValues: {
+      productId: initialProductId,
+      type: initialType,
+      quantity: undefined as unknown as number,
+    },
+  });
+
+  const productsQuery = useQuery({
+    queryKey: ["products", { page: 1, q: debouncedSearch, category: "" }],
+    queryFn: () =>
+      GetAllProductsFetcher({
+        page: 1,
+        pageSize: 50,
+        search: debouncedSearch,
+      }),
+  });
 
   const stockMutation = useMutation({
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    mutationFn: (stock: any) => updateStockMutation(stock),
-    retry: 3,
-    retryDelay: 2000,
-    onSuccess: (data) => {
-      toast({
-        title: "Estoque atualizado com sucesso",
-      });
+    mutationFn: (data: StockMovementForm) => updateStockMutation(data),
+    onSuccess: () => {
+      toast({ title: "Estoque atualizado com sucesso" });
+      queryClient.invalidateQueries({ queryKey: ["stocks"] });
       router.push("/estoque");
     },
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     onError: (error: any) => {
       toast({
         title: "Erro ao atualizar estoque",
-        description: error.message,
+        description:
+          error?.response?.data?.message ?? error?.message ?? "Tente novamente",
         variant: "destructive",
       });
     },
   });
 
-  const { data } = useQuery({
-    queryKey: ["products", productSearchValue],
-    queryFn: () =>
-      GetAllProductsFetcher({
-        page: 1,
-        pageSize: 900,
-        search: debouncedProductSearchValue,
-      }),
-  });
-
-  const handleAddProduct = () => {
-    if (!currentProduct || !currentQuantity) return;
-    if (items.some((item) => item.id === currentProduct.id)) {
-      toast({
-        title: "Produto já adicionado",
-        variant: "destructive",
-      });
-      return;
-    }
-    setItems((prevProducts) => [
-      ...prevProducts,
-      { ...currentProduct, quantity: currentQuantity, type: transactionType },
-    ]);
-    setCurrentProduct(null);
-    setCurrentQuantity(0);
+  const onSubmit = (data: StockMovementForm) => {
+    stockMutation.mutate(data);
   };
 
-  const handleUpdateStock = () => {
-    if (!items.length) {
-      toast({
-        title: "Pedido vazio",
-        description: "Adicione produtos ao pedido antes de confirmar",
-        variant: "destructive",
-      });
-      return;
-    }
-    stockMutation.mutate({
-      items: items.map((item) => ({
-        productId: item.id,
-        quantity: item.quantity,
-        type: transactionType,
-      })),
-    });
-  };
-
-  const handleSelectProduct = (productInfo: string) => {
-    const [id, name, unity] = productInfo.split("-");
-    setCurrentProduct({ id, name, unity });
-  };
-
-  const handleSelectTransactionType = (transactionType: "in" | "out") => {
-    setTransactionType(transactionType);
-  };
-
-  const handleRemoveItem = (id: string) => {
-    setItems((prevItems) => prevItems.filter((item) => item.id !== id));
-  };
+  const products = productsQuery.data?.products ?? [];
+  const selectedProduct = products.find(
+    (p) => p.id === form.watch("productId"),
+  );
 
   return {
-    items,
-    products: data?.products,
-    currentProduct,
-    currentQuantity,
-    transactionType,
-    handleRemoveItem,
-    handleSelectProduct,
-    handleAddProduct,
-    setCurrentProduct,
-    setCurrentQuantity,
-    handleUpdateStock,
-    setProductSearchValue,
-    handleSelectTransactionType,
+    form,
+    onSubmit,
+    products,
+    selectedProduct,
+    productSearch,
+    setProductSearch,
+    isSubmitting: stockMutation.isPending,
   };
 };
