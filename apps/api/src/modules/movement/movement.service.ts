@@ -4,6 +4,8 @@ import { movementType } from "@prisma/client";
 import { PrismaService } from "src/shared/db/prisma.service";
 // biome-ignore lint/style/useImportType: <explanation>
 import { HelpersService } from "src/shared/helpers/helpers.service";
+// biome-ignore lint/style/useImportType: <explanation>
+import { NotificationService } from "../notification/notification.service";
 import { CreateMovementDto } from "./dto/create-movement.dto";
 import { CreateMovementBatchDto } from "./dto/create-movement-batch.dto";
 import { FindAllMovementDTO } from "./dto/find-all-movement.dto";
@@ -13,6 +15,7 @@ export class MovementService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly helpersService: HelpersService,
+    private readonly notificationService: NotificationService,
   ) {}
 
   async create(createMovementDto: CreateMovementDto) {
@@ -73,7 +76,42 @@ export class MovementService {
         updatedAt: new Date(),
       },
     });
+
+    if (type === "out") {
+      await this.maybeNotifyLowStock(productId, stock.quantity, newQuantity);
+    }
     return result;
+  }
+
+  private async maybeNotifyLowStock(
+    productId: string,
+    previousStock: number,
+    newStock: number,
+  ) {
+    try {
+      const product = await this.prismaService.product.findUnique({
+        where: { id: productId },
+        select: {
+          id: true,
+          name: true,
+          minStock: true,
+          departmentId: true,
+        },
+      });
+      if (!product?.minStock || product.minStock <= 0) return;
+      if (previousStock < product.minStock) return;
+      if (newStock >= product.minStock) return;
+
+      await this.notificationService.broadcast({
+        toRoles: ["kitchen", "admin"],
+        departmentId: product.departmentId,
+        type: "LOW_STOCK",
+        text: `Estoque baixo de ${product.name}: ${newStock} / mín ${product.minStock}.`,
+        metadata: JSON.stringify({ productId: product.id }),
+      });
+    } catch (error) {
+      Logger.error("Failed to evaluate low-stock notification", { error });
+    }
   }
 
   async createBatch(createMovementDto: CreateMovementBatchDto) {
@@ -178,6 +216,7 @@ export class MovementService {
           select: {
             id: true,
             name: true,
+            minStock: true,
             department: {
               select: {
                 name: true,

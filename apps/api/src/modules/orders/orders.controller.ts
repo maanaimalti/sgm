@@ -9,6 +9,7 @@ import {
   UseGuards,
 } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
+import { orderStatus } from "@prisma/client";
 import { Roles } from "src/shared/auth/roles.decorator";
 import { RolesGuard } from "src/shared/auth/roles.guard";
 import { GetUserId } from "src/shared/decorators/get-user-id";
@@ -36,11 +37,23 @@ export class OrdersController {
   @Roles("admin", "kitchen", "buyer", "manager")
   findAll(
     @Query()
-    { page, pageSize }: { page?: string | number; pageSize?: string | number },
+    query: {
+      page?: string | number;
+      pageSize?: string | number;
+      status?: orderStatus;
+      search?: string;
+    },
   ) {
-    page = page ? Number.parseInt(page as string) : 1;
-    pageSize = pageSize ? Number.parseInt(pageSize as string) : 10;
-    return this.ordersService.findAll({ page, pageSize });
+    const page = query.page ? Number.parseInt(query.page as string) : 1;
+    const pageSize = query.pageSize
+      ? Number.parseInt(query.pageSize as string)
+      : 10;
+    return this.ordersService.findAll({
+      page,
+      pageSize,
+      status: query.status,
+      search: query.search,
+    });
   }
 
   @Get(":id")
@@ -53,15 +66,19 @@ export class OrdersController {
   @Patch("/approve/:id")
   @UseGuards(AuthGuard("jwt"), RolesGuard)
   @Roles("admin", "manager")
-  approveOrder(@Param("id") id: string) {
-    return this.ordersService.approveOrder(id);
+  approveOrder(@Param("id") id: string, @GetUserId() userId: string) {
+    return this.ordersService.approveOrder(id, userId);
   }
 
   @Patch("/cancel/:id")
   @UseGuards(AuthGuard("jwt"), RolesGuard)
   @Roles("admin", "manager")
-  cancelOrder(@Param("id") id: string) {
-    return this.ordersService.cancelOrder(id);
+  cancelOrder(
+    @Param("id") id: string,
+    @GetUserId() userId: string,
+    @Body() body?: { observation?: string },
+  ) {
+    return this.ordersService.cancelOrder(id, userId, body?.observation);
   }
 
   @Get("/report/:id")

@@ -17,6 +17,7 @@ export interface ProductResponse {
   description: string;
   name: string;
   status: string;
+  minStock?: number | null;
 }
 
 export interface ProductListResponse {

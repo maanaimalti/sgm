@@ -1,4 +1,5 @@
-import { IsNumber, IsOptional } from "class-validator";
+import { orderStatus } from "@prisma/client";
+import { IsEnum, IsNumber, IsOptional, IsString } from "class-validator";
 
 export class FindAllOrdersDto {
   @IsNumber()
@@ -8,4 +9,12 @@ export class FindAllOrdersDto {
   @IsNumber()
   @IsOptional()
   pageSize? = 10;
+
+  @IsOptional()
+  @IsEnum(orderStatus)
+  status?: orderStatus;
+
+  @IsOptional()
+  @IsString()
+  search?: string;
 }

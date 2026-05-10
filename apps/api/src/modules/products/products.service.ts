@@ -37,6 +37,7 @@ export class ProductsService {
         description: product.description,
         costValue: product.costValue,
         saleValue: product.saleValue,
+        minStock: product.minStock ?? 0,
         department: {
           connect: {
             id: product.departmentId,
@@ -100,6 +101,7 @@ export class ProductsService {
         id: true,
         name: true,
         status: true,
+        minStock: true,
       },
     });
     const total = await this.prismaService.product.count({
@@ -138,6 +140,7 @@ export class ProductsService {
         status: true,
         costValue: true,
         saleValue: true,
+        minStock: true,
         department: true,
       },
     });
@@ -160,6 +163,7 @@ export class ProductsService {
         departmentId: updateProductDto.departmentId,
         costValue: updateProductDto.costValue,
         saleValue: updateProductDto.saleValue,
+        minStock: updateProductDto.minStock,
         name: updateProductDto.name,
       },
     });

@@ -57,6 +57,7 @@ model product {
   productValuesId String?
   costValue       Float    @map("cost_value")
   saleValue       Float?   @map("sale_value")
+  minStock        Int?     @default(0) @map("min_stock")
 
   department department? @relation(fields: [departmentId], references: [id])
   category   category    @relation(fields: [categoryId], references: [id])
@@ -104,6 +105,7 @@ model user {
   notification notification[]
   department   department[]
   reports      report[]
+  orderEvents  orderEvent[]
 
   @@map("users")
 }
@@ -130,12 +132,13 @@ model permission {
 }
 
 model orders {
-  id          String   @id
-  userId      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  observation String?
-  event       String?
+  id           String   @id
+  userId       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  observation  String?
+  event        String?
+  friendlyCode String?  @unique @map("friendly_code")
 
   status              orderStatus @default(PENDING)
   statusOberservation String?     @map("status_observation")
@@ -143,8 +146,31 @@ model orders {
   user         user           @relation(fields: [userId], references: [id])
   orderItem    orderItem[]
   orderReports orderReports[]
+  events       orderEvent[]
 
   @@map("orders")
+}
+
+model order_counter {
+  id    Int @id @default(1)
+  value Int @default(0)
+
+  @@map("order_counter")
+}
+
+model orderEvent {
+  id        String   @id @default(uuid())
+  orderId   String   @map("order_id")
+  type      String
+  userId    String   @map("user_id")
+  payload   Json?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  order orders @relation(fields: [orderId], references: [id])
+  user  user   @relation(fields: [userId], references: [id])
+
+  @@index([orderId])
+  @@map("order_events")
 }
 
 model orderItem {
