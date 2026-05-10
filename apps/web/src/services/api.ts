@@ -23,3 +23,22 @@ api.interceptors.request.use((config) => {
   }
   return config;
 });
+
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (typeof window !== "undefined") {
+      const status = error?.response?.status;
+      const url: string = error?.config?.url ?? "";
+      if (status === 401 && !url.includes("/auth/login")) {
+        localStorage.removeItem("accessToken");
+        document.cookie =
+          "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+        if (window.location.pathname !== "/") {
+          window.location.href = "/";
+        }
+      }
+    }
+    return Promise.reject(error);
+  },
+);
