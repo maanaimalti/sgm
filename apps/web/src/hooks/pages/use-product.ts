@@ -1,6 +1,10 @@
 import { useToast } from "@/components/ui/use-toast";
+import { GetAllCategoriesFetcher } from "@/data/fetchers/categories/get-all";
 import { GetAllProductsFetcher } from "@/data/fetchers/products/get-all";
+import { getAllStockFetcher } from "@/data/fetchers/stock/get-all";
 import { deleteProductMutation } from "@/data/mutations/delete-product";
+import { useDebounce } from "@/hooks/use-debounce";
+import { type StockStatus, statusFor } from "@/lib/stock-status";
 
 import {
   keepPreviousData,
@@ -8,14 +12,83 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+
+const PAGE_SIZE = 10;
 
 export const useProductPage = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [currentPage, setCurrentPage] = useState(1);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const page = Number(searchParams.get("page") ?? 1);
+  const urlQ = searchParams.get("q") ?? "";
+  const category = searchParams.get("category") ?? "";
+
+  const [q, setQ] = useState(urlQ);
+  const debouncedQ = useDebounce(q, 300);
+
+  useEffect(() => {
+    const next = new URLSearchParams(searchParams.toString());
+    if (debouncedQ) next.set("q", debouncedQ);
+    else next.delete("q");
+    if (debouncedQ !== urlQ) next.set("page", "1");
+    router.replace(`?${next.toString()}`);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [debouncedQ]);
+
+  const setCategory = (value: string) => {
+    const next = new URLSearchParams(searchParams.toString());
+    if (value) next.set("category", value);
+    else next.delete("category");
+    next.set("page", "1");
+    router.replace(`?${next.toString()}`);
+  };
+
+  const setPage = (value: number) => {
+    const next = new URLSearchParams(searchParams.toString());
+    next.set("page", String(value));
+    router.replace(`?${next.toString()}`);
+  };
+
+  const productsQuery = useQuery({
+    queryKey: ["products", { page, q: debouncedQ, category }],
+    queryFn: () =>
+      GetAllProductsFetcher({
+        page,
+        pageSize: PAGE_SIZE,
+        search: debouncedQ,
+        categoryId: category || undefined,
+      }),
+    placeholderData: keepPreviousData,
+  });
+
+  const categoriesQuery = useQuery({
+    queryKey: ["categories"],
+    queryFn: GetAllCategoriesFetcher,
+  });
+
+  const stocksQuery = useQuery({
+    queryKey: ["stocks"],
+    queryFn: () => getAllStockFetcher({}),
+  });
+
+  const stockByProductId = useMemo(() => {
+    const map = new Map<
+      string,
+      { quantity: number; status: StockStatus; minStock?: number | null }
+    >();
+    for (const row of stocksQuery.data ?? []) {
+      map.set(row.product.id, {
+        quantity: row.quantity,
+        minStock: row.product.minStock,
+        status: statusFor(row.quantity, row.product.minStock),
+      });
+    }
+    return map;
+  }, [stocksQuery.data]);
 
   const deleteProduct = useMutation({
     mutationKey: ["delete-product"],
@@ -25,7 +98,7 @@ export const useProductPage = () => {
         title: "Produto deletado com sucesso",
         duration: 2000,
       });
-      queryClient.invalidateQueries({ queryKey: ["products", currentPage] });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
     },
     onError: () => {
       toast({
@@ -37,33 +110,24 @@ export const useProductPage = () => {
     },
   });
 
-  const { data, isLoading } = useQuery({
-    queryKey: ["products", currentPage],
-    queryFn: () => GetAllProductsFetcher({ page: currentPage }),
-    placeholderData: keepPreviousData,
-  });
-
-  const handleDeleteProduct = (id: string) => {
-    deleteProduct.mutate(id);
-  };
-
-  const handleClickNewProduct = () => {
-    router.push("/produtos/novo");
-  };
-
-  const handleEditProduct = (id: string) => {
-    router.push(`/produtos/${id}`);
-  };
-
   return {
-    products: data?.products,
-    total: data?.total,
-    currentPage,
-    isLoading,
+    products: productsQuery.data?.products ?? [],
+    total: productsQuery.data?.total ?? 0,
+    isLoading: productsQuery.isLoading,
+    isError: productsQuery.isError,
+    refetch: productsQuery.refetch,
+    page,
+    pageSize: PAGE_SIZE,
+    q,
+    setQ,
+    category,
+    setCategory,
+    setPage,
+    categories: categoriesQuery.data ?? [],
+    stockByProductId,
     deleteIsLoading: deleteProduct.isPending,
-    setCurrentPage,
-    handleDeleteProduct,
-    handleClickNewProduct,
-    handleEditProduct,
+    handleDeleteProduct: (id: string) => deleteProduct.mutate(id),
+    handleClickNewProduct: () => router.push("/produtos/novo"),
+    handleEditProduct: (id: string) => router.push(`/produtos/${id}`),
   };
 };

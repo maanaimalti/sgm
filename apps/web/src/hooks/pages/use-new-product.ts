@@ -5,28 +5,27 @@ import { GetAllUnitiesFetcher } from "@/data/fetchers/unities/get-all";
 import { newProductMutation } from "@/data/mutations/new-product-mutation";
 import { type ProductForm, productSchema } from "@/data/schemas/product-schema";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 
 export const useNewProductPage = () => {
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const productMutation = useMutation({
     mutationFn: (product: ProductForm) => newProductMutation(product),
-    retry: 3,
-    retryDelay: 2000,
-    onSuccess: (data) => {
-      toast({
-        title: "Produto cadastrado com sucesso",
-      });
+    onSuccess: () => {
+      toast({ title: "Produto cadastrado com sucesso" });
+      queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["stocks"] });
       router.push("/produtos");
     },
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     onError: (error: any) => {
       toast({
         title: "Erro ao cadastrar produto",
-        description: error.message,
+        description: error?.message,
         variant: "destructive",
       });
     },
@@ -49,6 +48,18 @@ export const useNewProductPage = () => {
 
   const form = useForm<ProductForm>({
     resolver: zodResolver(productSchema),
+    defaultValues: {
+      name: "",
+      brand: "",
+      description: "",
+      category: "",
+      unity: "",
+      department: "",
+      costValue: 0,
+      saleValue: 0,
+      minStock: 0,
+      initialStock: 0,
+    },
   });
 
   const onSubmit = (data: ProductForm) => {
@@ -60,6 +71,7 @@ export const useNewProductPage = () => {
     unities,
     categories,
     departments,
+    isSubmitting: productMutation.isPending,
     onSubmit,
   };
 };

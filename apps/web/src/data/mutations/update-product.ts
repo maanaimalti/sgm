@@ -11,8 +11,9 @@ export const updateProductMutation = async (
     name: product.name,
     description: product.description,
     departmentId: product.department,
-    costValue: product.costValue,
+    costValue: product.costValue ?? 0,
     saleValue: product.saleValue,
+    minStock: product.minStock,
   });
 
   return data;
