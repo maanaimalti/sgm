@@ -1,125 +1,149 @@
-import { toast } from "@/components/ui/use-toast";
+import { useToast } from "@/components/ui/use-toast";
 import { GetAllProductsFetcher } from "@/data/fetchers/products/get-all";
 import { newOrderMutation } from "@/data/mutations/new-order";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { useDebounce } from "../use-debounce";
+
+export interface StagedItem {
+  productId: string;
+  name: string;
+  unit: string;
+  category?: string;
+  quantity: number;
+}
+
+export interface PickerSelection {
+  productId: string;
+  name: string;
+  unit: string;
+  category?: string;
+}
 
 export const useNewOrderPage = () => {
   const router = useRouter();
-  const [items, setItems] = useState<
-    { id: string; quantity: number; name: string; unity: string }[]
-  >([]);
-  const [currentProduct, setCurrentProduct] = useState<{
-    id: string;
-    name: string;
-    unity: string;
-  } | null>(null);
-  const [currentQuantity, setCurrentQuantity] = useState(0);
-  const [currentEventName, setCurrentEventName] = useState("");
-  const [currentObservation, setCurrentObservation] = useState("");
-  const [productSearchValue, setProductSearchValue] = useState("");
-  // const [debouncedProductSearchValue, setDebouncedProductSearchValue] = useState("");
-  const debouncedProductSearchValue = useDebounce(productSearchValue, 500);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const [event, setEvent] = useState("");
+  const [observation, setObservation] = useState("");
+  const [items, setItems] = useState<StagedItem[]>([]);
+
+  const [picker, setPicker] = useState<PickerSelection | null>(null);
+  const [pickerQty, setPickerQty] = useState<number>(0);
+  const [productSearch, setProductSearch] = useState("");
+  const debouncedSearch = useDebounce(productSearch, 300);
+
+  const productsQuery = useQuery({
+    queryKey: ["products", "picker", debouncedSearch],
+    queryFn: () =>
+      GetAllProductsFetcher({
+        page: 1,
+        pageSize: 20,
+        search: debouncedSearch,
+      }),
+  });
 
   const orderMutation = useMutation({
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    mutationFn: (order: any) => newOrderMutation(order),
-    retry: 3,
-    retryDelay: 2000,
+    mutationFn: newOrderMutation,
     onSuccess: (data) => {
-      toast({
-        title: "Pedido cadastrado com sucesso",
-      });
-      router.push("/pedidos");
+      toast({ title: "Pedido criado com sucesso" });
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      if (data?.id) {
+        router.push(`/pedidos/${data.id}`);
+      } else {
+        router.push("/pedidos");
+      }
     },
-    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast({
-        title: "Erro ao pedido pedido",
+        title: "Erro ao criar pedido",
         description: error.message,
         variant: "destructive",
       });
     },
   });
 
-  const { data } = useQuery({
-    queryKey: ["products", productSearchValue],
-    queryFn: () =>
-      GetAllProductsFetcher({
-        page: 1,
-        pageSize: 900,
-        search: debouncedProductSearchValue,
-      }),
-  });
-
-  const handleAddProduct = () => {
-    if (!currentProduct || !currentQuantity) return;
-    if (items.some((item) => item.id === currentProduct.id)) {
+  const handleAddItem = () => {
+    if (!picker || pickerQty <= 0) return;
+    if (items.some((i) => i.productId === picker.productId)) {
       toast({
         title: "Produto já adicionado",
-        description: "O produto já foi adicionado ao pedido",
+        description: "Edite a quantidade no item existente.",
         variant: "destructive",
       });
       return;
     }
-    setItems((prevProducts) => [
-      ...prevProducts,
-      { ...currentProduct, quantity: currentQuantity },
-    ]);
-    setCurrentProduct(null);
-    setProductSearchValue("");
-    setCurrentQuantity(0);
+    setItems((prev) => [...prev, { ...picker, quantity: pickerQty }]);
+    setPicker(null);
+    setPickerQty(0);
+    setProductSearch("");
   };
 
-  const handleConfirmOrder = () => {
-    if (!items.length) {
+  const handleUpdateQuantity = (productId: string, quantity: number) => {
+    if (!Number.isFinite(quantity) || quantity < 1) return;
+    setItems((prev) =>
+      prev.map((i) =>
+        i.productId === productId ? { ...i, quantity } : i,
+      ),
+    );
+  };
+
+  const handleRemoveItem = (productId: string) => {
+    setItems((prev) => prev.filter((i) => i.productId !== productId));
+  };
+
+  const handleSubmit = () => {
+    if (!event.trim()) {
       toast({
-        title: "Pedido vazio",
-        description: "Adicione produtos ao pedido antes de confirmar",
+        title: "Informe o nome do evento",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (items.length === 0) {
+      toast({
+        title: "Adicione ao menos um item",
         variant: "destructive",
       });
       return;
     }
     orderMutation.mutate({
-      items: items.map((item) => ({
-        productId: item.id,
-        quantity: item.quantity,
-      })),
-      eventName: currentEventName,
-      observation: currentObservation,
+      event: event.trim(),
+      observation: observation.trim() || undefined,
+      items: items.map(({ productId, quantity }) => ({ productId, quantity })),
     });
   };
 
-  const handleSelectProduct = (productInfo: string) => {
-    const [id, name, unity] = productInfo.split("-");
-    setCurrentProduct({ id, name, unity });
-  };
-
-  const handleRemoveItem = (id: string) => {
-    setItems((prevItems) => prevItems.filter((item) => item.id !== id));
-  };
-
-  useEffect(() => {
-    console.log({ productSearchValue });
-  }, [productSearchValue]);
+  const totals = useMemo(
+    () => ({
+      itemCount: items.length,
+      totalQty: items.reduce((sum, i) => sum + i.quantity, 0),
+    }),
+    [items],
+  );
 
   return {
+    event,
+    setEvent,
+    observation,
+    setObservation,
     items,
-    products: data?.products,
-    currentProduct,
-    currentQuantity,
-    currentEventName,
-    currentObservation,
-    setCurrentObservation,
-    setCurrentEventName,
+    picker,
+    setPicker,
+    pickerQty,
+    setPickerQty,
+    productSearch,
+    setProductSearch,
+    products: productsQuery.data?.products ?? [],
+    productsLoading: productsQuery.isLoading,
+    handleAddItem,
+    handleUpdateQuantity,
     handleRemoveItem,
-    handleSelectProduct,
-    handleAddProduct,
-    setCurrentProduct,
-    setCurrentQuantity,
-    handleConfirmOrder,
-    setProductSearchValue,
+    handleSubmit,
+    isSubmitting: orderMutation.isPending,
+    totals,
+    goBack: () => router.back(),
   };
 };

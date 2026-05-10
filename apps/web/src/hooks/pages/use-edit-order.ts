@@ -1,69 +1,114 @@
 import { useToast } from "@/components/ui/use-toast";
 import { GetOrderByIdFetcher } from "@/data/fetchers/orders/get-by-id";
+import { GetOrderReportFetcher } from "@/data/fetchers/orders/get-report-url";
 import { cancelOrderMutation } from "@/data/mutations/cancel-order";
 import { confirmOrderMutation } from "@/data/mutations/confirm-order";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { generateOrderReportMutation } from "@/data/mutations/generate-order-report";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
+import { useState } from "react";
+import { useJwt } from "../use-jwt";
+
+interface UserData {
+  username: string;
+  sub: string;
+  roles: string[];
+}
 
 export const useEditOrderPage = () => {
-  const { id } = useParams();
+  const params = useParams();
+  const id = String(params?.id ?? "");
   const router = useRouter();
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const userData = useJwt<UserData>("accessToken");
+  const [isDownloading, setIsDownloading] = useState(false);
 
-  const { data } = useQuery({
+  const query = useQuery({
     queryKey: ["order", id],
-    queryFn: () => GetOrderByIdFetcher(String(id)),
+    queryFn: () => GetOrderByIdFetcher(id),
+    enabled: !!id,
   });
 
-  const cancelOrderMt = useMutation({
-    mutationKey: ["cancel-order"],
-    mutationFn: () => cancelOrderMutation(String(id)),
-    onSuccess: () => {
-      toast({
-        title: "Pedido cancelado com sucesso",
-      });
-      router.push("/pedidos");
-    },
-    onError: () => {
-      toast({
-        title: "Erro ao cancelar pedido",
-        variant: "destructive",
-      });
-    },
-    retry: 3,
-  });
-
-  const confirmOrderMt = useMutation({
-    mutationKey: ["confirm-order"],
-    mutationFn: () => confirmOrderMutation(String(id)),
-    onSuccess: () => {
-      toast({
-        title: "Pedido confirmado com sucesso",
-      });
-      router.push("/pedidos");
-    },
-    onError: () => {
-      toast({
-        title: "Erro ao confirmar pedido",
-        variant: "destructive",
-      });
-    },
-    retry: 3,
-  });
-
-  const handleCancelOrder = () => {
-    cancelOrderMt.mutate();
+  const invalidateOrder = () => {
+    queryClient.invalidateQueries({ queryKey: ["order", id] });
+    queryClient.invalidateQueries({ queryKey: ["orders"] });
   };
 
-  const handleConfirmOrder = () => {
-    confirmOrderMt.mutate();
+  const confirm = useMutation({
+    mutationKey: ["confirm-order", id],
+    mutationFn: () => confirmOrderMutation(id),
+    onSuccess: () => {
+      toast({ title: "Pedido aprovado com sucesso" });
+      invalidateOrder();
+    },
+    onError: () => {
+      toast({ title: "Erro ao aprovar pedido", variant: "destructive" });
+    },
+  });
+
+  const cancel = useMutation({
+    mutationKey: ["cancel-order", id],
+    mutationFn: (observation?: string) => cancelOrderMutation(id, observation),
+    onSuccess: () => {
+      toast({ title: "Pedido cancelado" });
+      invalidateOrder();
+    },
+    onError: () => {
+      toast({ title: "Erro ao cancelar pedido", variant: "destructive" });
+    },
+  });
+
+  const downloadByUrl = async (url: string, filename: string) => {
+    const response = await fetch(url);
+    const blob = await response.blob();
+    const objectUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = objectUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(objectUrl);
+  };
+
+  const handleDownloadPdf = async () => {
+    if (!id) return;
+    setIsDownloading(true);
+    try {
+      let report = await GetOrderReportFetcher(id);
+      if (!report) {
+        await generateOrderReportMutation(id);
+        toast({
+          title: "O PDF está sendo gerado",
+          description: "Aguarde alguns instantes e tente novamente.",
+        });
+        return;
+      }
+      await downloadByUrl(report.url, `pedido-${id}.pdf`);
+    } catch (e) {
+      console.error(e);
+      toast({
+        title: "Erro ao baixar pedido",
+        description: "Tente novamente em instantes.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   return {
-    order: data,
-    confirmIsLoading: confirmOrderMt.isPending,
-    cancelIsLoading: cancelOrderMt.isPending,
-    handleCancelOrder,
-    handleConfirmOrder,
+    id,
+    order: query.data,
+    isLoading: query.isLoading,
+    confirm,
+    cancel,
+    isDownloading,
+    handleDownloadPdf,
+    goBack: () => router.back(),
+    isAdmin: userData?.roles.includes("admin"),
+    isManager: userData?.roles.includes("manager"),
+    isBuyer: userData?.roles.includes("buyer"),
   };
 };
