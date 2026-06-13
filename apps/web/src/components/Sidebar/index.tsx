@@ -26,6 +26,7 @@ import {
 import { useSidebar } from "@/hooks/pages/use-sidebar";
 import { useJwt } from "@/hooks/use-jwt";
 import { useNotifications } from "@/hooks/use-notifications";
+import { unsubscribeFromPush } from "@/lib/push";
 import { cn } from "@/lib/utils";
 
 import { NotificationsSheet } from "./notifications-sheet";
@@ -93,7 +94,9 @@ export const Sidebar = () => {
     });
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // Best-effort: drop this device's push subscription while still authed.
+    await unsubscribeFromPush().catch(() => undefined);
     localStorage.removeItem("accessToken");
     document.cookie =
       "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";

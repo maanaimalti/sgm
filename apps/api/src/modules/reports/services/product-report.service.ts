@@ -33,7 +33,7 @@ export class ProductReportService {
 
     // Upload para R2
     const fileName = `relatorio_produtos_${reportId}_${Date.now()}.pdf`;
-    await this.uploadService.uploadFile(fileName, pdfBytes);
+    await this.uploadService.uploadFile(fileName, pdfBytes, "application/pdf");
     const filePath = this.uploadService.getFileUrl(fileName);
 
     this.logger.log(

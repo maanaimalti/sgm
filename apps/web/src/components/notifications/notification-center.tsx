@@ -1,6 +1,7 @@
 "use client";
 
 import { presentNotification } from "@/components/notifications/notif-icon";
+import { PushControls } from "@/components/notifications/push-controls";
 import { EmptyState } from "@/components/ui-ext/empty-state";
 import { FilterChip } from "@/components/ui-ext/filter-chip";
 import { NotifRow } from "@/components/ui-ext/notif-row";
@@ -94,6 +95,8 @@ export function NotificationCenter({ onNavigate }: NotificationCenterProps) {
           </Button>
         </div>
       </header>
+
+      <PushControls />
 
       <div className="flex-1 overflow-y-auto">
         {isLoading ? (

@@ -19,6 +19,7 @@ import { NotificationService } from "../notification/notification.service";
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { FindAllOrdersDto } from "./dto/find-all-orders.dto";
 import { UpdateOrderDto } from "./dto/update-order.dto";
+import { computeOrderSignature } from "./order-signature";
 
 const APPROVER_ROLES = ["admin", "manager"];
 
@@ -472,65 +473,32 @@ export class OrdersService {
     });
   }
 
-  async getReport(id: string, userId: string, callerRoles: string[]) {
+  /**
+   * Loads the order fields that feed the report signature plus its owner, so
+   * the report endpoints can both authorize the caller and decide whether a
+   * cached PDF still matches the order's current content.
+   */
+  private async loadOrderForSignature(id: string) {
     const order = await this.prismaService.orders.findUnique({
       where: { id },
-      select: { id: true, userId: true },
+      select: {
+        id: true,
+        userId: true,
+        status: true,
+        event: true,
+        observation: true,
+        approvedById: true,
+        orderItem: { select: { productId: true, quantity: true } },
+      },
     });
     if (!order) {
       throw new NotFoundException(`Order with id: ${id} not found`);
     }
-    this.assertCanAccessReport(order.userId, userId, callerRoles);
-
-    const existing = await this.prismaService.orderReports.findFirst({
-      where: { orderId: id },
-      select: { url: true },
-      orderBy: { createdAt: "desc" },
-    });
-    if (existing) {
-      return {
-        status: "ready" as const,
-        url: this.uploadFileService.getFileUrl(existing.url),
-      };
-    }
-
-    const pending = await this.prismaService.report.findFirst({
-      where: {
-        type: reportType.ORDERS,
-        status: { in: [reportStatus.PENDING, reportStatus.PROCESSING] },
-        parameters: { contains: id },
-      },
-      select: { id: true },
-    });
-    if (pending) {
-      return { status: "processing" as const };
-    }
-
-    return { status: "none" as const };
+    return { order, signature: computeOrderSignature(order) };
   }
 
-  async generateReport(orderId: string, userId: string, callerRoles: string[]) {
-    const order = await this.prismaService.orders.findUnique({
-      where: { id: orderId },
-      select: { id: true, userId: true },
-    });
-    if (!order) {
-      throw new NotFoundException(`Order with id: ${orderId} not found`);
-    }
-    this.assertCanAccessReport(order.userId, userId, callerRoles);
-
-    const existing = await this.prismaService.orderReports.findFirst({
-      where: { orderId },
-      select: { url: true },
-    });
-    if (existing) {
-      return {
-        status: "ready" as const,
-        url: this.uploadFileService.getFileUrl(existing.url),
-      };
-    }
-
-    const pending = await this.prismaService.report.findFirst({
+  private async findPendingReport(orderId: string) {
+    return this.prismaService.report.findFirst({
       where: {
         type: reportType.ORDERS,
         status: { in: [reportStatus.PENDING, reportStatus.PROCESSING] },
@@ -538,7 +506,52 @@ export class OrdersService {
       },
       select: { id: true },
     });
-    if (pending) {
+  }
+
+  async getReport(id: string, userId: string, callerRoles: string[]) {
+    const { order, signature } = await this.loadOrderForSignature(id);
+    this.assertCanAccessReport(order.userId, userId, callerRoles);
+
+    const existing = await this.prismaService.orderReports.findFirst({
+      where: { orderId: id },
+      select: { url: true, signature: true },
+      orderBy: { createdAt: "desc" },
+    });
+    if (existing) {
+      return {
+        status: "ready" as const,
+        url: this.uploadFileService.getFileUrl(existing.url),
+        stale: existing.signature !== signature,
+      };
+    }
+
+    if (await this.findPendingReport(id)) {
+      return { status: "processing" as const };
+    }
+
+    return { status: "none" as const };
+  }
+
+  async generateReport(orderId: string, userId: string, callerRoles: string[]) {
+    const { order, signature } = await this.loadOrderForSignature(orderId);
+    this.assertCanAccessReport(order.userId, userId, callerRoles);
+
+    // Serve the cached PDF only when it still matches the order's content.
+    const existing = await this.prismaService.orderReports.findFirst({
+      where: { orderId },
+      select: { url: true, signature: true },
+      orderBy: { createdAt: "desc" },
+    });
+    if (existing && existing.signature === signature) {
+      return {
+        status: "ready" as const,
+        url: this.uploadFileService.getFileUrl(existing.url),
+        stale: false,
+      };
+    }
+
+    // A job is already in flight — don't enqueue a duplicate.
+    if (await this.findPendingReport(orderId)) {
       return { status: "processing" as const };
     }
 

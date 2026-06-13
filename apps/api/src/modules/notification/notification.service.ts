@@ -3,6 +3,8 @@ import { Injectable } from "@nestjs/common";
 import { PrismaService } from "src/shared/db/prisma.service";
 // biome-ignore lint/style/useImportType: <explanation>
 import { HelpersService } from "src/shared/helpers/helpers.service";
+// biome-ignore lint/style/useImportType: Nest DI requires the runtime class.
+import { PushService } from "../push/push.service";
 import {
   CreateNotificationDto,
   type NotificationType,
@@ -16,11 +18,24 @@ interface BroadcastInput {
   metadata?: string;
 }
 
+const PUSH_TITLE_BY_TYPE: Record<string, string> = {
+  PENDING_ORDER: "Pedido aguardando aprovação",
+  LOW_STOCK: "Estoque baixo",
+  ORDER_APPROVED: "Pedido aprovado",
+  ORDER_REJECTED: "Pedido rejeitado",
+  ORDER_RESUBMITTED: "Pedido reenviado",
+  ORDER_CANCELED: "Pedido cancelado",
+  ORDER_REPORT: "Relatório do pedido",
+  REPORT_READY: "Relatório pronto",
+  REPORT_FAILED: "Falha ao gerar relatório",
+};
+
 @Injectable()
 export class NotificationService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly helpersService: HelpersService,
+    private readonly pushService: PushService,
   ) {}
 
   async create(createNotificationDto: CreateNotificationDto) {
@@ -39,6 +54,16 @@ export class NotificationService {
         },
       },
     });
+
+    // Mirror the in-app notification to any registered push devices.
+    void this.pushService
+      .sendToUser(to, {
+        title: PUSH_TITLE_BY_TYPE[type] ?? "Maanaim",
+        body: text,
+        type,
+        url: deeplinkFor(metadata),
+      })
+      .catch(() => undefined);
   }
 
   async broadcast({
@@ -102,4 +127,16 @@ export class NotificationService {
     });
     return { updated: result.count };
   }
+}
+
+/** Derives the in-app route a push notification should open from its metadata. */
+function deeplinkFor(metadata?: string | null): string {
+  if (!metadata) return "/notificacoes";
+  try {
+    const parsed = JSON.parse(metadata) as { orderId?: string };
+    if (parsed.orderId) return `/pedidos/${parsed.orderId}`;
+  } catch {
+    // metadata is not JSON — fall back to the notification center
+  }
+  return "/notificacoes";
 }

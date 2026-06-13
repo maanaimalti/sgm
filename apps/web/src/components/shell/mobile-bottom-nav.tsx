@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 import { useSidebar } from "@/hooks/pages/use-sidebar";
 import { useJwt } from "@/hooks/use-jwt";
+import { unsubscribeFromPush } from "@/lib/push";
 import { cn } from "@/lib/utils";
 
 interface UserData {
@@ -57,7 +58,8 @@ export function MobileBottomNav() {
     { label: "Conta", icon: User, type: "account" },
   ];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await unsubscribeFromPush().catch(() => undefined);
     localStorage.removeItem("accessToken");
     document.cookie =
       "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";

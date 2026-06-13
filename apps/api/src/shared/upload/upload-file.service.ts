@@ -42,17 +42,26 @@ export class UploadFileService {
     }
   }
 
-  async uploadFile(filename: string, file: Uint8Array): Promise<void> {
+  async uploadFile(
+    filename: string,
+    file: Uint8Array,
+    contentType?: string,
+  ): Promise<void> {
     if (this.driver === "local") {
       const fullPath = join(this.#localDir, filename);
       await mkdir(dirname(fullPath), { recursive: true });
       await writeFile(fullPath, file);
       return;
     }
+    // Copy into an exact-length Buffer so the S3 client never serializes a
+    // view over a larger underlying ArrayBuffer (which would corrupt the file).
+    const body = Buffer.from(file);
     const command = new PutObjectCommand({
       Bucket: this.#r2Bucket,
       Key: filename,
-      Body: file,
+      Body: body,
+      ContentType: contentType ?? guessContentType(filename),
+      ContentLength: body.byteLength,
     });
     // biome-ignore lint/style/noNonNullAssertion: client is set when driver is r2
     await this.#r2Client!.send(command);
@@ -91,4 +100,18 @@ export class UploadFileService {
     if (this.driver !== "local") return null;
     return { dir: this.#localDir, prefix: "/uploads" };
   }
+}
+
+const CONTENT_TYPE_BY_EXT: Record<string, string> = {
+  pdf: "application/pdf",
+  png: "image/png",
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  csv: "text/csv",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+};
+
+function guessContentType(filename: string): string {
+  const ext = filename.split(".").pop()?.toLowerCase() ?? "";
+  return CONTENT_TYPE_BY_EXT[ext] ?? "application/octet-stream";
 }
