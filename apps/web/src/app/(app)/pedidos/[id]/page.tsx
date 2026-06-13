@@ -43,11 +43,6 @@ import {
 import Link from "next/link";
 import { useState } from "react";
 
-const currency = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-});
-
 function fullDateTime(iso: string) {
   return new Date(iso).toLocaleString("pt-BR", {
     day: "2-digit",
@@ -92,6 +87,7 @@ const OrderDetailPage = () => {
     generateReport,
     reportStatus,
     reportUrl,
+    reportStale,
     goBack,
     currentUserId,
     isAdmin,
@@ -112,10 +108,6 @@ const OrderDetailPage = () => {
   const code = order.friendlyCode ?? `#${order.id.slice(0, 4)}`;
   const itemCount = order.orderItem.length;
   const totalQty = order.orderItem.reduce((sum, i) => sum + i.quantity, 0);
-  const total = order.orderItem.reduce(
-    (sum, i) => sum + i.quantity * (i.product.costValue ?? 0),
-    0,
-  );
 
   const isCreator = order.user.id === currentUserId;
   const isApprover = isAdmin || isManager;
@@ -128,11 +120,10 @@ const OrderDetailPage = () => {
   const reportBusy = reportStatus === "processing" || generateReport.isPending;
   const reportReady = reportStatus === "ready" && reportUrl;
 
-  const handleReportClick = () => {
-    if (reportReady) {
-      window.open(reportUrl, "_blank", "noopener,noreferrer");
-      return;
-    }
+  const handleDownload = () => {
+    if (reportUrl) window.open(reportUrl, "_blank", "noopener,noreferrer");
+  };
+  const handleGenerate = () => {
     if (!reportBusy) generateReport.mutate();
   };
 
@@ -165,31 +156,40 @@ const OrderDetailPage = () => {
               <ChevronLeft size={14} className="mr-1" />
               Voltar
             </Button>
-            {canDownload && (
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={reportBusy}
-                onClick={handleReportClick}
-              >
-                {reportBusy ? (
-                  <>
-                    <Loader2 size={14} className="mr-1.5 animate-spin" />
-                    Gerando…
-                  </>
-                ) : reportReady ? (
-                  <>
+            {canDownload &&
+              (reportBusy ? (
+                <Button variant="secondary" size="sm" disabled>
+                  <Loader2 size={14} className="mr-1.5 animate-spin" />
+                  Gerando…
+                </Button>
+              ) : reportReady ? (
+                <>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleDownload}
+                  >
                     <Download size={14} className="mr-1.5" />
                     Baixar PDF
-                  </>
-                ) : (
-                  <>
-                    <Download size={14} className="mr-1.5" />
-                    Gerar PDF
-                  </>
-                )}
-              </Button>
-            )}
+                  </Button>
+                  {reportStale && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleGenerate}
+                      title="O pedido mudou desde a última geração"
+                    >
+                      <RefreshCw size={14} className="mr-1.5" />
+                      Atualizar
+                    </Button>
+                  )}
+                </>
+              ) : (
+                <Button variant="secondary" size="sm" onClick={handleGenerate}>
+                  <Download size={14} className="mr-1.5" />
+                  Gerar PDF
+                </Button>
+              ))}
           </>
         }
       />
@@ -235,56 +235,35 @@ const OrderDetailPage = () => {
               {itemCount} itens · {totalQty} unidades
             </span>
           </header>
-          <div className="grid grid-cols-[1.6fr,1fr,90px,110px,110px] px-5 py-2.5 text-[11.5px] uppercase tracking-[0.05em] text-muted font-medium border-b border-line">
+          <div className="grid grid-cols-[1.6fr,1fr,90px] px-5 py-2.5 text-[11.5px] uppercase tracking-[0.05em] text-muted font-medium border-b border-line">
             <span>Produto</span>
             <span>Categoria</span>
             <span className="text-right">Qtd</span>
-            <span className="text-right">Preço un.</span>
-            <span className="text-right">Subtotal</span>
           </div>
           <ul>
-            {order.orderItem.map((item) => {
-              const subtotal = item.quantity * (item.product.costValue ?? 0);
-              return (
-                <li
-                  key={item.id}
-                  className="grid grid-cols-[1.6fr,1fr,90px,110px,110px] px-5 py-3 border-b border-line last:border-0 items-center"
-                >
-                  <span className="text-[13.5px] text-ink font-medium">
-                    {item.product.name}
-                  </span>
-                  <span>
-                    {item.product.category?.name ? (
-                      <Badge variant="default">
-                        {item.product.category.name}
-                      </Badge>
-                    ) : (
-                      <span className="text-faint text-[12px]">—</span>
-                    )}
-                  </span>
-                  <span className="text-right text-[13px] text-ink-2 tabular-nums">
-                    {item.quantity} {item.product.unity.name}
-                  </span>
-                  <span className="text-right text-[13px] text-muted tabular-nums">
-                    {item.product.costValue
-                      ? currency.format(item.product.costValue)
-                      : "—"}
-                  </span>
-                  <span className="text-right text-[13px] text-ink font-medium tabular-nums">
-                    {currency.format(subtotal)}
-                  </span>
-                </li>
-              );
-            })}
+            {order.orderItem.map((item) => (
+              <li
+                key={item.id}
+                className="grid grid-cols-[1.6fr,1fr,90px] px-5 py-3 border-b border-line last:border-0 items-center"
+              >
+                <span className="text-[13.5px] text-ink font-medium">
+                  {item.product.name}
+                </span>
+                <span>
+                  {item.product.category?.name ? (
+                    <Badge variant="default">
+                      {item.product.category.name}
+                    </Badge>
+                  ) : (
+                    <span className="text-faint text-[12px]">—</span>
+                  )}
+                </span>
+                <span className="text-right text-[13px] text-ink-2 tabular-nums">
+                  {item.quantity} {item.product.unity.name}
+                </span>
+              </li>
+            ))}
           </ul>
-          <footer className="bg-soft px-5 py-4 flex items-baseline justify-end gap-3">
-            <span className="text-[12.5px] text-muted uppercase tracking-[0.05em]">
-              Estimativa total
-            </span>
-            <span className="font-serif text-[22px] text-ink tabular-nums">
-              {currency.format(total)}
-            </span>
-          </footer>
         </section>
 
         <aside className="flex flex-col gap-5">

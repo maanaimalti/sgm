@@ -1,7 +1,7 @@
 import { api } from "@/services/api";
 
 export type OrderReportStatusResponse =
-  | { status: "ready"; url: string }
+  | { status: "ready"; url: string; stale?: boolean }
   | { status: "processing" }
   | { status: "none" };
 

@@ -99,6 +99,8 @@ export const useEditOrderPage = () => {
   const reportStatus = reportQuery.data?.status ?? "none";
   const reportUrl =
     reportQuery.data?.status === "ready" ? reportQuery.data.url : undefined;
+  const reportStale =
+    reportQuery.data?.status === "ready" && reportQuery.data.stale === true;
 
   return {
     id,
@@ -110,6 +112,7 @@ export const useEditOrderPage = () => {
     generateReport,
     reportStatus,
     reportUrl,
+    reportStale,
     goBack: () => router.back(),
     currentUserId: userData?.sub,
     isAdmin: userData?.roles.includes("admin") ?? false,

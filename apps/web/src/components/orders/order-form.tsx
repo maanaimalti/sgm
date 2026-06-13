@@ -116,12 +116,12 @@ export const OrderForm = ({
                 <Label htmlFor="event">Nome do evento</Label>
                 <Input
                   id="event"
-                  placeholder="Almoço de domingo · 12 mai"
+                  placeholder="Seminário de principiantes"
                   value={event}
                   onChange={(e) => setEvent(e.target.value)}
                 />
                 <p className="text-[11.5px] text-muted">
-                  Ex: Almoço de domingo, Encontro de jovens, Vigília…
+                  Ex: Seminário de principiantes, Encontro de jovens, Vigília…
                 </p>
               </div>
               <div className="flex flex-col gap-1.5">
