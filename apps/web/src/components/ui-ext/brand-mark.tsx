@@ -1,3 +1,4 @@
+import Image from "next/image";
 import type * as React from "react";
 
 interface MarkProps {
@@ -33,6 +34,27 @@ export function Mark({ size = 32, color = "var(--brand)" }: MarkProps) {
         sgm
       </text>
     </svg>
+  );
+}
+
+interface LogoProps {
+  /** Rendered width in px. Height is derived from the logo's 2.99:1 ratio. */
+  width?: number;
+  className?: string;
+  priority?: boolean;
+}
+
+/** The official "Maanaim Alagoas" logo (public/logo.png). */
+export function Logo({ width = 180, className, priority }: LogoProps) {
+  return (
+    <Image
+      src="/logo.png"
+      alt="Maanaim Alagoas"
+      width={width}
+      height={Math.round((width * 2466) / 7363)}
+      priority={priority}
+      className={className}
+    />
   );
 }
 
