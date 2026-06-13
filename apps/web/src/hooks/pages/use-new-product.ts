@@ -57,8 +57,8 @@ export const useNewProductPage = () => {
       department: "",
       costValue: 0,
       saleValue: 0,
-      minStock: 0,
-      initialStock: 0,
+      minStock: undefined,
+      initialStock: undefined,
     },
   });
 
