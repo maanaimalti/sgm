@@ -1,9 +1,22 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { OnEvent } from "@nestjs/event-emitter";
 import { reportStatus } from "@prisma/client";
+// biome-ignore lint/style/useImportType: Nest DI requires the runtime class.
 import { NotificationService } from "src/modules/notification/notification.service";
+// biome-ignore lint/style/useImportType: <explanation>
 import { ReportsService } from "../reports.service";
+// biome-ignore lint/style/useImportType: <explanation>
+import { OrderReportService } from "./order-report.service";
+// biome-ignore lint/style/useImportType: <explanation>
 import { ProductReportService } from "./product-report.service";
+
+type ReportEventPayload = {
+  reportId: string;
+  type: string;
+  userId: string;
+  departmentId?: string;
+  parameters: any;
+};
 
 @Injectable()
 export class ReportGeneratorService {
@@ -12,29 +25,25 @@ export class ReportGeneratorService {
   constructor(
     private readonly reportsService: ReportsService,
     private readonly productReportService: ProductReportService,
+    private readonly orderReportService: OrderReportService,
     private readonly notificationService: NotificationService,
   ) {}
 
   @OnEvent("report.generate")
-  async handleReportGeneration(payload: {
-    reportId: string;
-    type: string;
-    userId: string;
-    departmentId?: string;
-    parameters: any;
-  }) {
-    this.logger.log(`Processing report generation for ${payload.reportId}`);
+  async handleReportGeneration(payload: ReportEventPayload) {
+    this.logger.log(
+      `Processing ${payload.type} report ${payload.reportId} for user ${payload.userId}`,
+    );
 
     try {
-      // Update status to PROCESSING
       await this.reportsService.updateReportStatus(
         payload.reportId,
         reportStatus.PROCESSING,
       );
 
       let filePath: string;
+      let extraMetadata: Record<string, unknown> = {};
 
-      // Route to specific report generator based on type
       switch (payload.type) {
         case "PRODUCTS":
           filePath = await this.productReportService.generateProductReport(
@@ -44,63 +53,81 @@ export class ReportGeneratorService {
             payload.parameters,
           );
           break;
-        case "ORDERS":
-          // TODO: Implement order report generator
-          throw new Error("Order reports not implemented yet");
+        case "ORDERS": {
+          const orderId =
+            typeof payload.parameters === "string"
+              ? JSON.parse(payload.parameters).orderId
+              : payload.parameters?.orderId;
+          if (!orderId) {
+            throw new Error("ORDERS report requires parameters.orderId");
+          }
+          const result = await this.orderReportService.generate(
+            orderId,
+            payload.userId,
+          );
+          filePath = result.filename;
+          extraMetadata = { orderId, url: result.publicUrl };
+          break;
+        }
         case "MOVEMENTS":
-          // TODO: Implement movement report generator
-          throw new Error("Movement reports not implemented yet");
         case "STOCK":
-          // TODO: Implement stock report generator
-          throw new Error("Stock reports not implemented yet");
         case "USERS":
-          // TODO: Implement user report generator
-          throw new Error("User reports not implemented yet");
+          throw new Error(`${payload.type} reports not implemented yet`);
         default:
           throw new Error(`Unknown report type: ${payload.type}`);
       }
 
-      // Update status to COMPLETED with file path
       await this.reportsService.updateReportStatus(
         payload.reportId,
         reportStatus.COMPLETED,
         filePath,
       );
 
-      // Send notification to user with download URL
       const reportTypeName = this.getReportTypeName(payload.type);
       await this.notificationService.create({
-        text: `Seu relatório de ${reportTypeName} está pronto para download`,
+        text:
+          payload.type === "ORDERS"
+            ? `Relatório do pedido está pronto para download`
+            : `Seu relatório de ${reportTypeName} está pronto para download`,
         type: "REPORT_READY",
         to: payload.userId,
         metadata: JSON.stringify({
           reportId: payload.reportId,
           downloadUrl: filePath,
           reportType: payload.type,
+          ...extraMetadata,
         }),
       });
 
-      this.logger.log(`Report ${payload.reportId} completed successfully`);
+      this.logger.log(`Report ${payload.reportId} completed`);
     } catch (error) {
       this.logger.error(
-        `Report generation failed for ${payload.reportId}:`,
-        error.message,
+        `Report generation failed for ${payload.reportId}`,
+        error?.stack ?? error?.message ?? error,
       );
 
-      // Update status to FAILED with error message
+      const rawMessage = error?.message ?? String(error);
       await this.reportsService.updateReportStatus(
         payload.reportId,
         reportStatus.FAILED,
         undefined,
-        error.message,
+        rawMessage.slice(0, 180),
       );
 
-      // Send failure notification
       const reportTypeName = this.getReportTypeName(payload.type);
+      const orderId =
+        payload.type === "ORDERS"
+          ? typeof payload.parameters === "string"
+            ? JSON.parse(payload.parameters).orderId
+            : payload.parameters?.orderId
+          : undefined;
       await this.notificationService.create({
-        text: `Falha ao gerar relatório de ${reportTypeName}: ${error.message}`,
+        text: `Falha ao gerar relatório de ${reportTypeName}: ${error?.message ?? "erro desconhecido"}`,
         type: "REPORT_FAILED",
         to: payload.userId,
+        metadata: orderId
+          ? JSON.stringify({ orderId, errorMessage: error?.message })
+          : undefined,
       });
     }
   }
