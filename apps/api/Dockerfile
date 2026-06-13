@@ -26,4 +26,4 @@ WORKDIR /repo/apps/api
 
 EXPOSE 3000
 
-CMD ["pnpm", "run", "start:prod"]
+CMD ["pnpm", "run", "start:prod:migrate"]
