@@ -79,7 +79,7 @@ export function PageHeader({
             {title}
           </h1>
           {subtitle && (
-            <p className="mt-1.5 text-[13.5px] text-muted">{subtitle}</p>
+            <div className="mt-1.5 text-[13.5px] text-muted">{subtitle}</div>
           )}
         </div>
         {actions && <div className="flex items-center gap-2">{actions}</div>}

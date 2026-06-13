@@ -1,21 +1,52 @@
 "use client";
 
+import { presentNotification } from "@/components/notifications/notif-icon";
 import { getAllNotifications } from "@/data/fetchers/notifications/get-all";
 import { getPaginatedNotifications } from "@/data/fetchers/notifications/get-paginated";
 import { readAllNotificationsMutation } from "@/data/mutations/read-all-notifications";
 import { readNotificationMutation } from "@/data/mutations/read-notification";
+import type { NotificationResponse, NotificationType } from "@sgm/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import type { NotificationResponse } from "@sgm/shared";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
-import { presentNotification } from "@/components/notifications/notif-icon";
+import { useEffect, useRef, useState } from "react";
 
 export type NotificationView = "unread" | "all";
+
+const ORDER_LIST_TYPES: NotificationType[] = [
+  "PENDING_ORDER",
+  "ORDER_RESUBMITTED",
+  "ORDER_APPROVED",
+  "ORDER_REJECTED",
+  "ORDER_CANCELED",
+];
+
+const ORDER_DETAIL_TYPES: NotificationType[] = [
+  "ORDER_APPROVED",
+  "ORDER_REJECTED",
+  "ORDER_CANCELED",
+  "ORDER_RESUBMITTED",
+];
+
+const ORDER_REPORT_TYPES: NotificationType[] = [
+  "REPORT_READY",
+  "REPORT_FAILED",
+  "ORDER_REPORT",
+];
+
+function parseMetadata(raw: string | null | undefined): Record<string, string> {
+  if (!raw) return {};
+  try {
+    return JSON.parse(raw) as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
 
 export const useNotifications = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
   const [view, setView] = useState<NotificationView>("unread");
+  const seenIdsRef = useRef<Set<string> | null>(null);
 
   const unreadQuery = useQuery({
     queryKey: ["notifications"],
@@ -28,6 +59,32 @@ export const useNotifications = () => {
     queryFn: () => getPaginatedNotifications({ page: 1, pageSize: 50 }),
     enabled: view === "all",
   });
+
+  useEffect(() => {
+    const list = unreadQuery.data;
+    if (!list) return;
+    if (seenIdsRef.current === null) {
+      seenIdsRef.current = new Set(list.map((n) => n.id));
+      return;
+    }
+    const seen = seenIdsRef.current;
+    const fresh = list.filter((n) => !seen.has(n.id));
+    for (const n of fresh) {
+      seen.add(n.id);
+      const meta = parseMetadata(n.metadata);
+      if (ORDER_LIST_TYPES.includes(n.type)) {
+        queryClient.invalidateQueries({ queryKey: ["orders"] });
+      }
+      if (ORDER_DETAIL_TYPES.includes(n.type) && meta.orderId) {
+        queryClient.invalidateQueries({ queryKey: ["order", meta.orderId] });
+      }
+      if (ORDER_REPORT_TYPES.includes(n.type) && meta.orderId) {
+        queryClient.invalidateQueries({
+          queryKey: ["order-report", meta.orderId],
+        });
+      }
+    }
+  }, [unreadQuery.data, queryClient]);
 
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["notifications"] });
@@ -68,8 +125,7 @@ export const useNotifications = () => {
     unread,
     unreadCount,
     totalUnread,
-    isLoading:
-      view === "unread" ? unreadQuery.isLoading : allQuery.isLoading,
+    isLoading: view === "unread" ? unreadQuery.isLoading : allQuery.isLoading,
     handleClickItem,
     handleMarkAllRead: () => readAll.mutate(),
     isMarkingAllRead: readAll.isPending,

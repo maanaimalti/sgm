@@ -1,12 +1,15 @@
 import { useToast } from "@/components/ui/use-toast";
 import { GetOrderByIdFetcher } from "@/data/fetchers/orders/get-by-id";
-import { GetOrderReportFetcher } from "@/data/fetchers/orders/get-report-url";
+import {
+  GetOrderReportFetcher,
+  type OrderReportStatusResponse,
+} from "@/data/fetchers/orders/get-report-url";
 import { cancelOrderMutation } from "@/data/mutations/cancel-order";
 import { confirmOrderMutation } from "@/data/mutations/confirm-order";
 import { generateOrderReportMutation } from "@/data/mutations/generate-order-report";
+import { rejectOrderMutation } from "@/data/mutations/reject-order";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
-import { useState } from "react";
 import { useJwt } from "../use-jwt";
 
 interface UserData {
@@ -22,12 +25,22 @@ export const useEditOrderPage = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const userData = useJwt<UserData>("accessToken");
-  const [isDownloading, setIsDownloading] = useState(false);
 
   const query = useQuery({
     queryKey: ["order", id],
     queryFn: () => GetOrderByIdFetcher(id),
     enabled: !!id,
+  });
+
+  const reportQuery = useQuery({
+    queryKey: ["order-report", id],
+    queryFn: async (): Promise<OrderReportStatusResponse> => {
+      const data = await GetOrderReportFetcher(id);
+      return data ?? { status: "none" };
+    },
+    enabled: !!id,
+    refetchInterval: (q) =>
+      q.state.data?.status === "processing" ? 3000 : false,
   });
 
   const invalidateOrder = () => {
@@ -47,6 +60,18 @@ export const useEditOrderPage = () => {
     },
   });
 
+  const reject = useMutation({
+    mutationKey: ["reject-order", id],
+    mutationFn: (observation: string) => rejectOrderMutation(id, observation),
+    onSuccess: () => {
+      toast({ title: "Pedido rejeitado" });
+      invalidateOrder();
+    },
+    onError: () => {
+      toast({ title: "Erro ao rejeitar pedido", variant: "destructive" });
+    },
+  });
+
   const cancel = useMutation({
     mutationKey: ["cancel-order", id],
     mutationFn: (observation?: string) => cancelOrderMutation(id, observation),
@@ -59,56 +84,37 @@ export const useEditOrderPage = () => {
     },
   });
 
-  const downloadByUrl = async (url: string, filename: string) => {
-    const response = await fetch(url);
-    const blob = await response.blob();
-    const objectUrl = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = objectUrl;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.URL.revokeObjectURL(objectUrl);
-  };
+  const generateReport = useMutation({
+    mutationKey: ["generate-order-report", id],
+    mutationFn: () => generateOrderReportMutation(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["order-report", id] });
+      toast({ title: "Geração do PDF iniciada" });
+    },
+    onError: () => {
+      toast({ title: "Erro ao gerar PDF", variant: "destructive" });
+    },
+  });
 
-  const handleDownloadPdf = async () => {
-    if (!id) return;
-    setIsDownloading(true);
-    try {
-      let report = await GetOrderReportFetcher(id);
-      if (!report) {
-        await generateOrderReportMutation(id);
-        toast({
-          title: "O PDF está sendo gerado",
-          description: "Aguarde alguns instantes e tente novamente.",
-        });
-        return;
-      }
-      await downloadByUrl(report.url, `pedido-${id}.pdf`);
-    } catch (e) {
-      console.error(e);
-      toast({
-        title: "Erro ao baixar pedido",
-        description: "Tente novamente em instantes.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsDownloading(false);
-    }
-  };
+  const reportStatus = reportQuery.data?.status ?? "none";
+  const reportUrl =
+    reportQuery.data?.status === "ready" ? reportQuery.data.url : undefined;
 
   return {
     id,
     order: query.data,
     isLoading: query.isLoading,
     confirm,
+    reject,
     cancel,
-    isDownloading,
-    handleDownloadPdf,
+    generateReport,
+    reportStatus,
+    reportUrl,
     goBack: () => router.back(),
-    isAdmin: userData?.roles.includes("admin"),
-    isManager: userData?.roles.includes("manager"),
-    isBuyer: userData?.roles.includes("buyer"),
+    currentUserId: userData?.sub,
+    isAdmin: userData?.roles.includes("admin") ?? false,
+    isManager: userData?.roles.includes("manager") ?? false,
+    isBuyer: userData?.roles.includes("buyer") ?? false,
+    isKitchen: userData?.roles.includes("kitchen") ?? false,
   };
 };

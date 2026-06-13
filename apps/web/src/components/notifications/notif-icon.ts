@@ -6,7 +6,9 @@ import {
   Clock,
   Download,
   type LucideIcon,
+  RefreshCw,
   X,
+  XCircle,
 } from "lucide-react";
 
 export type NotifTone = "ok" | "warn" | "bad" | "info";
@@ -42,6 +44,22 @@ export function presentNotification(
         icon: Check,
         tone: "ok",
         title: "Pedido aprovado",
+        body: n.text,
+        deeplink: meta.orderId ? `/pedidos/${meta.orderId}` : undefined,
+      };
+    case "ORDER_REJECTED":
+      return {
+        icon: XCircle,
+        tone: "bad",
+        title: "Pedido rejeitado",
+        body: n.text,
+        deeplink: meta.orderId ? `/pedidos/${meta.orderId}` : undefined,
+      };
+    case "ORDER_RESUBMITTED":
+      return {
+        icon: RefreshCw,
+        tone: "info",
+        title: "Pedido reenviado",
         body: n.text,
         deeplink: meta.orderId ? `/pedidos/${meta.orderId}` : undefined,
       };

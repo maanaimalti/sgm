@@ -22,18 +22,26 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useEditOrderPage } from "@/hooks/pages/use-edit-order";
 import type { OrderEvent, OrderEventType } from "@sgm/shared";
 import {
+  AlertTriangle,
   Check,
   ChevronLeft,
   Clock,
   Download,
+  Loader2,
   type LucideIcon,
   PencilLine,
+  RefreshCw,
   Truck,
   X,
+  XCircle,
 } from "lucide-react";
+import Link from "next/link";
+import { useState } from "react";
 
 const currency = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -66,25 +74,32 @@ const eventPresentation: Record<
 > = {
   CREATED: { tone: "info", icon: PencilLine, title: "Pedido criado" },
   APPROVED: { tone: "ok", icon: Check, title: "Pedido aprovado" },
+  REJECTED: { tone: "bad", icon: XCircle, title: "Pedido rejeitado" },
+  RESUBMITTED: { tone: "info", icon: RefreshCw, title: "Pedido reenviado" },
   CANCELED: { tone: "bad", icon: X, title: "Pedido cancelado" },
   PURCHASED: { tone: "info", icon: Truck, title: "Pedido comprado" },
   NOTE: { tone: "info", icon: PencilLine, title: "Nota adicionada" },
 };
 
-const EditOrderPage = () => {
+const OrderDetailPage = () => {
   const {
     id,
     order,
     isLoading,
     confirm,
+    reject,
     cancel,
-    isDownloading,
-    handleDownloadPdf,
+    generateReport,
+    reportStatus,
+    reportUrl,
     goBack,
+    currentUserId,
     isAdmin,
     isManager,
     isBuyer,
   } = useEditOrderPage();
+
+  const [rejectReason, setRejectReason] = useState("");
 
   if (isLoading || !order) {
     return (
@@ -101,12 +116,32 @@ const EditOrderPage = () => {
     (sum, i) => sum + i.quantity * (i.product.costValue ?? 0),
     0,
   );
-  const canApprove =
-    (isAdmin || isManager) && order.status === "PENDING";
-  const canDownload = isAdmin || isManager || isBuyer;
+
+  const isCreator = order.user.id === currentUserId;
+  const isApprover = isAdmin || isManager;
+  const canApprove = isApprover && order.status === "PENDING";
+  const canDownload = isAdmin || isManager || isBuyer || isCreator;
+  const canCreatorCancel =
+    isCreator && (order.status === "PENDING" || order.status === "REJECTED");
+  const canCreatorEdit = isCreator && order.status === "REJECTED";
+
+  const reportBusy = reportStatus === "processing" || generateReport.isPending;
+  const reportReady = reportStatus === "ready" && reportUrl;
+
+  const handleReportClick = () => {
+    if (reportReady) {
+      window.open(reportUrl, "_blank", "noopener,noreferrer");
+      return;
+    }
+    if (!reportBusy) generateReport.mutate();
+  };
 
   const events = (order.events ?? []) as OrderEvent[];
   const latestEvent = events[events.length - 1];
+
+  const rejectReasonTrimmed = rejectReason.trim();
+  const rejectValid =
+    rejectReasonTrimmed.length >= 5 && rejectReasonTrimmed.length <= 500;
 
   return (
     <main className="flex flex-1 flex-col">
@@ -134,23 +169,68 @@ const EditOrderPage = () => {
               <Button
                 variant="secondary"
                 size="sm"
-                disabled={isDownloading}
-                onClick={handleDownloadPdf}
+                disabled={reportBusy}
+                onClick={handleReportClick}
               >
-                <Download size={14} className="mr-1.5" />
-                Baixar PDF
+                {reportBusy ? (
+                  <>
+                    <Loader2 size={14} className="mr-1.5 animate-spin" />
+                    Gerando…
+                  </>
+                ) : reportReady ? (
+                  <>
+                    <Download size={14} className="mr-1.5" />
+                    Baixar PDF
+                  </>
+                ) : (
+                  <>
+                    <Download size={14} className="mr-1.5" />
+                    Gerar PDF
+                  </>
+                )}
               </Button>
             )}
           </>
         }
       />
 
+      {order.status === "REJECTED" && (
+        <div className="px-4 md:px-8 pt-4">
+          <div className="bg-bad-soft border border-bad-line rounded-3 p-4 flex gap-3 items-start">
+            <AlertTriangle size={16} className="text-bad-ink mt-0.5 shrink-0" />
+            <div className="flex-1">
+              <div className="text-[13.5px] text-ink font-medium">
+                Pedido rejeitado
+                {order.rejectedBy?.name ? ` por ${order.rejectedBy.name}` : ""}
+                {order.rejectedAt
+                  ? ` em ${fullDateTime(order.rejectedAt)}`
+                  : ""}
+              </div>
+              {order.statusObservation && (
+                <div className="mt-1 text-[12.5px] text-ink-2">
+                  <span className="text-muted">Motivo: </span>
+                  {order.statusObservation}
+                </div>
+              )}
+              {canCreatorEdit && (
+                <div className="mt-3">
+                  <Button asChild size="sm">
+                    <Link href={`/pedidos/${id}/editar`}>
+                      <PencilLine size={14} className="mr-1.5" />
+                      Editar pedido
+                    </Link>
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr,320px] gap-5 px-4 md:px-8 py-5">
         <section className="bg-card border border-line rounded-3 shadow-sm-warm overflow-hidden">
           <header className="flex items-center justify-between px-5 py-4 border-b border-line">
-            <h2 className="font-serif text-[18px] text-ink">
-              Itens do pedido
-            </h2>
+            <h2 className="font-serif text-[18px] text-ink">Itens do pedido</h2>
             <span className="text-[12.5px] text-muted">
               {itemCount} itens · {totalQty} unidades
             </span>
@@ -226,6 +306,17 @@ const EditOrderPage = () => {
                 <dt className="text-muted">Itens</dt>
                 <dd className="text-ink-2">{itemCount} produtos</dd>
               </div>
+              {order.approvedBy && (
+                <div className="flex items-center justify-between gap-3">
+                  <dt className="text-muted">Aprovado por</dt>
+                  <dd className="text-ink-2">
+                    {order.approvedBy.name}
+                    {order.approvedAt
+                      ? ` · ${fullDateTime(order.approvedAt)}`
+                      : ""}
+                  </dd>
+                </div>
+              )}
             </dl>
             {order.observation && (
               <div className="mt-3.5 p-3.5 bg-soft rounded-2 text-[12.5px] text-ink-2 leading-[1.5]">
@@ -249,7 +340,11 @@ const EditOrderPage = () => {
                 />
               )}
               {[...events].reverse().map((event) => {
-                const p = eventPresentation[event.type];
+                const p = eventPresentation[event.type] ?? {
+                  tone: "info" as const,
+                  icon: PencilLine,
+                  title: event.type,
+                };
                 return (
                   <TimelineItem
                     key={event.id}
@@ -282,10 +377,12 @@ const EditOrderPage = () => {
                   <Button
                     variant="dangerOutline"
                     size="sm"
-                    disabled={cancel.isPending || confirm.isPending}
+                    disabled={
+                      cancel.isPending || confirm.isPending || reject.isPending
+                    }
                   >
                     <X size={14} className="mr-1.5" />
-                    Cancelar pedido
+                    Cancelar
                   </Button>
                 </AlertDialogTrigger>
                 <AlertDialogContent>
@@ -298,23 +395,117 @@ const EditOrderPage = () => {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Voltar</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={() => cancel.mutate(undefined)}
-                    >
+                    <AlertDialogAction onClick={() => cancel.mutate(undefined)}>
                       Cancelar pedido
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
               </AlertDialog>
+
+              <AlertDialog
+                onOpenChange={(open) => {
+                  if (!open) setRejectReason("");
+                }}
+              >
+                <AlertDialogTrigger asChild>
+                  <Button
+                    variant="dangerOutline"
+                    size="sm"
+                    disabled={
+                      reject.isPending || confirm.isPending || cancel.isPending
+                    }
+                  >
+                    <XCircle size={14} className="mr-1.5" />
+                    Rejeitar
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Rejeitar pedido {code}</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Descreva o motivo para que o autor possa ajustar o pedido
+                      e reenviar.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <div className="flex flex-col gap-1.5">
+                    <Label htmlFor="reject-reason">Motivo da rejeição</Label>
+                    <Textarea
+                      id="reject-reason"
+                      rows={4}
+                      placeholder="Ex: Produto indisponível, fora do orçamento, etc."
+                      value={rejectReason}
+                      onChange={(e) => setRejectReason(e.target.value)}
+                      maxLength={500}
+                    />
+                    <div className="text-[11px] text-muted flex justify-between">
+                      <span>Mínimo de 5 caracteres.</span>
+                      <span>{rejectReasonTrimmed.length}/500</span>
+                    </div>
+                  </div>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Voltar</AlertDialogCancel>
+                    <AlertDialogAction
+                      disabled={!rejectValid}
+                      onClick={() => {
+                        if (!rejectValid) return;
+                        reject.mutate(rejectReasonTrimmed);
+                      }}
+                    >
+                      Rejeitar pedido
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+
               <Button
                 size="sm"
-                disabled={confirm.isPending || cancel.isPending}
+                disabled={
+                  confirm.isPending || cancel.isPending || reject.isPending
+                }
                 onClick={() => confirm.mutate()}
               >
                 <Check size={14} className="mr-1.5" />
-                Aprovar pedido
+                Aprovar
               </Button>
             </>
+          }
+        />
+      )}
+
+      {!canApprove && canCreatorCancel && (
+        <StickyActionBar
+          left={
+            <span className="text-[13px] text-muted">
+              Você pode cancelar este pedido enquanto aguarda aprovação.
+            </span>
+          }
+          right={
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="dangerOutline"
+                  size="sm"
+                  disabled={cancel.isPending}
+                >
+                  <X size={14} className="mr-1.5" />
+                  Cancelar pedido
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Cancelar pedido {code}?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Esta ação não pode ser desfeita.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Voltar</AlertDialogCancel>
+                  <AlertDialogAction onClick={() => cancel.mutate(undefined)}>
+                    Cancelar pedido
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           }
         />
       )}
@@ -322,4 +513,4 @@ const EditOrderPage = () => {
   );
 };
 
-export default EditOrderPage;
+export default OrderDetailPage;

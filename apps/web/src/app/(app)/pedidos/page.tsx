@@ -1,10 +1,11 @@
 "use client";
 
-import { Suspense } from "react";
-import { useFAB, useMobileHeader } from "@/components/shell/mobile-header-context";
+import {
+  useFAB,
+  useMobileHeader,
+} from "@/components/shell/mobile-header-context";
 import { TableLoading } from "@/components/table-loading";
 import { AvatarInitials } from "@/components/ui-ext/avatar-initials";
-import { useIsMobile } from "@/hooks/use-is-mobile";
 import { EmptyState } from "@/components/ui-ext/empty-state";
 import { FilterChip } from "@/components/ui-ext/filter-chip";
 import { PageHeader } from "@/components/ui-ext/page-header";
@@ -20,6 +21,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useOrdersPage } from "@/hooks/pages/use-orders";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import type { OrderListItem, OrderStatus } from "@sgm/shared";
 import {
   ChevronRight,
@@ -28,10 +30,12 @@ import {
   LoaderCircle,
   Plus,
 } from "lucide-react";
+import { Suspense } from "react";
 
 const statusLabels: Record<OrderStatus, string> = {
   PENDING: "Pendente",
   APPROVED: "Aprovado",
+  REJECTED: "Rejeitado",
   CANCELED: "Cancelado",
   PURCHASED: "Comprado",
 };
@@ -118,6 +122,13 @@ const PedidosPageContent = () => {
           Aprovados
         </FilterChip>
         <FilterChip
+          active={currentStatus === "REJECTED"}
+          count={stats?.REJECTED}
+          onClick={() => handleSetStatus("REJECTED")}
+        >
+          Rejeitados
+        </FilterChip>
+        <FilterChip
           active={currentStatus === "CANCELED"}
           count={stats?.CANCELED}
           onClick={() => handleSetStatus("CANCELED")}
@@ -167,7 +178,11 @@ const PedidosPageContent = () => {
             tone="warn"
           />
           <SummaryStat label="Aprovados" value={stats?.APPROVED ?? "—"} />
-          <SummaryStat label="Cancelados" value={stats?.CANCELED ?? "—"} tone="bad" />
+          <SummaryStat
+            label="Rejeitados"
+            value={stats?.REJECTED ?? "—"}
+            tone="bad"
+          />
           <SummaryStat label="Total de pedidos" value={stats?.all ?? "—"} />
         </div>
 
@@ -194,6 +209,13 @@ const PedidosPageContent = () => {
             Aprovados
           </FilterChip>
           <FilterChip
+            active={currentStatus === "REJECTED"}
+            count={stats?.REJECTED}
+            onClick={() => handleSetStatus("REJECTED")}
+          >
+            Rejeitados
+          </FilterChip>
+          <FilterChip
             active={currentStatus === "CANCELED"}
             count={stats?.CANCELED}
             onClick={() => handleSetStatus("CANCELED")}
@@ -208,8 +230,7 @@ const PedidosPageContent = () => {
               <div className="text-[13px] text-muted">Carregando…</div>
             ) : orders && orders.length > 0 ? (
               orders.map((order: OrderListItem) => {
-                const code =
-                  order.friendlyCode ?? `#${order.id.slice(0, 4)}`;
+                const code = order.friendlyCode ?? `#${order.id.slice(0, 4)}`;
                 const { date } = formatDateParts(order.createdAt);
                 return (
                   <button
@@ -250,130 +271,135 @@ const PedidosPageContent = () => {
             )}
           </div>
         ) : (
-        <div className="bg-card border border-line rounded-3 shadow-sm-warm overflow-hidden">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Pedido</TableHead>
-                <TableHead>Evento</TableHead>
-                <TableHead>Autor</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Itens</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            {isLoading ? (
-              <TableLoading />
-            ) : orders && orders.length > 0 ? (
-              <TableBody>
-                {orders.map((order: OrderListItem) => {
-                  const code =
-                    order.friendlyCode ?? `#${order.id.slice(0, 4)}`;
-                  const { date, time } = formatDateParts(order.createdAt);
-                  return (
-                    <TableRow
-                      key={order.id}
-                      onClick={() => handleEditOrder(order.id)}
-                      className="cursor-pointer hover:bg-soft"
-                    >
-                      <TableCell>
-                        <span className="font-mono text-[13px] text-ink-2 font-medium">
-                          {code}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="text-[13.5px] text-ink font-medium truncate max-w-[220px]">
-                            {order.event ?? "—"}
-                          </span>
-                          <span className="text-[11.5px] text-muted">
-                            {relativeTime(order.createdAt)}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <AvatarInitials name={order.user.name} size={26} />
-                          <span className="text-[13px] text-ink-2">
-                            {order.user.name}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="text-[13px] text-ink-2">{date}</span>
-                          <span className="text-[11.5px] text-muted">
-                            {time}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <OrderStatusChip status={order.status} />
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-[13px] text-ink-2">
-                          {order.itemCount ?? 0} itens
-                        </span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="inline-flex items-center gap-1">
-                          {(isAdmin || isManager || isBuyer) &&
-                            order.status === "APPROVED" && (
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                aria-label="Baixar PDF"
-                                disabled={isLoadingDownload}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDownloadOrder(order.id);
-                                }}
-                              >
-                                {isLoadingDownload ? (
-                                  <LoaderCircle
-                                    size={15}
-                                    className="animate-spin"
-                                  />
-                                ) : (
-                                  <Download size={15} />
-                                )}
-                              </Button>
-                            )}
-                          <ChevronRight size={15} className="text-faint" />
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            ) : (
-              <TableBody>
+          <div className="bg-card border border-line rounded-3 shadow-sm-warm overflow-hidden">
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={7} className="p-0">
-                    <div className="p-6">
-                      <EmptyState
-                        icon={Inbox}
-                        title={statusLabels[currentStatus ?? "PENDING"] && currentStatus
-                          ? `Nenhum pedido ${statusLabels[currentStatus].toLowerCase()}`
-                          : "Nenhum pedido ainda"}
-                        description="Crie um novo pedido para começar."
-                        action={
-                          canCreate ? (
-                            <Button onClick={handleClickNewOrder} size="sm">
-                              <Plus size={14} className="mr-1.5" />
-                              Novo pedido
-                            </Button>
-                          ) : undefined
-                        }
-                      />
-                    </div>
-                  </TableCell>
+                  <TableHead>Pedido</TableHead>
+                  <TableHead>Evento</TableHead>
+                  <TableHead>Autor</TableHead>
+                  <TableHead>Data</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Itens</TableHead>
+                  <TableHead />
                 </TableRow>
-              </TableBody>
-            )}
-          </Table>
-        </div>
+              </TableHeader>
+              {isLoading ? (
+                <TableLoading />
+              ) : orders && orders.length > 0 ? (
+                <TableBody>
+                  {orders.map((order: OrderListItem) => {
+                    const code =
+                      order.friendlyCode ?? `#${order.id.slice(0, 4)}`;
+                    const { date, time } = formatDateParts(order.createdAt);
+                    return (
+                      <TableRow
+                        key={order.id}
+                        onClick={() => handleEditOrder(order.id)}
+                        className="cursor-pointer hover:bg-soft"
+                      >
+                        <TableCell>
+                          <span className="font-mono text-[13px] text-ink-2 font-medium">
+                            {code}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="text-[13.5px] text-ink font-medium truncate max-w-[220px]">
+                              {order.event ?? "—"}
+                            </span>
+                            <span className="text-[11.5px] text-muted">
+                              {relativeTime(order.createdAt)}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <AvatarInitials name={order.user.name} size={26} />
+                            <span className="text-[13px] text-ink-2">
+                              {order.user.name}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex flex-col">
+                            <span className="text-[13px] text-ink-2">
+                              {date}
+                            </span>
+                            <span className="text-[11.5px] text-muted">
+                              {time}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <OrderStatusChip status={order.status} />
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-[13px] text-ink-2">
+                            {order.itemCount ?? 0} itens
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="inline-flex items-center gap-1">
+                            {(isAdmin || isManager || isBuyer) &&
+                              order.status === "APPROVED" && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  aria-label="Baixar PDF"
+                                  disabled={isLoadingDownload}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownloadOrder(order.id);
+                                  }}
+                                >
+                                  {isLoadingDownload ? (
+                                    <LoaderCircle
+                                      size={15}
+                                      className="animate-spin"
+                                    />
+                                  ) : (
+                                    <Download size={15} />
+                                  )}
+                                </Button>
+                              )}
+                            <ChevronRight size={15} className="text-faint" />
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              ) : (
+                <TableBody>
+                  <TableRow>
+                    <TableCell colSpan={7} className="p-0">
+                      <div className="p-6">
+                        <EmptyState
+                          icon={Inbox}
+                          title={
+                            statusLabels[currentStatus ?? "PENDING"] &&
+                            currentStatus
+                              ? `Nenhum pedido ${statusLabels[currentStatus].toLowerCase()}`
+                              : "Nenhum pedido ainda"
+                          }
+                          description="Crie um novo pedido para começar."
+                          action={
+                            canCreate ? (
+                              <Button onClick={handleClickNewOrder} size="sm">
+                                <Plus size={14} className="mr-1.5" />
+                                Novo pedido
+                              </Button>
+                            ) : undefined
+                          }
+                        />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              )}
+            </Table>
+          </div>
         )}
 
         <div className="flex justify-between items-center">

@@ -1,39 +1,46 @@
+import type {
+  OrderFormItem,
+  OrderFormPickerSelection,
+} from "@/components/orders/order-form";
 import { useToast } from "@/components/ui/use-toast";
 import { GetAllProductsFetcher } from "@/data/fetchers/products/get-all";
-import { newOrderMutation } from "@/data/mutations/new-order";
+import { updateOrderMutation } from "@/data/mutations/update-order";
+import type { OrderResponse } from "@sgm/shared";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDebounce } from "../use-debounce";
 
-export interface StagedItem {
-  productId: string;
-  name: string;
-  unit: string;
-  category?: string;
-  quantity: number;
-}
-
-export interface PickerSelection {
-  productId: string;
-  name: string;
-  unit: string;
-  category?: string;
-}
-
-export const useNewOrderPage = () => {
+export const useResubmitOrderPage = (id: string, order?: OrderResponse) => {
   const router = useRouter();
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const [event, setEvent] = useState("");
   const [observation, setObservation] = useState("");
-  const [items, setItems] = useState<StagedItem[]>([]);
+  const [items, setItems] = useState<OrderFormItem[]>([]);
+  const [initialized, setInitialized] = useState(false);
 
-  const [picker, setPicker] = useState<PickerSelection | null>(null);
+  const [picker, setPicker] = useState<OrderFormPickerSelection | null>(null);
   const [pickerQty, setPickerQty] = useState<number>(0);
   const [productSearch, setProductSearch] = useState("");
   const debouncedSearch = useDebounce(productSearch, 300);
+
+  useEffect(() => {
+    if (initialized || !order) return;
+    setEvent(order.event ?? "");
+    setObservation(order.observation ?? "");
+    setItems(
+      (order.orderItem ?? []).map((it) => ({
+        productId: it.product.id,
+        name: it.product.name,
+        unit: it.product.unity?.name ?? "",
+        category: it.product.category?.name,
+        quantity: it.quantity,
+      })),
+    );
+    setInitialized(true);
+  }, [order, initialized]);
 
   const productsQuery = useQuery({
     queryKey: ["products", "picker", debouncedSearch],
@@ -45,20 +52,25 @@ export const useNewOrderPage = () => {
       }),
   });
 
-  const orderMutation = useMutation({
-    mutationFn: newOrderMutation,
-    onSuccess: (data) => {
-      toast({ title: "Pedido criado com sucesso" });
+  const mutation = useMutation({
+    mutationFn: () =>
+      updateOrderMutation(id, {
+        event: event.trim(),
+        observation: observation.trim() || undefined,
+        items: items.map(({ productId, quantity }) => ({
+          productId,
+          quantity,
+        })),
+      }),
+    onSuccess: () => {
+      toast({ title: "Pedido reenviado para aprovação" });
       queryClient.invalidateQueries({ queryKey: ["orders"] });
-      if (data?.id) {
-        router.push(`/pedidos/${data.id}`);
-      } else {
-        router.push("/pedidos");
-      }
+      queryClient.invalidateQueries({ queryKey: ["order", id] });
+      router.push(`/pedidos/${id}`);
     },
     onError: (error: Error) => {
       toast({
-        title: "Erro ao criar pedido",
+        title: "Erro ao reenviar pedido",
         description: error.message,
         variant: "destructive",
       });
@@ -94,24 +106,14 @@ export const useNewOrderPage = () => {
 
   const handleSubmit = () => {
     if (!event.trim()) {
-      toast({
-        title: "Informe o nome do evento",
-        variant: "destructive",
-      });
+      toast({ title: "Informe o nome do evento", variant: "destructive" });
       return;
     }
     if (items.length === 0) {
-      toast({
-        title: "Adicione ao menos um item",
-        variant: "destructive",
-      });
+      toast({ title: "Adicione ao menos um item", variant: "destructive" });
       return;
     }
-    orderMutation.mutate({
-      event: event.trim(),
-      observation: observation.trim() || undefined,
-      items: items.map(({ productId, quantity }) => ({ productId, quantity })),
-    });
+    mutation.mutate();
   };
 
   const totals = useMemo(
@@ -140,7 +142,7 @@ export const useNewOrderPage = () => {
     handleUpdateQuantity,
     handleRemoveItem,
     handleSubmit,
-    isSubmitting: orderMutation.isPending,
+    isSubmitting: mutation.isPending,
     totals,
     goBack: () => router.back(),
   };

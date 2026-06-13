@@ -2,8 +2,8 @@ import { useToast } from "@/components/ui/use-toast";
 import { GetAllOrdersFetcher } from "@/data/fetchers/orders/get-all";
 import { GetOrderReportFetcher } from "@/data/fetchers/orders/get-report-url";
 import { generateOrderReportMutation } from "@/data/mutations/generate-order-report";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { OrderStatus } from "@sgm/shared";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { useDebounce } from "../use-debounce";
@@ -68,6 +68,7 @@ export const useOrdersPage = () => {
     { key: "all" },
     { key: "PENDING", status: "PENDING" },
     { key: "APPROVED", status: "APPROVED" },
+    { key: "REJECTED", status: "REJECTED" },
     { key: "CANCELED", status: "CANCELED" },
   ];
 
@@ -83,7 +84,8 @@ export const useOrdersPage = () => {
         all: results[0].total,
         PENDING: results[1].total,
         APPROVED: results[2].total,
-        CANCELED: results[3].total,
+        REJECTED: results[3].total,
+        CANCELED: results[4].total,
       };
     },
     staleTime: 60_000,
@@ -96,8 +98,10 @@ export const useOrdersPage = () => {
     try {
       setIsLoadingDownload(true);
       const result = await GetOrderReportFetcher(id);
-      if (!result) {
-        await generateOrderReportMutation(id);
+      if (!result || result.status !== "ready") {
+        if (!result || result.status === "none") {
+          await generateOrderReportMutation(id);
+        }
         toast({
           title: "O PDF está sendo gerado, aguarde alguns instantes.",
           description: "Assim que estiver pronto, você poderá baixá-lo.",

@@ -80,10 +80,7 @@ export function NotificationCenter({ onNavigate }: NotificationCenterProps) {
             >
               Não lidas
             </FilterChip>
-            <FilterChip
-              active={view === "all"}
-              onClick={() => setView("all")}
-            >
+            <FilterChip active={view === "all"} onClick={() => setView("all")}>
               Todas
             </FilterChip>
           </div>

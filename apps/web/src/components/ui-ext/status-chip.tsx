@@ -1,6 +1,5 @@
 import { Badge } from "@/components/ui/badge";
-
-type OrderStatus = "PENDING" | "APPROVED" | "CANCELED" | "PURCHASED";
+import type { OrderStatus } from "@sgm/shared";
 
 const orderMap: Record<
   OrderStatus,
@@ -11,6 +10,7 @@ const orderMap: Record<
 > = {
   PENDING: { variant: "warning", label: "Pendente" },
   APPROVED: { variant: "success", label: "Aprovado" },
+  REJECTED: { variant: "destructive", label: "Rejeitado" },
   CANCELED: { variant: "destructive", label: "Cancelado" },
   PURCHASED: { variant: "secondary", label: "Comprado" },
 };

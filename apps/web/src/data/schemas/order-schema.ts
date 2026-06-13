@@ -9,10 +9,7 @@ export const orderSchema = z.object({
     .array(
       z.object({
         productId: z.string(),
-        quantity: z.coerce
-          .number()
-          .int()
-          .positive("Quantidade inválida"),
+        quantity: z.coerce.number().int().positive("Quantidade inválida"),
       }),
     )
     .min(1, "Adicione ao menos um item"),
