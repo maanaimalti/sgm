@@ -6,10 +6,7 @@ type TableLoadingProps = {
   rows?: number;
 };
 
-export const TableLoading = ({
-  columns = 4,
-  rows = 10,
-}: TableLoadingProps) => {
+export const TableLoading = ({ columns = 4, rows = 10 }: TableLoadingProps) => {
   const rowList = Array.from({ length: rows });
   const colList = Array.from({ length: columns });
 

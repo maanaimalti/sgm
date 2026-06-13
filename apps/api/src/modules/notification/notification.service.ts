@@ -51,16 +51,12 @@ export class NotificationService {
     const recipients = await this.prismaService.user.findMany({
       where: {
         roles: { some: { name: { in: toRoles } } },
-        ...(departmentId
-          ? { department: { some: { id: departmentId } } }
-          : {}),
+        ...(departmentId ? { department: { some: { id: departmentId } } } : {}),
       },
       select: { id: true },
     });
     await Promise.all(
-      recipients.map((r) =>
-        this.create({ to: r.id, type, text, metadata }),
-      ),
+      recipients.map((r) => this.create({ to: r.id, type, text, metadata })),
     );
   }
 

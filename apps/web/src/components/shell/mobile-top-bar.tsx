@@ -63,7 +63,10 @@ export function MobileTopBar({ header }: MobileTopBarProps) {
 
       {header.search && (
         <div className="px-4 pb-3">
-          <InputGroup leading={<Search size={14} />} className="h-10 rounded-pill">
+          <InputGroup
+            leading={<Search size={14} />}
+            className="h-10 rounded-pill"
+          >
             <Input
               value={header.search.value}
               onChange={(e) => header.search?.onChange(e.target.value)}
@@ -74,7 +77,9 @@ export function MobileTopBar({ header }: MobileTopBarProps) {
       )}
       {header.filters && (
         <div className="px-4 pb-3 overflow-x-auto">
-          <div className="flex items-center gap-1.5 w-max">{header.filters}</div>
+          <div className="flex items-center gap-1.5 w-max">
+            {header.filters}
+          </div>
         </div>
       )}
     </header>

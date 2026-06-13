@@ -28,18 +28,10 @@ import { useNewProductPage } from "@/hooks/pages/use-new-product";
 
 const NewProductsPage = () => {
   const router = useRouter();
-  const {
-    form,
-    categories,
-    unities,
-    departments,
-    isSubmitting,
-    onSubmit,
-  } = useNewProductPage();
+  const { form, categories, unities, departments, isSubmitting, onSubmit } =
+    useNewProductPage();
 
-  const selectedUnit = unities?.find(
-    (u) => u.id === form.watch("unity"),
-  )?.name;
+  const selectedUnit = unities?.find((u) => u.id === form.watch("unity"))?.name;
 
   return (
     <main className="flex flex-1 flex-col">

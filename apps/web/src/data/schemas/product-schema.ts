@@ -1,7 +1,9 @@
 import { z } from "zod";
 
 export const productSchema = z.object({
-  name: z.string({ message: "Nome é obrigatório" }).min(1, "Nome é obrigatório"),
+  name: z
+    .string({ message: "Nome é obrigatório" })
+    .min(1, "Nome é obrigatório"),
   brand: z
     .string({ message: "Marca é obrigatória" })
     .min(1, "Marca é obrigatória"),

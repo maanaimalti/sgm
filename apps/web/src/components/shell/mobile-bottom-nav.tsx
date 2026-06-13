@@ -76,9 +76,7 @@ export function MobileBottomNav() {
           const Icon = tab.icon;
           const isAccount = tab.type === "account";
           const active =
-            !isAccount && tab.href
-              ? pathname.startsWith(tab.href)
-              : false;
+            !isAccount && tab.href ? pathname.startsWith(tab.href) : false;
           const cls = cn(
             "flex-1 flex flex-col items-center justify-center gap-1 text-[10.5px]",
             active
@@ -129,11 +127,7 @@ export function MobileBottomNav() {
                 </div>
               </div>
             </div>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleLogout}
-            >
+            <Button variant="outline" className="w-full" onClick={handleLogout}>
               Sair
             </Button>
           </nav>

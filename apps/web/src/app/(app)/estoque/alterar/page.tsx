@@ -2,7 +2,12 @@
 
 export const dynamic = "force-dynamic";
 
-import { ArrowLeft, Check, ChevronsUpDown, LoaderCircleIcon } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  ChevronsUpDown,
+  LoaderCircleIcon,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Suspense, useState } from "react";
 
@@ -121,7 +126,9 @@ const UpdateStockPageInner = () => {
                                 >
                                   <span
                                     className={
-                                      selectedProduct ? "text-ink" : "text-muted"
+                                      selectedProduct
+                                        ? "text-ink"
+                                        : "text-muted"
                                     }
                                   >
                                     {selectedProduct?.name ??

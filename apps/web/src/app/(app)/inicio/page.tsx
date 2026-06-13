@@ -1,13 +1,16 @@
 "use client";
 
-import { useMobileHeader, useFAB } from "@/components/shell/mobile-header-context";
+import {
+  useFAB,
+  useMobileHeader,
+} from "@/components/shell/mobile-header-context";
 import { AvatarInitials } from "@/components/ui-ext/avatar-initials";
 import { OrderStatusChip } from "@/components/ui-ext/status-chip";
 import { SummaryStat } from "@/components/ui-ext/summary-stat";
+import { useSidebar } from "@/hooks/pages/use-sidebar";
 import { useInicio } from "@/hooks/use-inicio";
 import { useIsMobile } from "@/hooks/use-is-mobile";
 import { useJwt } from "@/hooks/use-jwt";
-import { useSidebar } from "@/hooks/pages/use-sidebar";
 import type { OrderListItem } from "@sgm/shared";
 import { ChevronRight, Plus } from "lucide-react";
 import Link from "next/link";
@@ -42,9 +45,8 @@ export default function InicioPage() {
     recentLoading,
   } = useInicio();
 
-  const firstName = (userData?.name || userData?.username || "")
-    .split(" ")[0]
-    || "Olá";
+  const firstName =
+    (userData?.name || userData?.username || "").split(" ")[0] || "Olá";
 
   useMobileHeader({ title: `Olá, ${firstName}` });
   useFAB(
@@ -68,10 +70,7 @@ export default function InicioPage() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3">
-        <Link
-          href="/pedidos?status=PENDING"
-          aria-label="Pedidos pendentes"
-        >
+        <Link href="/pedidos?status=PENDING" aria-label="Pedidos pendentes">
           <SummaryStat
             label="Pendentes"
             value={pendingCount}

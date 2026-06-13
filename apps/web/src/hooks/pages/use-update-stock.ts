@@ -18,8 +18,7 @@ export const useUpdateStock = () => {
   const searchParams = useSearchParams();
 
   const initialProductId = searchParams.get("productId") ?? "";
-  const initialType =
-    (searchParams.get("type") as "in" | "out" | null) ?? "in";
+  const initialType = (searchParams.get("type") as "in" | "out" | null) ?? "in";
 
   const [productSearch, setProductSearch] = useState("");
   const debouncedSearch = useDebounce(productSearch, 300);

@@ -24,8 +24,6 @@ import { EmptyState } from "@/components/ui-ext/empty-state";
 import { FilterChip } from "@/components/ui-ext/filter-chip";
 import { PageHeader } from "@/components/ui-ext/page-header";
 import { StockStatusChip } from "@/components/ui-ext/status-chip";
-import { useSidebar } from "@/hooks/pages/use-sidebar";
-import { useIsMobile } from "@/hooks/use-is-mobile";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -55,6 +53,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useProductPage } from "@/hooks/pages/use-product";
+import { useSidebar } from "@/hooks/pages/use-sidebar";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 
 const ProductsPageInner = () => {
   const {

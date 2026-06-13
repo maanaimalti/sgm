@@ -55,10 +55,7 @@ const NewCategoryPage = () => {
                         <FormItem>
                           <FormLabel>Nome</FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder="Ex: Cereais"
-                              {...field}
-                            />
+                            <Input placeholder="Ex: Cereais" {...field} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>

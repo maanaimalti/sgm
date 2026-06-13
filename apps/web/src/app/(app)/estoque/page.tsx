@@ -22,7 +22,6 @@ import {
 import { EmptyState } from "@/components/ui-ext/empty-state";
 import { FilterChip } from "@/components/ui-ext/filter-chip";
 import { PageHeader } from "@/components/ui-ext/page-header";
-import { useIsMobile } from "@/hooks/use-is-mobile";
 import { StockStatusChip } from "@/components/ui-ext/status-chip";
 import { StockBar } from "@/components/ui-ext/stock-bar";
 import { SummaryStat } from "@/components/ui-ext/summary-stat";
@@ -38,6 +37,7 @@ import {
 import { Input, InputGroup } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useStockPage } from "@/hooks/pages/use-stock";
+import { useIsMobile } from "@/hooks/use-is-mobile";
 import { cn } from "@/lib/utils";
 
 const formatRelative = (date: string | Date) => {
@@ -88,15 +88,17 @@ const EstoquePageInner = () => {
     ? rows.filter(() => true) // category filter is product-level; backend doesn't expose it on stock; left as a no-op for now
     : rows;
 
-  const updatedTone = lastUpdatedAt && isToday(lastUpdatedAt) ? "default" : "default";
+  const updatedTone =
+    lastUpdatedAt && isToday(lastUpdatedAt) ? "default" : "default";
   const updatedValue = lastUpdatedAt
     ? isToday(lastUpdatedAt)
       ? "hoje"
       : "—"
     : "—";
-  const updatedHint = lastUpdatedAt && isToday(lastUpdatedAt)
-    ? formatHHmm(lastUpdatedAt)
-    : undefined;
+  const updatedHint =
+    lastUpdatedAt && isToday(lastUpdatedAt)
+      ? formatHHmm(lastUpdatedAt)
+      : undefined;
 
   const showWarning = counts.lows + counts.outs > 0;
   const showEmpty = !isLoading && visibleRows.length === 0;
@@ -168,11 +170,7 @@ const EstoquePageInner = () => {
             hint="precisa de atenção"
             tone="warn"
           />
-          <SummaryStat
-            label="Sem estoque"
-            value={counts.outs}
-            tone="bad"
-          />
+          <SummaryStat label="Sem estoque" value={counts.outs} tone="bad" />
           <SummaryStat
             label="Atualizado"
             value={updatedValue}
@@ -199,10 +197,7 @@ const EstoquePageInner = () => {
                 ou amarelo.
               </div>
             </div>
-            <Button
-              size="sm"
-              onClick={() => router.push("/pedidos/novo")}
-            >
+            <Button size="sm" onClick={() => router.push("/pedidos/novo")}>
               <Plus size={13} />
               Repor agora
             </Button>
@@ -211,7 +206,10 @@ const EstoquePageInner = () => {
 
         <div className="hidden md:flex items-center justify-between gap-3 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
-            <FilterChip active={!stockFilter} onClick={() => setStockFilter("")}>
+            <FilterChip
+              active={!stockFilter}
+              onClick={() => setStockFilter("")}
+            >
               Todos
             </FilterChip>
             <FilterChip

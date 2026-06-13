@@ -59,10 +59,7 @@ const EditUnitPage = () => {
                             {isLoading ? (
                               <Skeleton className="h-11 rounded-2" />
                             ) : (
-                              <Input
-                                placeholder="Ex: Quilograma"
-                                {...field}
-                              />
+                              <Input placeholder="Ex: Quilograma" {...field} />
                             )}
                           </FormControl>
                           <FormMessage />

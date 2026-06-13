@@ -22,13 +22,8 @@ import { useEditCategory } from "@/hooks/pages/use-edit-category";
 
 const EditCategoryPage = () => {
   const router = useRouter();
-  const {
-    editCategoryIsLoading,
-    form,
-    category,
-    isLoading,
-    onSubmit,
-  } = useEditCategory();
+  const { editCategoryIsLoading, form, category, isLoading, onSubmit } =
+    useEditCategory();
 
   return (
     <main className="flex flex-1 flex-col">
