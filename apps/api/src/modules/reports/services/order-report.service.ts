@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from "@nestjs/common";
 // biome-ignore lint/style/useImportType: <explanation>
 import { OrderPdfService } from "src/modules/orders/order-pdf.service";
+import { computeOrderSignature } from "src/modules/orders/order-signature";
 // biome-ignore lint/style/useImportType: Nest DI requires the runtime class.
 import { PrismaService } from "src/shared/db/prisma.service";
 // biome-ignore lint/style/useImportType: <explanation>
@@ -33,11 +34,13 @@ export class OrderReportService {
         status: true,
         createdAt: true,
         approvedAt: true,
+        approvedById: true,
         user: { select: { id: true, name: true } },
         approvedBy: { select: { id: true, name: true } },
         orderItem: {
           select: {
             quantity: true,
+            productId: true,
             product: {
               select: {
                 name: true,
@@ -63,13 +66,23 @@ export class OrderReportService {
     });
 
     const filename = `cozinha/pedidos/relatorio-pedido-${orderId.toLowerCase()}.pdf`;
-    await this.uploadFileService.uploadFile(filename, pdfBytes);
+    await this.uploadFileService.uploadFile(
+      filename,
+      pdfBytes,
+      "application/pdf",
+    );
     this.logger.log(`Uploaded order report ${orderId} → ${filename}`);
 
+    const signature = computeOrderSignature(order);
+
+    // Replace any previous cached reports for this order so only the freshest
+    // artifact (matching the current signature) is ever served.
+    await this.prismaService.orderReports.deleteMany({ where: { orderId } });
     await this.prismaService.orderReports.create({
       data: {
         id: this.helpersService.generateId(),
         url: filename,
+        signature,
         order: { connect: { id: orderId } },
         user: { connect: { id: requestedByUserId } },
       },

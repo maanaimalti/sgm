@@ -110,6 +110,7 @@ model user {
   department     department[]
   reports        report[]
   orderEvents    orderEvent[]
+  pushSubscriptions pushSubscription[]
 
   @@map("users")
 }
@@ -205,6 +206,7 @@ model orderReports {
   orderId   String
   userId    String
   url       String
+  signature String?  @db.VarChar(64)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -212,6 +214,22 @@ model orderReports {
   order orders @relation(fields: [orderId], references: [id])
 
   @@map("order_reports")
+}
+
+model pushSubscription {
+  id        String   @id
+  userId    String
+  endpoint  String   @unique @db.VarChar(500)
+  p256dh    String   @db.VarChar(255)
+  auth      String   @db.VarChar(255)
+  userAgent String?  @map("user_agent") @db.VarChar(255)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user user @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("push_subscriptions")
 }
 
 model notification {
