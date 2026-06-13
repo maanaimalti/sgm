@@ -8,6 +8,7 @@ import { MovementModule } from "./modules/movement/movement.module";
 import { NotificationModule } from "./modules/notification/notification.module";
 import { OrdersModule } from "./modules/orders/orders.module";
 import { ProductsModule } from "./modules/products/products.module";
+import { PushModule } from "./modules/push/push.module";
 import { ReportsModule } from "./modules/reports/reports.module";
 import { UnityModule } from "./modules/unity/unity.module";
 import { AuthModule } from "./shared/auth/auth.module";
@@ -26,6 +27,7 @@ import { HelpersModule } from "./shared/helpers/helpers.module";
     NotificationModule,
     DepartmentModule,
     ReportsModule,
+    PushModule,
   ],
   controllers: [AppController],
   providers: [AppService],
