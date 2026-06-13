@@ -10,6 +10,7 @@ datasource db {
 enum orderStatus {
   PENDING
   APPROVED
+  REJECTED
   PURCHASED
   CANCELED
 
@@ -100,13 +101,15 @@ model user {
   name         String
   username     String         @unique
   password     String
-  roles        role[]
-  orders       orders[]
-  orderReports orderReports[]
-  notification notification[]
-  department   department[]
-  reports      report[]
-  orderEvents  orderEvent[]
+  roles          role[]
+  orders         orders[]
+  approvedOrders orders[]       @relation("approvedOrders")
+  rejectedOrders orders[]       @relation("rejectedOrders")
+  orderReports   orderReports[]
+  notification   notification[]
+  department     department[]
+  reports        report[]
+  orderEvents    orderEvent[]
 
   @@map("users")
 }
@@ -141,14 +144,23 @@ model orders {
   event        String?
   friendlyCode String?  @unique @map("friendly_code")
 
-  status              orderStatus @default(PENDING)
-  statusOberservation String?     @map("status_observation")
+  status             orderStatus @default(PENDING)
+  statusObservation  String?     @map("status_observation")
+
+  approvedById String?   @map("approved_by_id")
+  approvedAt   DateTime? @map("approved_at")
+  rejectedById String?   @map("rejected_by_id")
+  rejectedAt   DateTime? @map("rejected_at")
 
   user         user           @relation(fields: [userId], references: [id])
+  approvedBy   user?          @relation("approvedOrders", fields: [approvedById], references: [id], onDelete: SetNull)
+  rejectedBy   user?          @relation("rejectedOrders", fields: [rejectedById], references: [id], onDelete: SetNull)
   orderItem    orderItem[]
   orderReports orderReports[]
   events       orderEvent[]
 
+  @@index([approvedById])
+  @@index([rejectedById])
   @@map("orders")
 }
 

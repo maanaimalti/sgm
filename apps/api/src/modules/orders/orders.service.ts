@@ -1,11 +1,13 @@
 import {
+  ConflictException,
+  ForbiddenException,
   Injectable,
-  InternalServerErrorException,
   Logger,
   NotFoundException,
 } from "@nestjs/common";
-import { orderStatus } from "@prisma/client";
-import { PDFDocument, StandardFonts } from "pdf-lib";
+// biome-ignore lint/style/useImportType: Nest DI requires the runtime class.
+import { EventEmitter2 } from "@nestjs/event-emitter";
+import { orderStatus, reportStatus, reportType } from "@prisma/client";
 // biome-ignore lint/style/useImportType: <explanation>
 import { PrismaService } from "src/shared/db/prisma.service";
 // biome-ignore lint/style/useImportType: <explanation>
@@ -16,20 +18,26 @@ import { UploadFileService } from "src/shared/upload/upload-file.service";
 import { NotificationService } from "../notification/notification.service";
 import { CreateOrderDto } from "./dto/create-order.dto";
 import { FindAllOrdersDto } from "./dto/find-all-orders.dto";
+import { UpdateOrderDto } from "./dto/update-order.dto";
+
+const APPROVER_ROLES = ["admin", "manager"];
 
 @Injectable()
 export class OrdersService {
+  private readonly logger = new Logger(OrdersService.name);
+
   constructor(
     private readonly helpersService: HelpersService,
     private readonly prismaService: PrismaService,
     private readonly uploadFileService: UploadFileService,
     private readonly notificationService: NotificationService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   async create(createOrderDto: CreateOrderDto) {
     const { items, userId, observation, event } = createOrderDto;
     const id = this.helpersService.generateId();
-    Logger.log(`Creating order with id: ${id} and user id: ${userId}`);
+    this.logger.log(`Creating order ${id} for user ${userId}`);
 
     const created = await this.prismaService.$transaction(async (tx) => {
       const next = await tx.order_counter.update({
@@ -80,7 +88,7 @@ export class OrdersService {
     try {
       const recipients = await this.prismaService.user.findMany({
         where: {
-          roles: { some: { name: { in: ["admin", "manager"] } } },
+          roles: { some: { name: { in: APPROVER_ROLES } } },
         },
         select: { id: true },
       });
@@ -96,7 +104,37 @@ export class OrdersService {
         ),
       );
     } catch (error) {
-      Logger.error("Failed to fan out PENDING_ORDER notifications", { error });
+      this.logger.error("Failed to fan out PENDING_ORDER notifications", error);
+    }
+  }
+
+  private async notifyResubmittedOrder(
+    orderId: string,
+    friendlyCode: string | null,
+  ) {
+    try {
+      const recipients = await this.prismaService.user.findMany({
+        where: {
+          roles: { some: { name: { in: APPROVER_ROLES } } },
+        },
+        select: { id: true },
+      });
+      const code = friendlyCode ?? `#${orderId.slice(0, 6)}`;
+      await Promise.all(
+        recipients.map((r) =>
+          this.notificationService.create({
+            to: r.id,
+            type: "ORDER_RESUBMITTED",
+            text: `Pedido ${code} foi reenviado após rejeição.`,
+            metadata: JSON.stringify({ orderId }),
+          }),
+        ),
+      );
+    } catch (error) {
+      this.logger.error(
+        "Failed to fan out ORDER_RESUBMITTED notifications",
+        error,
+      );
     }
   }
 
@@ -155,6 +193,11 @@ export class OrdersService {
         friendlyCode: true,
         user: { select: { id: true, name: true } },
         status: true,
+        statusObservation: true,
+        approvedAt: true,
+        approvedBy: { select: { id: true, name: true } },
+        rejectedAt: true,
+        rejectedBy: { select: { id: true, name: true } },
         createdAt: true,
         orderItem: {
           select: {
@@ -186,7 +229,6 @@ export class OrdersService {
       },
     });
     if (!data) {
-      Logger.error(`Order with id: ${id} not found.`);
       throw new NotFoundException(`Order with id: ${id} not found`);
     }
     return data;
@@ -195,16 +237,25 @@ export class OrdersService {
   async approveOrder(id: string, userId: string) {
     const order = await this.prismaService.orders.findUnique({
       where: { id },
-      select: { id: true, userId: true, friendlyCode: true },
+      select: { id: true, userId: true, friendlyCode: true, status: true },
     });
     if (!order) {
       throw new NotFoundException(`Order with id: ${id} not found`);
+    }
+    if (order.status !== orderStatus.PENDING) {
+      throw new ConflictException(
+        `Order ${id} cannot be approved from status ${order.status}`,
+      );
     }
 
     await this.prismaService.$transaction([
       this.prismaService.orders.update({
         where: { id },
-        data: { status: orderStatus.APPROVED },
+        data: {
+          status: orderStatus.APPROVED,
+          approvedById: userId,
+          approvedAt: new Date(),
+        },
       }),
       this.prismaService.orderEvent.create({
         data: {
@@ -226,13 +277,85 @@ export class OrdersService {
     });
   }
 
-  async cancelOrder(id: string, userId: string, observation?: string) {
+  async rejectOrder(id: string, userId: string, observation: string) {
     const order = await this.prismaService.orders.findUnique({
       where: { id },
-      select: { id: true, userId: true, friendlyCode: true },
+      select: { id: true, userId: true, friendlyCode: true, status: true },
     });
     if (!order) {
       throw new NotFoundException(`Order with id: ${id} not found`);
+    }
+    if (order.status !== orderStatus.PENDING) {
+      throw new ConflictException(
+        `Order ${id} cannot be rejected from status ${order.status}`,
+      );
+    }
+
+    this.logger.log(
+      `Rejecting order ${id} by user ${userId} (code ${order.friendlyCode})`,
+    );
+
+    await this.prismaService.$transaction([
+      this.prismaService.orders.update({
+        where: { id },
+        data: {
+          status: orderStatus.REJECTED,
+          statusObservation: observation,
+          rejectedById: userId,
+          rejectedAt: new Date(),
+        },
+      }),
+      this.prismaService.orderEvent.create({
+        data: {
+          id: this.helpersService.generateId(),
+          orderId: id,
+          type: "REJECTED",
+          userId,
+          payload: { reason: observation },
+        },
+      }),
+    ]);
+
+    const code = order.friendlyCode ?? `#${order.id.slice(0, 6)}`;
+    await this.notificationService.create({
+      to: order.userId,
+      type: "ORDER_REJECTED",
+      text: `Pedido ${code} foi rejeitado.`,
+      metadata: JSON.stringify({ orderId: id, reason: observation }),
+    });
+  }
+
+  async cancelOrder(
+    id: string,
+    userId: string,
+    callerRoles: string[],
+    observation?: string,
+  ) {
+    const order = await this.prismaService.orders.findUnique({
+      where: { id },
+      select: { id: true, userId: true, friendlyCode: true, status: true },
+    });
+    if (!order) {
+      throw new NotFoundException(`Order with id: ${id} not found`);
+    }
+
+    const isApprover = callerRoles.some((r) => APPROVER_ROLES.includes(r));
+    const isCreator = order.userId === userId;
+    if (!isApprover && !isCreator) {
+      throw new ForbiddenException(
+        "Only the creator or an approver can cancel this order",
+      );
+    }
+
+    const cancelable: orderStatus[] = [
+      orderStatus.PENDING,
+      orderStatus.REJECTED,
+      orderStatus.APPROVED,
+    ];
+    if (!cancelable.includes(order.status)) {
+      throw new ConflictException(
+        `Order ${id} cannot be canceled from status ${order.status}`,
+      );
     }
 
     await this.prismaService.$transaction([
@@ -240,7 +363,7 @@ export class OrdersService {
         where: { id },
         data: {
           status: orderStatus.CANCELED,
-          statusOberservation: observation,
+          statusObservation: observation,
         },
       }),
       this.prismaService.orderEvent.create({
@@ -254,267 +377,207 @@ export class OrdersService {
       }),
     ]);
 
-    const code = order.friendlyCode ?? `#${order.id.slice(0, 6)}`;
-    await this.notificationService.create({
-      to: order.userId,
-      type: "ORDER_CANCELED",
-      text: `Pedido ${code} foi cancelado.`,
-      metadata: JSON.stringify({ orderId: id }),
-    });
-  }
-
-  async getReport(id: string) {
-    const data = await this.prismaService.orderReports.findFirst({
-      where: { orderId: id },
-      select: { url: true },
-    });
-    if (!data) {
-      Logger.error(`Order report with id: ${id} not found.`);
-      throw new NotFoundException(`Order report with id: ${id} not found`);
-    }
-    const url = this.uploadFileService.getFileUrl(data.url);
-    return { url };
-  }
-
-  async generateReport(id: string, userId: string) {
-    Logger.log(`getting order with id: ${id} by user: ${userId}`);
-    try {
-      const order = await this.prismaService.orders.findFirst({
-        where: { id: id },
-        select: {
-          id: true,
-          user: { select: { id: true, name: true } },
-          status: true,
-          createdAt: true,
-          observation: true,
-          orderItem: {
-            select: {
-              id: true,
-              quantity: true,
-              product: {
-                select: {
-                  id: true,
-                  name: true,
-                  unity: { select: { name: true } },
-                  category: { select: { name: true } },
-                },
-              },
-            },
-          },
-        },
+    if (!isCreator) {
+      const code = order.friendlyCode ?? `#${order.id.slice(0, 6)}`;
+      await this.notificationService.create({
+        to: order.userId,
+        type: "ORDER_CANCELED",
+        text: `Pedido ${code} foi cancelado.`,
+        metadata: JSON.stringify({ orderId: id, reason: observation ?? null }),
       });
-      if (!order) {
-        Logger.error(
-          `Order with id: ${id} not found. Request by: ${id} for report generation`,
-        );
-        throw new NotFoundException(
-          `Order with id: ${id} not found for report generation`,
-        );
-      }
-      Logger.log(`Generating report for order ${JSON.stringify(order)}`);
-      const result = await this.generatePdf(order);
-      (async () => {
-        try {
-          const pdfBytes = await result.save();
-          Logger.log("generated file");
-          const filename = `cozinha/pedidos/relatorio-pedido-${id.toLowerCase()}.pdf`;
-          await this.uploadFileService.uploadFile(filename, pdfBytes);
-          Logger.log(`uploaded file with key: ${filename}`);
-          await this.prismaService.orderReports.create({
-            data: {
-              id: this.helpersService.generateId(),
-              url: filename,
-              order: { connect: { id } },
-              user: { connect: { id: userId } },
-            },
-          });
-          await this.notificationService.create({
-            to: order.user.id,
-            text: "Você tem um novo relatório de pedido disponível.",
-            type: "ORDER_REPORT",
-          });
-        } catch (error) {
-          Logger.error(error?.message, { error: error });
-        }
-      })();
-      return true;
-    } catch (error) {
-      Logger.error(error?.message, { details: error });
-      throw new InternalServerErrorException("Error generating report");
     }
   }
 
-  private async generatePdf(order: any) {
-    const pdfDoc = await PDFDocument.create();
-    const timesRomanFont = await pdfDoc.embedFont(StandardFonts.TimesRoman);
-    const timesRomanBoldFont = await pdfDoc.embedFont(
-      StandardFonts.TimesRomanBold,
+  async updateOrder(id: string, userId: string, dto: UpdateOrderDto) {
+    const order = await this.prismaService.orders.findUnique({
+      where: { id },
+      select: { id: true, userId: true, friendlyCode: true, status: true },
+    });
+    if (!order) {
+      throw new NotFoundException(`Order with id: ${id} not found`);
+    }
+    if (order.userId !== userId) {
+      throw new ForbiddenException("Only the creator can resubmit this order");
+    }
+    if (order.status !== orderStatus.REJECTED) {
+      throw new ConflictException(
+        `Order ${id} can only be resubmitted from REJECTED status`,
+      );
+    }
+
+    const changedFields: string[] = [];
+    if (dto.event !== undefined) changedFields.push("event");
+    if (dto.observation !== undefined) changedFields.push("observation");
+    if (dto.items !== undefined) changedFields.push("items");
+
+    this.logger.log(
+      `Resubmitting order ${id} by ${userId}; changed fields: ${changedFields.join(",") || "none"}`,
     );
 
-    const pageMargin = 50;
-    const page = pdfDoc.addPage([595.28, 841.89]);
-    const { width, height } = page.getSize();
-    const fontSize = 12;
+    await this.prismaService.$transaction(async (tx) => {
+      if (dto.items !== undefined) {
+        await tx.orderItem.deleteMany({ where: { orderId: id } });
+        await tx.orderItem.createMany({
+          data: dto.items.map((it) => ({
+            id: this.helpersService.generateId(),
+            orderId: id,
+            productId: it.productId,
+            quantity: it.quantity,
+          })),
+        });
+      }
 
-    let yPosition = height - pageMargin;
-
-    function addHeader(page) {
-      page.drawText("Relatório de Pedido", {
-        x: width / 2 - 95,
-        y: yPosition - 20,
-        size: 24,
-        font: timesRomanBoldFont,
-      });
-      yPosition -= 40;
-    }
-
-    function addOrderDetails(page, order) {
-      page.drawText(`Código do Pedido: ${order.id}`, {
-        x: pageMargin,
-        y: yPosition - 20,
-        size: fontSize,
-        font: timesRomanFont,
-      });
-      page.drawText(`Responsável: ${order.user.name}`, {
-        x: pageMargin,
-        y: yPosition - 40,
-        size: fontSize,
-        font: timesRomanFont,
-      });
-      page.drawText(
-        `Data de Criação: ${new Date(order.createdAt).toLocaleDateString(
-          "pt-BR",
-          { timeZone: "America/Sao_Paulo" },
-        )}`,
-        {
-          x: pageMargin,
-          y: yPosition - 60,
-          size: fontSize,
-          font: timesRomanFont,
+      await tx.orders.update({
+        where: { id },
+        data: {
+          event: dto.event,
+          observation: dto.observation,
+          status: orderStatus.PENDING,
+          statusObservation: null,
         },
-      );
-      yPosition -= 80;
-    }
+      });
 
-    function addTableHeader(page) {
-      const cellHeight = 20;
-      const columns = [
-        { name: "Nome", x: 50 },
-        { name: "Categoria", x: 350 },
-        { name: "Quantidade", x: 500 },
-      ];
-
-      for (const column of columns) {
-        page.drawText(column.name, {
-          x: column.x,
-          y: yPosition - 20,
-          size: fontSize,
-          font: timesRomanBoldFont,
-        });
-      }
-
-      yPosition -= cellHeight;
-    }
-
-    function addTableRows(page, items) {
-      const cellHeight = 20;
-      let currentPage = page;
-      for (const item of items) {
-        if (yPosition < pageMargin + 50) {
-          currentPage = addNewPage();
-        }
-        currentPage.drawText(item.product.name, {
-          x: 50,
-          y: yPosition - 20,
-          size: fontSize,
-          font: timesRomanFont,
-        });
-        currentPage.drawText(item.product.category.name, {
-          x: 350,
-          y: yPosition - 20,
-          size: fontSize,
-          font: timesRomanFont,
-        });
-        currentPage.drawText(
-          `${item.quantity.toString()} ${item.product.unity.name}`,
-          {
-            x: 500,
-            y: yPosition - 20,
-            size: fontSize,
-            font: timesRomanFont,
-          },
-        );
-
-        yPosition -= cellHeight;
-      }
-      return currentPage;
-    }
-
-    function addSignatureLine(page) {
-      let currentPage = page;
-      if (yPosition < pageMargin + 100) {
-        currentPage = addNewPage();
-      }
-      currentPage.drawText(
-        "______________________________________________________",
-        {
-          x: width / 2 - 150,
-          y: yPosition - 100,
-          size: fontSize,
-          font: timesRomanFont,
+      await tx.orderEvent.create({
+        data: {
+          id: this.helpersService.generateId(),
+          orderId: id,
+          type: "RESUBMITTED",
+          userId,
+          payload: { changedFields },
         },
+      });
+    });
+
+    await this.invalidateReport(id);
+    await this.notifyResubmittedOrder(id, order.friendlyCode);
+  }
+
+  private async invalidateReport(orderId: string) {
+    const existing = await this.prismaService.orderReports.findFirst({
+      where: { orderId },
+      select: { id: true, url: true },
+    });
+    if (!existing) return;
+
+    try {
+      await this.uploadFileService.deleteFile("sgm", existing.url);
+    } catch (error) {
+      this.logger.warn(
+        `Failed to delete R2 object ${existing.url}; dropping DB row anyway`,
+        error,
       );
-      currentPage.drawText("Assinatura do pastor responsável", {
-        x: width / 2 - 75,
-        y: yPosition - 120,
-        size: fontSize,
-        font: timesRomanFont,
-      });
+    }
+    await this.prismaService.orderReports.delete({
+      where: { id: existing.id },
+    });
+  }
+
+  async getReport(id: string, userId: string, callerRoles: string[]) {
+    const order = await this.prismaService.orders.findUnique({
+      where: { id },
+      select: { id: true, userId: true },
+    });
+    if (!order) {
+      throw new NotFoundException(`Order with id: ${id} not found`);
+    }
+    this.assertCanAccessReport(order.userId, userId, callerRoles);
+
+    const existing = await this.prismaService.orderReports.findFirst({
+      where: { orderId: id },
+      select: { url: true },
+      orderBy: { createdAt: "desc" },
+    });
+    if (existing) {
+      return {
+        status: "ready" as const,
+        url: this.uploadFileService.getFileUrl(existing.url),
+      };
     }
 
-    function addNewPage() {
-      const newPage = pdfDoc.addPage([595.28, 841.89]);
-      yPosition = height - pageMargin;
-      addHeader(newPage);
-      addTableHeader(newPage);
-      return newPage;
+    const pending = await this.prismaService.report.findFirst({
+      where: {
+        type: reportType.ORDERS,
+        status: { in: [reportStatus.PENDING, reportStatus.PROCESSING] },
+        parameters: { contains: id },
+      },
+      select: { id: true },
+    });
+    if (pending) {
+      return { status: "processing" as const };
     }
 
-    function addObservation(page, observation) {
-      let newPage = page;
-      if (yPosition < pageMargin + 100) {
-        newPage = addNewPage();
-      }
-      newPage.drawText("Observações:", {
-        x: pageMargin,
-        y: yPosition - 20,
-        size: fontSize,
-        font: timesRomanBoldFont,
-      });
-      yPosition -= 40;
-      const lines = observation.split("\n");
-      for (const line of lines) {
-        if (yPosition < pageMargin + 50) {
-          newPage = addNewPage();
-        }
-        newPage.drawText(line, {
-          x: pageMargin,
-          y: yPosition - 20,
-          size: fontSize,
-          font: timesRomanFont,
-        });
-        yPosition -= 20;
-      }
-      return newPage;
+    return { status: "none" as const };
+  }
+
+  async generateReport(orderId: string, userId: string, callerRoles: string[]) {
+    const order = await this.prismaService.orders.findUnique({
+      where: { id: orderId },
+      select: { id: true, userId: true },
+    });
+    if (!order) {
+      throw new NotFoundException(`Order with id: ${orderId} not found`);
+    }
+    this.assertCanAccessReport(order.userId, userId, callerRoles);
+
+    const existing = await this.prismaService.orderReports.findFirst({
+      where: { orderId },
+      select: { url: true },
+    });
+    if (existing) {
+      return {
+        status: "ready" as const,
+        url: this.uploadFileService.getFileUrl(existing.url),
+      };
     }
 
-    addHeader(page);
-    addOrderDetails(page, order);
-    addTableHeader(page);
-    let lastPage = addTableRows(page, order.orderItem);
-    lastPage = addObservation(lastPage, order?.observation);
-    addSignatureLine(lastPage);
+    const pending = await this.prismaService.report.findFirst({
+      where: {
+        type: reportType.ORDERS,
+        status: { in: [reportStatus.PENDING, reportStatus.PROCESSING] },
+        parameters: { contains: orderId },
+      },
+      select: { id: true },
+    });
+    if (pending) {
+      return { status: "processing" as const };
+    }
 
-    return pdfDoc;
+    const reportId = this.helpersService.generateId();
+    const parameters = JSON.stringify({ orderId });
+    await this.prismaService.report.create({
+      data: {
+        id: reportId,
+        type: reportType.ORDERS,
+        userId,
+        fileName: `relatorio-pedido-${orderId.toLowerCase()}.pdf`,
+        status: reportStatus.PENDING,
+        parameters,
+      },
+    });
+
+    this.eventEmitter.emit("report.generate", {
+      reportId,
+      type: "ORDERS",
+      userId,
+      parameters: { orderId },
+    });
+
+    return { status: "processing" as const };
+  }
+
+  private assertCanAccessReport(
+    ownerId: string,
+    callerId: string,
+    callerRoles: string[],
+  ) {
+    const isApproverOrBuyer = callerRoles.some((r) =>
+      [...APPROVER_ROLES, "buyer"].includes(r),
+    );
+    const isCreator = ownerId === callerId;
+    if (!isApproverOrBuyer && !isCreator) {
+      throw new ForbiddenException(
+        "You can only access reports for your own orders",
+      );
+    }
   }
 }

@@ -1,8 +1,15 @@
-export type OrderStatus = "PENDING" | "APPROVED" | "CANCELED" | "PURCHASED";
+export type OrderStatus =
+  | "PENDING"
+  | "APPROVED"
+  | "REJECTED"
+  | "CANCELED"
+  | "PURCHASED";
 
 export type OrderEventType =
   | "CREATED"
   | "APPROVED"
+  | "REJECTED"
+  | "RESUBMITTED"
   | "CANCELED"
   | "PURCHASED"
   | "NOTE";
@@ -38,11 +45,16 @@ export interface OrderResponse {
   friendlyCode?: string | null;
   event?: string | null;
   observation?: string | null;
+  statusObservation?: string | null;
   user: {
     id: string;
     name: string;
   };
   status: OrderStatus;
+  approvedBy?: { id: string; name: string } | null;
+  approvedAt?: string | null;
+  rejectedBy?: { id: string; name: string } | null;
+  rejectedAt?: string | null;
   createdAt: string;
   orderItem: {
     id: string;
