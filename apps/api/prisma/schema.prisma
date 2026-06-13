@@ -47,6 +47,7 @@ model unity {
 model product {
   id              String   @id
   name            String
+  brand           String?
   description     String?
   categoryId      String
   departmentId    String?

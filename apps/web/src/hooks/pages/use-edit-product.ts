@@ -70,6 +70,7 @@ export const useEditProductPage = () => {
     values: {
       description: product?.description ?? "",
       name: product?.name ?? "",
+      brand: product?.brand ?? "",
       category: product?.category?.id ?? "",
       unity: product?.unity?.id ?? "",
       department: product?.department?.id ?? "",

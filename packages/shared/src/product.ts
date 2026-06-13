@@ -16,6 +16,7 @@ export interface ProductResponse {
   saleValue: number;
   description: string;
   name: string;
+  brand?: string | null;
   status: string;
   minStock?: number | null;
 }

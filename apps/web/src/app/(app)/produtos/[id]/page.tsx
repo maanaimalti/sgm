@@ -42,9 +42,7 @@ const EditProductPage = () => {
     onSubmit,
   } = useEditProductPage();
 
-  const selectedUnit = unities?.find(
-    (u) => u.id === form.watch("unity"),
-  )?.name;
+  const selectedUnit = unities?.find((u) => u.id === form.watch("unity"))?.name;
 
   return (
     <main className="flex flex-1 flex-col">
@@ -85,6 +83,23 @@ const EditProductPage = () => {
                                 placeholder="Ex: Arroz branco tipo 1"
                                 {...field}
                               />
+                            )}
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name="brand"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Marca</FormLabel>
+                          <FormControl>
+                            {isLoading ? (
+                              <Skeleton className="h-11 rounded-2" />
+                            ) : (
+                              <Input placeholder="Ex: Tio João" {...field} />
                             )}
                           </FormControl>
                           <FormMessage />

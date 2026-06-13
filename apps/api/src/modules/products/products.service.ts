@@ -24,6 +24,7 @@ export class ProductsService {
       data: {
         id: product.id,
         name: product.name,
+        brand: product.brandName,
         unity: {
           connect: {
             id: product.unityId,
@@ -101,6 +102,7 @@ export class ProductsService {
         id: true,
         name: true,
         status: true,
+        brand: true,
         minStock: true,
       },
     });
@@ -138,6 +140,7 @@ export class ProductsService {
         id: true,
         name: true,
         status: true,
+        brand: true,
         costValue: true,
         saleValue: true,
         minStock: true,
@@ -158,6 +161,7 @@ export class ProductsService {
       },
       data: {
         categoryId: updateProductDto.categoryId,
+        brand: updateProductDto.brandName,
         description: updateProductDto.description,
         unityId: updateProductDto.unityId,
         departmentId: updateProductDto.departmentId,
