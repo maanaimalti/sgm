@@ -72,15 +72,16 @@ export function MobileBottomNav() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const userName = userData?.name || userData?.username || "Usuário";
-  const stockTab: NavTab =
-    isKitchen || isAdmin
-      ? { label: "Estoque", href: "/estoque", icon: Layers }
-      : { label: "Produtos", href: "/produtos", icon: Package };
+  // Estoque (and the Cadastros sections) are kitchen/admin only — manager and
+  // buyer don't get a stock/products tab, matching the desktop sidebar.
+  const canSeeStock = isKitchen || isAdmin;
 
   const tabs: NavTab[] = [
     { label: "Início", href: "/inicio", icon: Home },
     { label: "Pedidos", href: "/pedidos", icon: Inbox },
-    stockTab,
+    ...(canSeeStock
+      ? [{ label: "Estoque", href: "/estoque", icon: Layers } as NavTab]
+      : []),
     { label: "Menu", icon: MenuIcon, type: "menu" },
   ];
 

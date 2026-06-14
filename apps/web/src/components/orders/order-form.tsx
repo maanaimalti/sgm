@@ -167,7 +167,7 @@ export const OrderForm = ({
                           />
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="p-0 w-[420px]">
+                      <PopoverContent className="p-0 w-[min(420px,calc(100vw-1.5rem))]">
                         <Command shouldFilter={false}>
                           <CommandInput
                             placeholder="Buscar produto…"
@@ -264,22 +264,19 @@ export const OrderForm = ({
                   {items.map((item) => (
                     <li
                       key={item.productId}
-                      className="grid grid-cols-[1.4fr,80px,150px,36px] gap-2.5 items-center px-3.5 py-3 bg-card border border-line rounded-2"
+                      className="flex items-center gap-2 px-3 py-2.5 bg-card border border-line rounded-2"
                     >
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <div className="text-[13.5px] font-medium text-ink truncate">
                           {item.name}
                         </div>
-                        {item.category && (
-                          <div className="text-[11.5px] text-muted mt-0.5 truncate">
-                            {item.category}
-                          </div>
-                        )}
+                        <div className="text-[11.5px] text-muted mt-0.5 truncate">
+                          {[item.category, item.unit]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </div>
                       </div>
-                      <div className="text-[12px] text-muted text-right">
-                        {item.unit}
-                      </div>
-                      <div className="flex items-center gap-1.5 justify-end">
+                      <div className="flex items-center gap-1.5 justify-end shrink-0">
                         <button
                           type="button"
                           aria-label="Diminuir"
@@ -326,7 +323,7 @@ export const OrderForm = ({
                         type="button"
                         aria-label="Remover"
                         onClick={() => handleRemoveItem(item.productId)}
-                        className="text-bad-ink size-8 inline-flex items-center justify-center rounded-1.5 hover:bg-bad-soft"
+                        className="text-bad-ink size-8 shrink-0 inline-flex items-center justify-center rounded-1.5 hover:bg-bad-soft"
                       >
                         <Trash2 size={13} />
                       </button>
