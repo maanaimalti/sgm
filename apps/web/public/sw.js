@@ -1,8 +1,22 @@
-/* Maanaim service worker — web push + conservative offline shell.
- * Cross-origin requests (the API) are never intercepted, so auth/data calls
- * always hit the network. Only same-origin static assets are cached. */
+/* Maanaim service worker — web push + a crash-safe static asset cache.
+ *
+ * Design rules (why this file looks the way it does):
+ *  - Page navigations are NEVER served from cache. A standalone PWA can sit on
+ *    an old cached HTML document for days; if that HTML points at build chunks
+ *    that a later deploy has purged, the app throws ChunkLoadError and dies.
+ *    Always going to the network keeps the document and its chunks in lockstep.
+ *  - Hashed build assets (/_next/static) are cache-first because their URLs are
+ *    immutable, but we ONLY cache successful (200) responses — caching a
+ *    transient 404 from an in-flight deploy would poison that route forever.
+ *  - Cross-origin requests (the API on another origin) are never intercepted,
+ *    so auth/data calls always hit the network.
+ *
+ * Bump CACHE on any change here: the activate handler deletes every cache whose
+ * name isn't the current one, which evicts stale/poisoned caches on existing
+ * installs the moment this worker activates.
+ */
 
-const CACHE = "maanaim-v1";
+const CACHE = "maanaim-v2";
 const PRECACHE = [
   "/site.webmanifest",
   "/logo.png",
@@ -39,15 +53,21 @@ self.addEventListener("fetch", (event) => {
   // Only handle same-origin GETs; the API lives on another origin.
   if (url.origin !== self.location.origin) return;
 
-  // Immutable hashed build assets → cache-first.
+  // Page navigations → network-only. Never serve a stale document, because a
+  // stale document can reference build chunks that no longer exist.
+  if (request.mode === "navigate") return;
+
+  // Immutable hashed build assets → cache-first, but only cache 200 responses.
   if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(
       caches.match(request).then(
         (cached) =>
           cached ||
           fetch(request).then((res) => {
-            const copy = res.clone();
-            caches.open(CACHE).then((c) => c.put(request, copy));
+            if (res && res.ok) {
+              const copy = res.clone();
+              caches.open(CACHE).then((c) => c.put(request, copy));
+            }
             return res;
           }),
       ),
@@ -55,25 +75,10 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Page navigations → network-first, fall back to cache, then offline notice.
-  if (request.mode === "navigate") {
+  // Precached brand assets → cache-first, otherwise just go to the network.
+  if (PRECACHE.includes(url.pathname)) {
     event.respondWith(
-      fetch(request)
-        .then((res) => {
-          const copy = res.clone();
-          caches.open(CACHE).then((c) => c.put(request, copy));
-          return res;
-        })
-        .catch(() =>
-          caches.match(request).then(
-            (cached) =>
-              cached ||
-              new Response(
-                "<h1>Sem conexão</h1><p>Você está offline. Reconecte para continuar.</p>",
-                { headers: { "Content-Type": "text/html; charset=utf-8" } },
-              ),
-          ),
-        ),
+      caches.match(request).then((cached) => cached || fetch(request)),
     );
   }
 });

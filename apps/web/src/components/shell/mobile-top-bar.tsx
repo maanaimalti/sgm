@@ -30,7 +30,7 @@ export function MobileTopBar({ header }: MobileTopBarProps) {
   const userName = userData?.name || userData?.username || "Usuário";
 
   return (
-    <header className="sticky top-0 z-20 bg-surface border-b border-line">
+    <header className="sticky top-0 z-20 bg-surface border-b border-line pt-[env(safe-area-inset-top)]">
       <div className="flex items-center justify-between px-4 py-2.5 h-14">
         <div className="flex items-center gap-2.5 min-w-0">
           <Mark size={28} />

@@ -16,7 +16,10 @@ const orderMap: Record<
 };
 
 export function OrderStatusChip({ status }: { status: OrderStatus }) {
-  const { variant, label } = orderMap[status];
+  const { variant, label } = orderMap[status] ?? {
+    variant: "default" as const,
+    label: status ?? "—",
+  };
   return (
     <Badge variant={variant} dot>
       {label}
@@ -40,7 +43,10 @@ const stockMap: Record<
 };
 
 export function StockStatusChip({ status }: { status: StockStatus }) {
-  const { variant, label } = stockMap[status];
+  const { variant, label } = stockMap[status] ?? {
+    variant: "default" as const,
+    label: status ?? "—",
+  };
   return (
     <Badge variant={variant} dot>
       {label}

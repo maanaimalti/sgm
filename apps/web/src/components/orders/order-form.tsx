@@ -304,7 +304,8 @@ export const OrderForm = ({
                             )
                           }
                           className={cn(
-                            "w-12 h-7 text-center border border-line-2 rounded-1.5 bg-surface text-[13px] tabular-nums focus-visible:outline-none focus-visible:border-brand",
+                            // 16px on mobile avoids iOS zoom-on-focus; 13px on >=md.
+                            "w-12 h-7 text-center border border-line-2 rounded-1.5 bg-surface text-[16px] md:text-[13px] tabular-nums focus-visible:outline-none focus-visible:border-brand",
                           )}
                         />
                         <button

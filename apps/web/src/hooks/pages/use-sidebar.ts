@@ -22,10 +22,10 @@ export const useSidebar = () => {
   return {
     notifications: data,
     notificationsIsLoading: isLoading,
-    isAdmin: userData?.roles.includes("admin"),
-    isKitchen: userData?.roles.includes("kitchen"),
-    isManager: userData?.roles.includes("manager"),
-    isBuyer: userData?.roles.includes("buyer"),
+    isAdmin: userData?.roles?.includes("admin"),
+    isKitchen: userData?.roles?.includes("kitchen"),
+    isManager: userData?.roles?.includes("manager"),
+    isBuyer: userData?.roles?.includes("buyer"),
     handleClickNotification,
   };
 };

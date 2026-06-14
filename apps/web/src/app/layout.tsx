@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/next";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Instrument_Serif, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
@@ -24,6 +24,15 @@ const jetbrains = JetBrains_Mono({
   variable: "--font-jetbrains",
   display: "swap",
 });
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  // Draw under the notch / home indicator so `env(safe-area-inset-*)` resolves
+  // to real values for the fixed mobile nav and FAB.
+  viewportFit: "cover",
+  themeColor: "#0e2e6c",
+};
 
 export const metadata: Metadata = {
   title: "Sistema de gestão de maanaim",

@@ -72,7 +72,7 @@ export function MobileBottomNav() {
     <>
       <nav
         aria-label="Navegação mobile"
-        className="fixed bottom-0 inset-x-0 z-20 h-16 bg-card border-t border-line flex items-stretch"
+        className="fixed bottom-0 inset-x-0 z-20 h-16 box-content pb-[env(safe-area-inset-bottom)] bg-card border-t border-line flex items-stretch"
       >
         {tabs.map((tab) => {
           const Icon = tab.icon;

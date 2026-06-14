@@ -18,6 +18,36 @@ export default function ErrorBoundary({
 
   useEffect(() => {
     console.error(error);
+
+    // Self-heal from a stale/poisoned PWA cache. A standalone install can be
+    // left holding a build chunk that a later deploy purged, which throws
+    // ChunkLoadError on navigation and otherwise traps the user on this screen.
+    // Clear the caches and reload once so fresh chunks are fetched. The
+    // sessionStorage guard prevents a reload loop if the failure is unrelated.
+    if (typeof window === "undefined") return;
+    const signature = `${error?.name ?? ""}: ${error?.message ?? ""}`;
+    const isChunkError =
+      /ChunkLoadError|Loading chunk [\d]+ failed|dynamically imported module|importing a module script failed|Failed to fetch dynamically/i.test(
+        signature,
+      );
+    if (!isChunkError) return;
+
+    const KEY = "sgm:chunk-recovery";
+    const now = Date.now();
+    const last = Number(window.sessionStorage.getItem(KEY) ?? "0");
+    if (now - last < 15000) return; // already attempted recently
+    window.sessionStorage.setItem(KEY, String(now));
+
+    const reload = () => window.location.reload();
+    if ("caches" in window) {
+      caches
+        .keys()
+        .then((keys) => Promise.all(keys.map((k) => caches.delete(k))))
+        .catch(() => undefined)
+        .finally(reload);
+    } else {
+      reload();
+    }
   }, [error]);
 
   return (

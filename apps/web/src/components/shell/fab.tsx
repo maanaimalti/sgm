@@ -18,7 +18,7 @@ export function Fab({ icon, label, onClick, className }: FabProps) {
       onClick={onClick}
       aria-label={label}
       className={cn(
-        "fixed right-4 bottom-20 z-30 inline-flex items-center justify-center size-14 rounded-full bg-brand text-card shadow-lg-warm hover:opacity-95 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-soft",
+        "fixed right-4 bottom-[calc(5rem+env(safe-area-inset-bottom))] z-30 inline-flex items-center justify-center size-14 rounded-full bg-brand text-card shadow-lg-warm hover:opacity-95 transition-opacity focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-soft",
         className,
       )}
     >
