@@ -1,7 +1,15 @@
 "use client";
 
 import { useQueryClient } from "@tanstack/react-query";
-import { Home, Inbox, Layers, Package, User } from "lucide-react";
+import {
+  Home,
+  Inbox,
+  Layers,
+  Menu as MenuIcon,
+  Package,
+  Paperclip,
+  Weight,
+} from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
@@ -35,11 +43,24 @@ const roleLabel = (roles: string[] | undefined): string => {
   return roles[0];
 };
 
+type IconType = React.ComponentType<{ size?: number; strokeWidth?: number }>;
+
 interface NavTab {
   label: string;
   href?: string;
-  icon: React.ComponentType<{ size?: number; strokeWidth?: number }>;
-  type?: "link" | "account";
+  icon: IconType;
+  type?: "link" | "menu";
+}
+
+interface NavLink {
+  label: string;
+  href: string;
+  icon: IconType;
+}
+
+interface NavGroup {
+  label: string;
+  items: NavLink[];
 }
 
 export function MobileBottomNav() {
@@ -47,8 +68,8 @@ export function MobileBottomNav() {
   const router = useRouter();
   const queryClient = useQueryClient();
   const userData = useJwt<UserData>("accessToken");
-  const { isKitchen, isAdmin } = useSidebar();
-  const [accountOpen, setAccountOpen] = useState(false);
+  const { isKitchen, isAdmin, isBuyer, isManager } = useSidebar();
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const userName = userData?.name || userData?.username || "Usuário";
   const stockTab: NavTab =
@@ -60,8 +81,37 @@ export function MobileBottomNav() {
     { label: "Início", href: "/inicio", icon: Home },
     { label: "Pedidos", href: "/pedidos", icon: Inbox },
     stockTab,
-    { label: "Conta", icon: User, type: "account" },
+    { label: "Menu", icon: MenuIcon, type: "menu" },
   ];
+
+  // Full navigation, mirroring the desktop sidebar's role gating, so every
+  // section stays reachable on mobile — the bottom bar only holds 3 primary
+  // tabs, and the rest (Cadastros etc.) live in the Menu sheet.
+  const groups: NavGroup[] = [];
+  if (isKitchen || isAdmin) {
+    groups.push({
+      label: "Cadastros",
+      items: [
+        { label: "Categorias", href: "/categorias", icon: Paperclip },
+        {
+          label: "Unidade de medida",
+          href: "/unidade-de-medida",
+          icon: Weight,
+        },
+        { label: "Produtos", href: "/produtos", icon: Package },
+      ],
+    });
+    groups.push({
+      label: "Operação",
+      items: [{ label: "Estoque", href: "/estoque", icon: Layers }],
+    });
+  }
+  if (isBuyer || isAdmin || isKitchen || isManager) {
+    groups.push({
+      label: "Compras",
+      items: [{ label: "Pedidos", href: "/pedidos", icon: Inbox }],
+    });
+  }
 
   const handleLogout = async () => {
     await unsubscribeFromPush().catch(() => undefined);
@@ -69,7 +119,7 @@ export function MobileBottomNav() {
     document.cookie =
       "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
     queryClient.clear();
-    setAccountOpen(false);
+    setMenuOpen(false);
     router.push("/");
   };
 
@@ -81,9 +131,9 @@ export function MobileBottomNav() {
       >
         {tabs.map((tab) => {
           const Icon = tab.icon;
-          const isAccount = tab.type === "account";
+          const isMenu = tab.type === "menu";
           const active =
-            !isAccount && tab.href ? pathname.startsWith(tab.href) : false;
+            !isMenu && tab.href ? pathname.startsWith(tab.href) : false;
           const cls = cn(
             "flex-1 flex flex-col items-center justify-center gap-1 text-[10.5px]",
             active
@@ -91,13 +141,13 @@ export function MobileBottomNav() {
               : "text-muted hover:text-ink-2",
           );
 
-          if (isAccount) {
+          if (isMenu) {
             return (
               <button
                 key={tab.label}
                 type="button"
-                onClick={() => setAccountOpen(true)}
-                aria-label="Conta"
+                onClick={() => setMenuOpen(true)}
+                aria-label="Menu"
                 className={cls}
               >
                 <Icon size={18} strokeWidth={1.5} />
@@ -120,14 +170,49 @@ export function MobileBottomNav() {
         })}
       </nav>
 
-      <Sheet open={accountOpen} onOpenChange={setAccountOpen}>
-        <SheetContent side="bottom" className="rounded-t-3 p-5">
-          <SheetTitle className="sr-only">Conta</SheetTitle>
+      <Sheet open={menuOpen} onOpenChange={setMenuOpen}>
+        <SheetContent
+          side="bottom"
+          className="rounded-t-3 p-5 max-h-[85dvh] overflow-y-auto"
+        >
+          <SheetTitle className="sr-only">Menu</SheetTitle>
           <SheetDescription className="sr-only">
-            Informações da sua conta e opção de sair.
+            Navegação e opções da sua conta.
           </SheetDescription>
-          <nav aria-label="Conta" className="flex flex-col gap-4">
-            <div className="flex items-center gap-3">
+
+          <div className="flex flex-col gap-5">
+            {groups.map((group) => (
+              <div key={group.label}>
+                <div className="text-[10.5px] uppercase tracking-[0.14em] text-faint mb-1.5">
+                  {group.label}
+                </div>
+                <div className="flex flex-col gap-0.5">
+                  {group.items.map((item) => {
+                    const active = pathname.startsWith(item.href);
+                    const Icon = item.icon;
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        onClick={() => setMenuOpen(false)}
+                        aria-current={active ? "page" : undefined}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-2 text-[14px] transition-colors",
+                          active
+                            ? "bg-brand-soft text-brand-ink font-semibold"
+                            : "text-ink-2 hover:bg-soft",
+                        )}
+                      >
+                        <Icon size={16} strokeWidth={active ? 1.8 : 1.5} />
+                        <span>{item.label}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+
+            <div className="border-t border-line pt-4 flex items-center gap-3">
               <AvatarInitials name={userName} size={44} />
               <div className="flex-1 min-w-0">
                 <div className="text-[14px] text-ink font-medium truncate">
@@ -141,7 +226,7 @@ export function MobileBottomNav() {
             <Button variant="outline" className="w-full" onClick={handleLogout}>
               Sair
             </Button>
-          </nav>
+          </div>
         </SheetContent>
       </Sheet>
     </>
