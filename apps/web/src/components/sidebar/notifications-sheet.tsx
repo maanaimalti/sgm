@@ -1,7 +1,7 @@
 "use client";
 
 import { NotificationCenter } from "@/components/notifications/notification-center";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 
 interface NotificationsSheetProps {
   open: boolean;
@@ -15,6 +15,7 @@ export function NotificationsSheet({
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
       <SheetContent side="right" className="p-0 flex flex-col">
+        <SheetTitle className="sr-only">Notificações</SheetTitle>
         <NotificationCenter onNavigate={() => onOpenChange(false)} />
       </SheetContent>
     </Sheet>

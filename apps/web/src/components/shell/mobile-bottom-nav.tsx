@@ -8,7 +8,12 @@ import { useState } from "react";
 
 import { AvatarInitials } from "@/components/ui-ext/avatar-initials";
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { useSidebar } from "@/hooks/pages/use-sidebar";
 import { useJwt } from "@/hooks/use-jwt";
 import { unsubscribeFromPush } from "@/lib/push";
@@ -117,6 +122,10 @@ export function MobileBottomNav() {
 
       <Sheet open={accountOpen} onOpenChange={setAccountOpen}>
         <SheetContent side="bottom" className="rounded-t-3 p-5">
+          <SheetTitle className="sr-only">Conta</SheetTitle>
+          <SheetDescription className="sr-only">
+            Informações da sua conta e opção de sair.
+          </SheetDescription>
           <nav aria-label="Conta" className="flex flex-col gap-4">
             <div className="flex items-center gap-3">
               <AvatarInitials name={userName} size={44} />

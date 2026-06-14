@@ -19,16 +19,24 @@ export interface FabConfig {
   onClick: () => void;
 }
 
-interface MobileShellContextValue {
+interface ShellState {
   header: MobileHeaderConfig;
-  setHeader: (cfg: MobileHeaderConfig | null) => void;
   fab: FabConfig | null;
+}
+
+interface ShellSetters {
+  setHeader: (cfg: MobileHeaderConfig | null) => void;
   setFab: (cfg: FabConfig | null) => void;
 }
 
-const MobileShellContext = React.createContext<MobileShellContextValue | null>(
-  null,
-);
+// State and setters live in SEPARATE contexts on purpose. Pages subscribe only
+// to the setters (which never change identity), so publishing a new header/fab
+// re-renders the shell chrome but NOT the page. Subscribing pages to the
+// changing state instead is what caused an infinite setState→render loop:
+// the page re-rendered, rebuilt its inline `icon`/`filters`/`onClick`, those
+// fed the publish effect again, and round it went ("Maximum update depth").
+const ShellStateContext = React.createContext<ShellState | null>(null);
+const ShellSettersContext = React.createContext<ShellSetters | null>(null);
 
 export function MobileShellProvider({
   children,
@@ -38,84 +46,89 @@ export function MobileShellProvider({
   const [header, setHeaderState] = React.useState<MobileHeaderConfig>({});
   const [fab, setFabState] = React.useState<FabConfig | null>(null);
 
-  const setHeader = React.useCallback((cfg: MobileHeaderConfig | null) => {
-    setHeaderState(cfg ?? {});
-  }, []);
+  // Stable for the lifetime of the provider — pages depend on these.
+  const setters = React.useMemo<ShellSetters>(
+    () => ({
+      setHeader: (cfg) => setHeaderState(cfg ?? {}),
+      setFab: (cfg) => setFabState(cfg),
+    }),
+    [],
+  );
 
-  const setFab = React.useCallback((cfg: FabConfig | null) => {
-    setFabState(cfg);
-  }, []);
-
-  const value = React.useMemo(
-    () => ({ header, setHeader, fab, setFab }),
-    [header, setHeader, fab, setFab],
+  const state = React.useMemo<ShellState>(
+    () => ({ header, fab }),
+    [header, fab],
   );
 
   return (
-    <MobileShellContext.Provider value={value}>
-      {children}
-    </MobileShellContext.Provider>
+    <ShellSettersContext.Provider value={setters}>
+      <ShellStateContext.Provider value={state}>
+        {children}
+      </ShellStateContext.Provider>
+    </ShellSettersContext.Provider>
   );
 }
 
-function useMobileShellContext() {
-  return React.useContext(MobileShellContext);
+/** Read the current header/fab — for the shell chrome only. */
+export function useMobileShellState() {
+  return React.useContext(ShellStateContext);
 }
 
-export function useMobileShellState() {
-  return useMobileShellContext();
+function useShellSetters() {
+  return React.useContext(ShellSettersContext);
 }
 
 export function useMobileHeader(config: MobileHeaderConfig) {
-  const ctx = useMobileShellContext();
-  const titleRef = config.title;
-  const searchValue = config.search?.value;
-  const searchOnChange = config.search?.onChange;
-  const searchPlaceholder = config.search?.placeholder;
-  const filters = config.filters;
-  const hideTopBar = config.hideTopBar;
+  const setters = useShellSetters();
+  const latest = React.useRef(config);
+  latest.current = config;
+
+  // Re-publish on every commit (no deps) so live bits (filter counts, active
+  // chip, search value) stay current. This cannot loop: pages don't subscribe
+  // to shell state, so setHeader re-renders the chrome only, never this page.
+  React.useEffect(() => {
+    if (!setters) return;
+    const c = latest.current;
+    setters.setHeader({
+      title: c.title,
+      search: c.search
+        ? {
+            value: c.search.value,
+            onChange: (v: string) => latest.current.search?.onChange(v),
+            placeholder: c.search.placeholder,
+          }
+        : undefined,
+      filters: c.filters,
+      hideTopBar: c.hideTopBar,
+    });
+  });
 
   React.useEffect(() => {
-    if (!ctx) return;
-    ctx.setHeader({
-      title: titleRef,
-      search:
-        searchOnChange !== undefined
-          ? {
-              value: searchValue ?? "",
-              onChange: searchOnChange,
-              placeholder: searchPlaceholder,
-            }
-          : undefined,
-      filters,
-      hideTopBar,
-    });
-    return () => ctx.setHeader(null);
-  }, [
-    ctx,
-    titleRef,
-    searchValue,
-    searchOnChange,
-    searchPlaceholder,
-    filters,
-    hideTopBar,
-  ]);
+    return () => setters?.setHeader(null);
+  }, [setters]);
 }
 
 export function useFAB(config: FabConfig | null) {
-  const ctx = useMobileShellContext();
-  const icon = config?.icon;
-  const label = config?.label;
-  const onClick = config?.onClick;
-  const enabled = !!config;
+  const setters = useShellSetters();
+  const latest = React.useRef(config);
+  latest.current = config;
 
+  // Re-publish on every commit (no deps); same rationale as useMobileHeader.
   React.useEffect(() => {
-    if (!ctx) return;
-    if (!enabled || !icon || !label || !onClick) {
-      ctx.setFab(null);
+    if (!setters) return;
+    const c = latest.current;
+    if (!c || !c.icon || !c.label || !c.onClick) {
+      setters.setFab(null);
       return;
     }
-    ctx.setFab({ icon, label, onClick });
-    return () => ctx.setFab(null);
-  }, [ctx, enabled, icon, label, onClick]);
+    setters.setFab({
+      icon: c.icon,
+      label: c.label,
+      onClick: () => latest.current?.onClick?.(),
+    });
+  });
+
+  React.useEffect(() => {
+    return () => setters?.setFab(null);
+  }, [setters]);
 }
