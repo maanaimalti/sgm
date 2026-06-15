@@ -2,6 +2,7 @@
 
 import { useQueryClient } from "@tanstack/react-query";
 import {
+  Bell,
   Home,
   Inbox,
   Layers,
@@ -72,16 +73,17 @@ export function MobileBottomNav() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   const userName = userData?.name || userData?.username || "Usuário";
-  // Estoque (and the Cadastros sections) are kitchen/admin only — manager and
-  // buyer don't get a stock/products tab, matching the desktop sidebar.
+  // Kitchen/admin manage stock; manager/buyer get a Notificações tab in that
+  // slot instead (Cadastros/Operação stay kitchen/admin only, per the sidebar).
   const canSeeStock = isKitchen || isAdmin;
+  const thirdTab: NavTab = canSeeStock
+    ? { label: "Estoque", href: "/estoque", icon: Layers }
+    : { label: "Notificações", href: "/notificacoes", icon: Bell };
 
   const tabs: NavTab[] = [
     { label: "Início", href: "/inicio", icon: Home },
     { label: "Pedidos", href: "/pedidos", icon: Inbox },
-    ...(canSeeStock
-      ? [{ label: "Estoque", href: "/estoque", icon: Layers } as NavTab]
-      : []),
+    thirdTab,
     { label: "Menu", icon: MenuIcon, type: "menu" },
   ];
 
