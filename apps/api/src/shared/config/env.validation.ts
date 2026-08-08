@@ -13,7 +13,47 @@ const isBlank = (value: unknown): boolean =>
  * Everything else is reported as a warning; each migration stage promotes its
  * own variables to the required set when it ships.
  */
-const REQUIRED = ["DATABASE_URL", "JWT_SECRET"];
+const REQUIRED = [
+  "DATABASE_URL",
+  "JWT_SECRET",
+  "SUPABASE_URL",
+  "SUPABASE_ANON_KEY",
+  "SUPABASE_SERVICE_ROLE_KEY",
+];
+
+/**
+ * The project URL feeds both the admin client and the JWT issuer the API checks
+ * every token against. A trailing slash produces an issuer that does not match
+ * the `iss` claim, and the only symptom is 401 on every request with nothing
+ * pointing at the cause — so normalize it here rather than let it through.
+ */
+export function normalizeSupabaseUrl(raw: unknown): string {
+  const value = String(raw).trim();
+  let url: URL;
+
+  try {
+    url = new URL(value);
+  } catch {
+    throw new Error(
+      `SUPABASE_URL não é uma URL válida: "${value}". Esperado algo como https://<ref>.supabase.co`,
+    );
+  }
+
+  const isLocal = ["localhost", "127.0.0.1"].includes(url.hostname);
+  if (url.protocol !== "https:" && !(url.protocol === "http:" && isLocal)) {
+    throw new Error(
+      `SUPABASE_URL precisa usar https (http só é aceito em localhost): "${value}"`,
+    );
+  }
+
+  if (url.pathname !== "/" || url.search || url.hash) {
+    throw new Error(
+      `SUPABASE_URL não pode ter caminho nem query: "${value}". Use só a origem, como https://<ref>.supabase.co`,
+    );
+  }
+
+  return url.origin;
+}
 
 export function validate(config: Env): Env {
   const missing = REQUIRED.filter((key) => isBlank(config[key]));
@@ -22,6 +62,8 @@ export function validate(config: Env): Env {
       `Variáveis de ambiente obrigatórias ausentes: ${missing.join(", ")}`,
     );
   }
+
+  config.SUPABASE_URL = normalizeSupabaseUrl(config.SUPABASE_URL);
 
   const driver = String(config.STORAGE_DRIVER ?? "r2").toLowerCase();
 
