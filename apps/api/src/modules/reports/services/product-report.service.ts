@@ -86,8 +86,8 @@ export class ProductReportService {
 
     if (parameters.search) {
       where.OR = [
-        { name: { contains: parameters.search } },
-        { description: { contains: parameters.search } },
+        { name: { contains: parameters.search, mode: "insensitive" } },
+        { description: { contains: parameters.search, mode: "insensitive" } },
       ];
     }
 

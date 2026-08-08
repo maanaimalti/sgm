@@ -7,7 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 `sgm` — Sistema de Gestão de Maanaim. pnpm workspaces monorepo for a stock & order management system.
 
 ```
-apps/api/        @sgm/api    — NestJS 11 + Prisma + MySQL backend (deploys to EasyPanel/Heroku)
+apps/api/        @sgm/api    — NestJS 11 + Prisma + Postgres (Supabase) backend (deploys to EasyPanel/Heroku)
 apps/web/        @sgm/web    — Next.js 15 (App Router) frontend in pt-BR (deploys to Vercel)
 packages/shared/ @sgm/shared — TypeScript types shared between api and web
 ```

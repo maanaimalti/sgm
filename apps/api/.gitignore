@@ -46,6 +46,9 @@ lerna-debug.log*
 .env.production.local
 .env.local
 
+# Prisma client generated from the frozen MySQL schema (Stage A migration only)
+/prisma/generated/
+
 # temp directory
 .temp
 .tmp
