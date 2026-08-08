@@ -26,6 +26,7 @@
     "prisma:seed": "ts-node --transpile-only prisma/seed.ts",
     "users:set-emails": "ts-node --transpile-only prisma/scripts/set-user-emails.ts",
     "db:verify-rls": "ts-node --transpile-only prisma/scripts/verify-rls.ts",
+    "auth:provision": "ts-node --transpile-only prisma/scripts/provision-supabase-auth.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

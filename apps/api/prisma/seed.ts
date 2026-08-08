@@ -30,17 +30,22 @@ async function main() {
   });
 
   const password = await bcrypt.hash("admin123", 10);
+  // Supabase Auth keys accounts by e-mail, so the local admin needs one before
+  // `auth:provision` can give it something to sign in with.
+  const email = "admin@sgm.icmalagoas.org.br";
   await prisma.user.upsert({
     where: { username: "admin" },
     create: {
       id: ulid(),
       name: "Administrador",
       username: "admin",
+      email,
       password,
       roles: { connect: { id: adminRole.id } },
       department: { connect: { id: department.id } },
     },
     update: {
+      email,
       password,
       roles: { connect: { id: adminRole.id } },
       department: { connect: { id: department.id } },
@@ -94,7 +99,10 @@ async function main() {
     update: {},
   });
 
-  console.log("Seed complete. Login: admin / admin123");
+  console.log(`Seed complete. Login: ${email} / admin123`);
+  console.log(
+    "Rode `pnpm auth:provision` para criar essa conta no Supabase Auth.",
+  );
   console.log(
     `Catalog: categoria "${category.name}", unidade "${unity.name}", produto "${product.name}" (estoque 50).`,
   );
