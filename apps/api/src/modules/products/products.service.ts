@@ -80,11 +80,13 @@ export class ProductsService {
           {
             name: {
               contains: search,
+              mode: "insensitive",
             },
           },
           {
             description: {
               contains: search,
+              mode: "insensitive",
             },
           },
         ],
@@ -159,7 +161,14 @@ export class ProductsService {
         department: true,
       },
     });
-    return result;
+    if (!result) return result;
+    // Decimal keeps the money exact in Postgres, but serializes to a JSON
+    // string. The wire contract is a number, so unwrap it here.
+    return {
+      ...result,
+      costValue: result.costValue.toNumber(),
+      saleValue: result.saleValue === null ? null : result.saleValue.toNumber(),
+    };
   }
 
   async update(

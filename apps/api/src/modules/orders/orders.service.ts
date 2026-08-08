@@ -44,9 +44,10 @@ export class OrdersService {
     this.logger.log(`Creating order ${id} for user ${userId}`);
 
     const created = await this.prismaService.$transaction(async (tx) => {
-      const next = await tx.order_counter.update({
+      const next = await tx.order_counter.upsert({
         where: { id: 1 },
-        data: { value: { increment: 1 } },
+        create: { id: 1, value: 1 },
+        update: { value: { increment: 1 } },
         select: { value: true },
       });
       const friendlyCode = `#${String(next.value).padStart(4, "0")}`;
@@ -151,8 +152,8 @@ export class OrdersService {
     }
     if (search) {
       where.OR = [
-        { event: { contains: search } },
-        { friendlyCode: { contains: search } },
+        { event: { contains: search, mode: "insensitive" } },
+        { friendlyCode: { contains: search, mode: "insensitive" } },
       ];
     }
 
@@ -235,7 +236,18 @@ export class OrdersService {
     if (!data) {
       throw new NotFoundException(`Order with id: ${id} not found`);
     }
-    return data;
+    // Decimal keeps the money exact in Postgres, but serializes to a JSON
+    // string. The wire contract is a number, so unwrap it here.
+    return {
+      ...data,
+      orderItem: data.orderItem.map((item) => ({
+        ...item,
+        product: {
+          ...item.product,
+          costValue: item.product.costValue.toNumber(),
+        },
+      })),
+    };
   }
 
   async approveOrder(id: string, userId: string) {

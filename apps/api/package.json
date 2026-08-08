@@ -24,6 +24,7 @@
     "migrate:prod": "prisma migrate deploy",
     "prisma:generate": "prisma generate",
     "prisma:seed": "ts-node --transpile-only prisma/seed.ts",
+    "users:set-emails": "ts-node --transpile-only prisma/scripts/set-user-emails.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {
@@ -40,9 +41,7 @@
     "@nestjs/mapped-types": "^2.1.1",
     "@nestjs/passport": "^11.0.5",
     "@nestjs/platform-express": "^11.1.19",
-    "@nestjs/platform-socket.io": "^11.1.19",
     "@nestjs/throttler": "^6.5.0",
-    "@nestjs/websockets": "^11.1.19",
     "@pdf-lib/fontkit": "^1.1.1",
     "@prisma/client": "^6.19.3",
     "@sgm/shared": "workspace:*",

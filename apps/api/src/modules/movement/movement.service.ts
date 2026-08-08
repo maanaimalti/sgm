@@ -188,30 +188,16 @@ export class MovementService {
     Logger.log(
       `Request all movements with page: ${page} and page-size: ${pageSize}`,
     );
-    let where: any = {
-      product: {
-        product: {
-          department: {
-            id: departmentId,
-          },
-        },
-      },
+    const where: Prisma.movementWhereInput = {
+      product: { departmentId },
     };
     if (search) {
       Logger.log(`Request all movements search: ${search}`);
-      where = {
-        ...where,
+      where.product = {
+        departmentId,
         OR: [
-          {
-            name: {
-              contains: search,
-            },
-          },
-          {
-            description: {
-              contains: search,
-            },
-          },
+          { name: { contains: search, mode: "insensitive" } },
+          { description: { contains: search, mode: "insensitive" } },
         ],
       };
     }
@@ -256,8 +242,8 @@ export class MovementService {
       where.product = {
         departmentId,
         OR: [
-          { name: { contains: search } },
-          { description: { contains: search } },
+          { name: { contains: search, mode: "insensitive" } },
+          { description: { contains: search, mode: "insensitive" } },
         ],
       };
     }

@@ -36,9 +36,9 @@ This is a NestJS-based API for a Stock and Order Management System (SGM) with th
 
 ### Core Structure
 - **Framework**: NestJS (TypeScript) with Express
-- **Database**: MySQL with Prisma ORM
+- **Database**: Postgres (Supabase) with Prisma ORM. `DATABASE_URL` and `DIRECT_URL` both point at the Supavisor **session** pooler (5432), never the transaction pooler (6543) — two transactions in this codebase are interactive.
 - **Authentication**: JWT with Passport.js (local strategy)
-- **File Upload**: AWS S3 integration
+- **File Upload**: S3-compatible client (Cloudflare R2 today, Supabase Storage next)
 - **PDF Generation**: pdf-lib for order reports
 
 ### Module Organization
@@ -69,7 +69,7 @@ src/
 - **Notifications**: User notifications system
 
 ### Authentication & Authorization
-- JWT-based authentication with refresh tokens
+- JWT-based authentication. There are **no** refresh tokens: the access token expires (`JWT_EXPIRES_IN`, default 12h) and the user is sent back to the login screen.
 - Role-based access control (RBAC)
 - Department-based user organization
 - Password hashing with bcrypt
@@ -104,8 +104,8 @@ src/
 - Module name mapping: `src/(.*)` → `<rootDir>/$1`
 
 ### Docker Setup
-- Multi-stage build with Node 20
+- Single-stage build on Node 22
 - Uses pnpm package manager
 - Runs database migrations and Prisma generation in build
 - Exposes port 3000
-- MySQL 8.0 database service in docker-compose
+- Postgres 16 on host port **5433** in docker-compose (5432 is often taken by another project). A `db` service still runs MySQL 8.0 as the read-only source for the Stage A migration; delete it once the cutover is done.

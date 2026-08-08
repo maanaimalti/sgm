@@ -14,6 +14,7 @@ import { ReportsModule } from "./modules/reports/reports.module";
 import { UnityModule } from "./modules/unity/unity.module";
 import { UsersModule } from "./modules/users/users.module";
 import { AuthModule } from "./shared/auth/auth.module";
+import { validate } from "./shared/config/env.validation";
 import { HelpersModule } from "./shared/helpers/helpers.module";
 
 @Module({
@@ -24,7 +25,7 @@ import { HelpersModule } from "./shared/helpers/helpers.module";
     CategoryModule,
     UnityModule,
     AuthModule,
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate }),
     // Provides the throttler storage. The guard is applied per-controller
     // (see AuthController), not globally.
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 10 }]),

@@ -14,6 +14,27 @@ services:
         condition: service_healthy
     restart: unless-stopped
 
+  postgres:
+    image: postgres:16-alpine
+    # 5433 on the host: 5432 is commonly taken by another project's Postgres.
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_PASSWORD: sgm
+      POSTGRES_DB: sgm
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d sgm"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+    restart: unless-stopped
+
+  # Legacy MySQL — kept only as the source for the Stage A migration rehearsal.
+  # Delete this service, its volume and the `db` healthcheck once the cutover
+  # is done and MySQL has been retired.
   db:
     image: mysql:8.0
     ports:
@@ -33,3 +54,4 @@ services:
 
 volumes:
   db_data:
+  pg_data:

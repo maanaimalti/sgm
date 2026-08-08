@@ -39,12 +39,14 @@ lerna-debug.log*
 !.vscode/launch.json
 !.vscode/extensions.json
 
-# dotenv environment variable files
+# dotenv environment variable files. The catch-all matters: an ad-hoc
+# .env.bak / .env.prod holding real credentials is otherwise tracked.
 .env
-.env.development.local
-.env.test.local
-.env.production.local
-.env.local
+.env.*
+!.env.example
+
+# Prisma client generated from the frozen MySQL schema (Stage A migration only)
+/prisma/generated/
 
 # temp directory
 .temp

@@ -1,11 +1,20 @@
+// Frozen snapshot of production MySQL as it stood before the cutover — taken
+// from git HEAD, NOT from the working schema. Production has no `email` column
+// (that is collected on the Postgres side after Stage A), so adding one here
+// would make every read fail against the real source. It DOES have
+// password_changed_at, added by the password-management work on main.
+//
+// Only prisma/migrate-mysql-to-postgres.ts reads this, through a separately
+// generated client, so it can talk to MySQL and Postgres in the same process.
+// Do not evolve this file — MySQL is read-only from the cutover onwards.
 generator client {
   provider = "prisma-client-js"
+  output   = "../generated/mysql-client"
 }
 
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  provider = "mysql"
+  url      = env("LEGACY_DATABASE_URL")
 }
 
 enum orderStatus {
@@ -21,8 +30,6 @@ enum orderStatus {
 enum movementType {
   in
   out
-
-  @@map("movement_type")
 }
 
 model category {
@@ -60,8 +67,8 @@ model product {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   productValuesId String?
-  costValue       Decimal  @map("cost_value") @db.Decimal(12, 2)
-  saleValue       Decimal? @map("sale_value") @db.Decimal(12, 2)
+  costValue       Float    @map("cost_value")
+  saleValue       Float?   @map("sale_value")
   minStock        Int?     @default(0) @map("min_stock")
 
   department department? @relation(fields: [departmentId], references: [id])
@@ -103,7 +110,6 @@ model user {
   id           String         @id
   name         String
   username     String         @unique
-  email        String?        @unique
   password     String
   passwordChangedAt DateTime? @map("password_changed_at")
   roles          role[]

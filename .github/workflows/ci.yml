@@ -13,8 +13,11 @@ jobs:
     runs-on: ubuntu-latest
     env:
       # prisma generate reads the datasource url from the env even though it
-      # never connects; the web build inlines its public base url at compile time.
-      DATABASE_URL: mysql://ci:ci@localhost:3306/ci
+      # never connects, and validates the scheme against the provider — so this
+      # must stay postgresql://. The web build inlines its public base url at
+      # compile time.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
+      DIRECT_URL: postgresql://ci:ci@localhost:5432/ci
       NEXT_PUBLIC_BASE_URL: http://localhost:3333
     steps:
       - uses: actions/checkout@v4
