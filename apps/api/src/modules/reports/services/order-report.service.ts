@@ -23,7 +23,7 @@ export class OrderReportService {
   async generate(
     orderId: string,
     requestedByUserId: string,
-  ): Promise<{ filename: string; publicUrl: string }> {
+  ): Promise<{ filename: string }> {
     const order = await this.prismaService.orders.findUnique({
       where: { id: orderId },
       select: {
@@ -88,9 +88,8 @@ export class OrderReportService {
       },
     });
 
-    return {
-      filename,
-      publicUrl: this.uploadFileService.getFileUrl(filename),
-    };
+    // Only the key travels onward. Download URLs are signed per request and
+    // expire, so persisting one anywhere would just rot.
+    return { filename };
   }
 }

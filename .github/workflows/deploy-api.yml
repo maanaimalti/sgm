@@ -16,7 +16,12 @@ on:
       - ".github/workflows/deploy-api.yml"
 
 jobs:
+  # Nothing ships without passing the same checks a PR has to pass.
+  check:
+    uses: ./.github/workflows/ci.yml
+
   deploy:
+    needs: check
     runs-on: ubuntu-latest
     steps:
       - name: Trigger EasyPanel deploy
