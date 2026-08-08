@@ -28,11 +28,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         id: true,
         name: true,
         username: true,
+        passwordChangedAt: true,
         roles: { select: { name: true } },
         department: { select: { id: true } },
       },
     });
     if (!user) throw new UnauthorizedException();
+    if (issuedBeforePasswordChange(payload.iat, user.passwordChangedAt)) {
+      throw new UnauthorizedException("Password changed — sign in again");
+    }
     return {
       id: user.id,
       name: user.name,
@@ -41,4 +45,22 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       departmentIds: user.department.map((department) => department.id),
     };
   }
+}
+
+/**
+ * Retires every token minted before the user's last password change, so a reset
+ * logs the old sessions out at once instead of after the token's natural TTL.
+ *
+ * Both sides are compared in whole seconds: `iat` is already floored to the
+ * second, so comparing it against a millisecond timestamp would reject a token
+ * issued in the same second as the change — including the fresh one the user
+ * gets when they sign back in.
+ */
+export function issuedBeforePasswordChange(
+  issuedAtInSeconds: number | undefined,
+  passwordChangedAt: Date | null,
+): boolean {
+  if (!passwordChangedAt) return false;
+  if (!issuedAtInSeconds) return true;
+  return Math.floor(passwordChangedAt.getTime() / 1000) > issuedAtInSeconds;
 }

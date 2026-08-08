@@ -4,16 +4,19 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   Bell,
   Inbox,
+  KeyRound,
   Layers,
   MoreHorizontal,
   Package,
   Paperclip,
+  Users,
   Weight,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { ChangePasswordDialog } from "@/components/account/change-password-dialog";
 import { AvatarInitials } from "@/components/ui-ext/avatar-initials";
 import { Wordmark } from "@/components/ui-ext/brand-mark";
 import { Button } from "@/components/ui/button";
@@ -67,6 +70,7 @@ export const Sidebar = () => {
   const { unreadCount } = useNotifications();
 
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   const groups: NavGroup[] = [];
   if (isKitchen || isAdmin) {
@@ -91,6 +95,12 @@ export const Sidebar = () => {
     groups.push({
       label: "Compras",
       items: [{ label: "Pedidos", href: "/pedidos", icon: Inbox }],
+    });
+  }
+  if (isAdmin) {
+    groups.push({
+      label: "Administração",
+      items: [{ label: "Usuários", href: "/usuarios", icon: Users }],
     });
   }
 
@@ -192,6 +202,13 @@ export const Sidebar = () => {
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" side="top">
             <DropdownMenuItem
+              onClick={() => setPasswordOpen(true)}
+              className="cursor-pointer"
+            >
+              <KeyRound size={14} className="mr-2" />
+              Trocar senha
+            </DropdownMenuItem>
+            <DropdownMenuItem
               onClick={handleLogout}
               className="cursor-pointer text-bad-ink"
             >
@@ -201,6 +218,10 @@ export const Sidebar = () => {
         </DropdownMenu>
       </div>
 
+      <ChangePasswordDialog
+        open={passwordOpen}
+        onOpenChange={setPasswordOpen}
+      />
       <NotificationsSheet open={sheetOpen} onOpenChange={setSheetOpen} />
     </div>
   );

@@ -5,16 +5,19 @@ import {
   Bell,
   Home,
   Inbox,
+  KeyRound,
   Layers,
   Menu as MenuIcon,
   Package,
   Paperclip,
+  Users,
   Weight,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { ChangePasswordDialog } from "@/components/account/change-password-dialog";
 import { AvatarInitials } from "@/components/ui-ext/avatar-initials";
 import { Button } from "@/components/ui/button";
 import {
@@ -71,6 +74,7 @@ export function MobileBottomNav() {
   const userData = useJwt<UserData>("accessToken");
   const { isKitchen, isAdmin, isBuyer, isManager } = useSidebar();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   const userName = userData?.name || userData?.username || "Usuário";
   // Kitchen/admin manage stock; manager/buyer get a Notificações tab in that
@@ -113,6 +117,12 @@ export function MobileBottomNav() {
     groups.push({
       label: "Compras",
       items: [{ label: "Pedidos", href: "/pedidos", icon: Inbox }],
+    });
+  }
+  if (isAdmin) {
+    groups.push({
+      label: "Administração",
+      items: [{ label: "Usuários", href: "/usuarios", icon: Users }],
     });
   }
 
@@ -226,12 +236,28 @@ export function MobileBottomNav() {
                 </div>
               </div>
             </div>
+            <Button
+              variant="secondary"
+              className="w-full"
+              onClick={() => {
+                setMenuOpen(false);
+                setPasswordOpen(true);
+              }}
+            >
+              <KeyRound size={14} className="mr-1.5" />
+              Trocar senha
+            </Button>
             <Button variant="outline" className="w-full" onClick={handleLogout}>
               Sair
             </Button>
           </div>
         </SheetContent>
       </Sheet>
+
+      <ChangePasswordDialog
+        open={passwordOpen}
+        onOpenChange={setPasswordOpen}
+      />
     </>
   );
 }
