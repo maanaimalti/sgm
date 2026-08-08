@@ -275,22 +275,39 @@ async function verify(): Promise<boolean> {
     }
   }
 
+  // The invariant is that the next friendly_code cannot collide with one that
+  // already exists — not that the row is present. Production has no counter row
+  // at all, and `create` upserts it, so an absent row is fine as long as there
+  // are no orders to collide with.
   const counter = await pg.order_counter.findMany();
   const orderTotal = await pg.orders.count();
-  if (counter.length !== 1 || counter[0]?.id !== 1) {
+  const row = counter.find((c) => c.id === 1);
+  if (counter.length > 1) {
     console.error(
-      `  FALHA order_counter: esperado exatamente 1 linha com id=1, encontrado ${JSON.stringify(counter)}`,
+      `  FALHA order_counter: esperado no máximo 1 linha, encontrado ${JSON.stringify(counter)}`,
     );
     ok = false;
-  } else if (counter[0].value < orderTotal) {
+  } else if (!row) {
+    if (orderTotal > 0) {
+      console.error(
+        `  FALHA order_counter ausente com ${orderTotal} pedido(s) — ` +
+          "o contador reiniciaria em 1 e duplicaria friendly_code",
+      );
+      ok = false;
+    } else {
+      console.log(
+        "  ok  order_counter ausente, mas 0 pedidos — o upsert cria a linha no primeiro pedido",
+      );
+    }
+  } else if (row.value < orderTotal) {
     console.error(
-      `  FALHA order_counter.value=${counter[0].value} < ${orderTotal} pedidos — ` +
+      `  FALHA order_counter.value=${row.value} < ${orderTotal} pedidos — ` +
         "friendly_code duplicado na próxima criação",
     );
     ok = false;
   } else {
     console.log(
-      `  ok  order_counter.value=${counter[0].value} >= ${orderTotal} pedidos`,
+      `  ok  order_counter.value=${row.value} >= ${orderTotal} pedidos`,
     );
   }
 
@@ -325,6 +342,22 @@ async function verify(): Promise<boolean> {
   }
 
   return ok;
+}
+
+/**
+ * Prisma puts the headline on the first line and the actual cause on the last
+ * one ("Access denied", "The column `x` does not exist"). Reporting only the
+ * first line hides exactly the distinction this pre-flight exists to make.
+ */
+function describe(error: unknown): string {
+  if (!(error instanceof Error)) return String(error);
+  const code = (error as { code?: string }).code;
+  const lines = error.message
+    .split("\n")
+    .map((l) => l.trim())
+    .filter(Boolean);
+  const cause = lines[lines.length - 1] ?? error.message;
+  return code ? `[${code}] ${cause}` : cause;
 }
 
 /**
@@ -367,6 +400,16 @@ async function check(): Promise<boolean> {
     ["push_subscriptions", mysql.pushSubscription],
   ];
 
+  // Probe the connection once. Without this, an unreachable host or a bad
+  // password reports as 17 identical per-table failures and buries the cause.
+  try {
+    await mysql.$queryRawUnsafe("SELECT 1");
+  } catch (error) {
+    console.error(`  FALHA não foi possível conectar: ${describe(error)}`);
+    console.error("\nPRÉ-VOO FALHOU — confira LEGACY_DATABASE_URL.");
+    return false;
+  }
+
   console.log("Origem (MySQL de produção):");
   let total = 0;
   for (const [table, model] of models) {
@@ -376,9 +419,7 @@ async function check(): Promise<boolean> {
       total += n;
       console.log(`  ok  ${table.padEnd(20)} ${n}`);
     } catch (error) {
-      console.error(
-        `  FALHA ${table}: ${error instanceof Error ? error.message.split("\n").find((l) => l.trim()) : error}`,
-      );
+      console.error(`  FALHA ${table}: ${describe(error)}`);
       ok = false;
     }
   }
