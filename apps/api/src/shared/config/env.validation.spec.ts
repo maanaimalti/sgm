@@ -3,7 +3,6 @@ import { normalizeSupabaseUrl, validate } from "./env.validation";
 
 const base = {
   DATABASE_URL: "mysql://root:sgm@localhost:3306/sgm",
-  JWT_SECRET: "secret",
   SUPABASE_URL: "https://project.supabase.co",
   SUPABASE_ANON_KEY: "anon-key",
   SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
@@ -27,7 +26,7 @@ describe("validate", () => {
 
   it("lists every missing required variable in one error", () => {
     expect(() => validate({ STORAGE_DRIVER: "local" })).toThrow(
-      /DATABASE_URL, JWT_SECRET, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY/,
+      /DATABASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY/,
     );
   });
 

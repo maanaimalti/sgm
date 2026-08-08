@@ -69,10 +69,12 @@ src/
 - **Notifications**: User notifications system
 
 ### Authentication & Authorization
-- JWT-based authentication. There are **no** refresh tokens: the access token expires (`JWT_EXPIRES_IN`, default 12h) and the user is sent back to the login screen.
-- Role-based access control (RBAC)
-- Department-based user organization
-- Password hashing with bcrypt
+- **Supabase Auth owns identity.** The API mints no tokens and stores no passwords. `JwtStrategy` verifies the access token against the project's JWKS (`ES256`, `aud: authenticated`, issuer derived from `SUPABASE_URL`) — there is no `POST /auth/login` and no `JWT_SECRET`.
+- **`sub` is a Supabase UUID; everything else speaks ULID.** `users.supabase_user_id` bridges the two, so `@GetUserId()`, `@Roles`, `@GetDepartmentId` and every service are unchanged. Adding a user means creating the account in Supabase Auth *and* the row here — use `POST /users` or `prisma/scripts/provision-supabase-auth.ts`, never raw SQL.
+- **Claims are never trusted for authorization.** `validate()` reads roles and departments from the database on every request, so a role change takes effect immediately. `GET /auth/me` is a projection of that same lookup, which is why it costs no extra query — it is what the browser uses instead of decoding the token.
+- Role-based access control (RBAC); department-based user organization.
+- `users.password` is retained but no longer read (see the Stage B runbook); `bcrypt` survives only for `prisma/seed.ts`.
+- **Row level security is on for every table with zero policies.** The anon key ships in the web bundle, so without it PostgREST would be a public read API over the whole schema. Prisma is unaffected because it connects as the tables' owner — never `FORCE ROW LEVEL SECURITY`, and never point `DATABASE_URL` at a non-owner role. `pnpm db:verify-rls` checks both, and runs in CI.
 
 ### Key Patterns
 - **DTOs**: Validation with class-validator and class-transformer

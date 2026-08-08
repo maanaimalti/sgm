@@ -15,7 +15,6 @@ const isBlank = (value: unknown): boolean =>
  */
 const REQUIRED = [
   "DATABASE_URL",
-  "JWT_SECRET",
   "SUPABASE_URL",
   "SUPABASE_ANON_KEY",
   "SUPABASE_SERVICE_ROLE_KEY",
