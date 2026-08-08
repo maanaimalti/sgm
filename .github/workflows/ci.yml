@@ -11,11 +11,26 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    services:
+      # Migrations are applied for real here. Until Stage B this job only ever
+      # ran `prisma generate`, so a mistake in hand-written SQL first surfaced
+      # at container boot in production — where the CMD is
+      # `migrate deploy && node dist/main`, meaning the API simply never starts.
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: ci
+          POSTGRES_PASSWORD: ci
+          POSTGRES_DB: ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ci -d ci"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
     env:
-      # prisma generate reads the datasource url from the env even though it
-      # never connects, and validates the scheme against the provider — so this
-      # must stay postgresql://. The web build inlines its public base url at
-      # compile time.
+      # The web build inlines its public base url at compile time.
       DATABASE_URL: postgresql://ci:ci@localhost:5432/ci
       DIRECT_URL: postgresql://ci:ci@localhost:5432/ci
       NEXT_PUBLIC_BASE_URL: http://localhost:3333
@@ -31,6 +46,17 @@ jobs:
 
       # Builds packages/shared (prepare) and runs prisma generate (postinstall).
       - run: pnpm install --frozen-lockfile
+
+      # Applies every migration from an empty database, exactly as production
+      # does. `migrate status` additionally catches the schema and the
+      # migrations disagreeing, which nothing else in this pipeline can see.
+      - run: pnpm --filter @sgm/api exec prisma migrate deploy
+      - run: pnpm --filter @sgm/api exec prisma migrate status
+
+      # Fails on any table left without RLS — including one added later and
+      # forgotten. With the anon key in the browser bundle, that table would be
+      # readable by anyone who opens the devtools.
+      - run: pnpm --filter @sgm/api db:verify-rls
 
       - run: pnpm typecheck
       - run: pnpm lint:ci
