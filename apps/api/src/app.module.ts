@@ -11,6 +11,7 @@ import { ProductsModule } from "./modules/products/products.module";
 import { PushModule } from "./modules/push/push.module";
 import { ReportsModule } from "./modules/reports/reports.module";
 import { UnityModule } from "./modules/unity/unity.module";
+import { UsersModule } from "./modules/users/users.module";
 import { AuthModule } from "./shared/auth/auth.module";
 import { HelpersModule } from "./shared/helpers/helpers.module";
 
@@ -28,6 +29,7 @@ import { HelpersModule } from "./shared/helpers/helpers.module";
     DepartmentModule,
     ReportsModule,
     PushModule,
+    UsersModule,
   ],
   controllers: [AppController],
   providers: [AppService],

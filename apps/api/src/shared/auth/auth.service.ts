@@ -1,10 +1,16 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
 // biome-ignore lint/style/useImportType: <explanation>
 import { JwtService } from "@nestjs/jwt";
 import type { role, user } from "@prisma/client";
 import * as bcrypt from "bcrypt";
 // biome-ignore lint/style/useImportType: <explanation>
 import { PrismaService } from "../db/prisma.service";
+
+const BCRYPT_ROUNDS = 10;
 
 @Injectable()
 export class AuthService {
@@ -44,5 +50,50 @@ export class AuthService {
     return {
       accessToken: this.jwtService.sign(payload),
     };
+  }
+
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ) {
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+      select: { password: true },
+    });
+    if (!user) {
+      throw new UnauthorizedException();
+    }
+    if (!(await bcrypt.compare(currentPassword, user.password))) {
+      throw new UnauthorizedException("Senha atual incorreta");
+    }
+    await this.writePassword(userId, newPassword);
+  }
+
+  /** Admin-initiated reset: no knowledge of the current password required. */
+  async resetPassword(userId: string, newPassword: string) {
+    const user = await this.prismaService.user.findUnique({
+      where: { id: userId },
+      select: { id: true },
+    });
+    if (!user) {
+      throw new NotFoundException(`User with id: ${userId} not found`);
+    }
+    await this.writePassword(userId, newPassword);
+  }
+
+  /**
+   * Stamps `passwordChangedAt` alongside the new hash. JwtStrategy refuses any
+   * token issued before that instant, so a reset takes effect immediately
+   * instead of leaving the old token usable until it expires.
+   */
+  private async writePassword(userId: string, newPassword: string) {
+    await this.prismaService.user.update({
+      where: { id: userId },
+      data: {
+        password: await bcrypt.hash(newPassword, BCRYPT_ROUNDS),
+        passwordChangedAt: new Date(),
+      },
+    });
   }
 }
