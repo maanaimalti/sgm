@@ -1,4 +1,9 @@
-import { Injectable, Logger } from "@nestjs/common";
+import {
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from "@nestjs/common";
 // biome-ignore lint/style/useImportType: <explanation>
 import { PrismaService } from "src/shared/db/prisma.service";
 // biome-ignore lint/style/useImportType: <explanation>
@@ -14,7 +19,14 @@ export class ProductsService {
     private readonly prismaService: PrismaService,
   ) {}
 
-  async create(createProductDto: CreateProductDto) {
+  async create(
+    createProductDto: CreateProductDto,
+    allowedDepartmentIds: string[],
+  ) {
+    assertDepartmentAllowed(
+      createProductDto.departmentId,
+      allowedDepartmentIds,
+    );
     const id = this.helpersService.generateId();
     const product = { id, ...createProductDto };
     Logger.log(`Creating product with id: ${id} and name: ${product.name}`, {
@@ -150,14 +162,24 @@ export class ProductsService {
     return result;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  async update(id: string, updateProductDto: UpdateProductDto) {
-    await this.prismaService.product.update({
+  async update(
+    id: string,
+    updateProductDto: UpdateProductDto,
+    allowedDepartmentIds: string[],
+  ) {
+    if (updateProductDto.departmentId) {
+      assertDepartmentAllowed(
+        updateProductDto.departmentId,
+        allowedDepartmentIds,
+      );
+    }
+    // Scope the row lookup by the caller's own departments, never by the
+    // department in the payload — otherwise the caller picks the key that is
+    // supposed to protect the record.
+    const result = await this.prismaService.product.updateMany({
       where: {
         id,
-        department: {
-          id: updateProductDto.departmentId,
-        },
+        departmentId: { in: allowedDepartmentIds },
       },
       data: {
         categoryId: updateProductDto.categoryId,
@@ -171,13 +193,29 @@ export class ProductsService {
         name: updateProductDto.name,
       },
     });
+    if (result.count === 0) {
+      throw new NotFoundException(`Product with id: ${id} not found`);
+    }
   }
 
-  async remove(id: string) {
-    await this.prismaService.product.delete({
+  async remove(id: string, allowedDepartmentIds: string[]) {
+    const result = await this.prismaService.product.deleteMany({
       where: {
         id,
+        departmentId: { in: allowedDepartmentIds },
       },
     });
+    if (result.count === 0) {
+      throw new NotFoundException(`Product with id: ${id} not found`);
+    }
+  }
+}
+
+function assertDepartmentAllowed(
+  departmentId: string,
+  allowedDepartmentIds: string[],
+) {
+  if (!allowedDepartmentIds.includes(departmentId)) {
+    throw new ForbiddenException("You do not have access to this department");
   }
 }

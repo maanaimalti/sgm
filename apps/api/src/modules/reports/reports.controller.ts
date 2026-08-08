@@ -2,7 +2,6 @@ import {
   Body,
   Controller,
   Get,
-  Headers,
   Param,
   Post,
   Query,
@@ -11,6 +10,7 @@ import {
 import { AuthGuard } from "@nestjs/passport";
 import { Roles } from "src/shared/auth/roles.decorator";
 import { RolesGuard } from "src/shared/auth/roles.guard";
+import { GetDepartmentId } from "src/shared/decorators/get-department-id";
 import { GetUserId } from "src/shared/decorators/get-user-id";
 import { CreateReportDto } from "./dto/create-report.dto";
 import { ReportsService } from "./reports.service";
@@ -25,9 +25,9 @@ export class ReportsController {
   async createReport(
     @GetUserId() userId: string,
     @Body() createReportDto: CreateReportDto,
-    @Headers("departmentId") departmentId?: string,
+    @GetDepartmentId() departmentId: string,
   ) {
-    if (departmentId && !createReportDto.departmentId) {
+    if (!createReportDto.departmentId) {
       createReportDto.departmentId = departmentId;
     }
     return this.reportsService.createReport(userId, createReportDto);

@@ -1,4 +1,10 @@
-import { IsEnum, IsNotEmpty, IsNumber, IsString } from "class-validator";
+import {
+  IsEnum,
+  IsNotEmpty,
+  IsNumber,
+  IsPositive,
+  IsString,
+} from "class-validator";
 import { MovementType } from "../movement-type.enum";
 
 export class CreateMovementDto {
@@ -13,5 +19,6 @@ export class CreateMovementDto {
 
   @IsNotEmpty()
   @IsNumber()
+  @IsPositive()
   quantity: number;
 }

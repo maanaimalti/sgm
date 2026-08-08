@@ -1,9 +1,19 @@
-import { Controller, Get, Param, Patch, Post, Query } from "@nestjs/common";
+import {
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from "@nestjs/common";
+import { AuthGuard } from "@nestjs/passport";
 import { GetUserId } from "src/shared/decorators/get-user-id";
 // biome-ignore lint/style/useImportType: <explanation>
 import { NotificationService } from "./notification.service";
 
 @Controller("notification")
+@UseGuards(AuthGuard("jwt"))
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 
@@ -26,8 +36,8 @@ export class NotificationController {
   }
 
   @Post("/read/:id")
-  read(@Param("id") id: string) {
-    return this.notificationService.read(id);
+  read(@Param("id") id: string, @GetUserId() userId: string) {
+    return this.notificationService.read(id, userId);
   }
 
   @Patch("/read-all")
