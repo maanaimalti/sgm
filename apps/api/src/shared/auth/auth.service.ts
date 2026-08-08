@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 // biome-ignore lint/style/useImportType: <explanation>
 import { PrismaService } from "../db/prisma.service";
 // biome-ignore lint/style/useImportType: <explanation>
@@ -28,20 +24,11 @@ export class AuthService {
     currentPassword: string,
     newPassword: string,
   ) {
-    const user = await this.requireLinkedUser(userId, UnauthorizedException);
+    const user = await this.requireLinkedUser(userId);
 
     if (!(await this.supabase.verifyPassword(user.email, currentPassword))) {
       throw new UnauthorizedException("Senha atual incorreta");
     }
-
-    await this.supabase.updateUserById(user.supabaseUserId, {
-      password: newPassword,
-    });
-  }
-
-  /** Admin-initiated reset: no knowledge of the current password required. */
-  async resetPassword(userId: string, newPassword: string) {
-    const user = await this.requireLinkedUser(userId, NotFoundException);
 
     await this.supabase.updateUserById(user.supabaseUserId, {
       password: newPassword,
@@ -55,20 +42,14 @@ export class AuthService {
    */
   private async requireLinkedUser(
     userId: string,
-    Failure: typeof UnauthorizedException | typeof NotFoundException,
   ): Promise<{ email: string; supabaseUserId: string }> {
     const user = await this.prismaService.user.findUnique({
       where: { id: userId },
       select: { email: true, supabaseUserId: true },
     });
 
-    if (!user) {
-      throw new Failure(`User with id: ${userId} not found`);
-    }
-    if (!user.email || !user.supabaseUserId) {
-      throw new Failure(
-        `Usuário ${userId} não está vinculado ao Supabase Auth — rode auth:provision`,
-      );
+    if (!user?.email || !user.supabaseUserId) {
+      throw new UnauthorizedException();
     }
 
     return { email: user.email, supabaseUserId: user.supabaseUserId };
