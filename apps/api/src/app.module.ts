@@ -12,6 +12,7 @@ import { PushModule } from "./modules/push/push.module";
 import { ReportsModule } from "./modules/reports/reports.module";
 import { UnityModule } from "./modules/unity/unity.module";
 import { AuthModule } from "./shared/auth/auth.module";
+import { validate } from "./shared/config/env.validation";
 import { HelpersModule } from "./shared/helpers/helpers.module";
 
 @Module({
@@ -22,7 +23,7 @@ import { HelpersModule } from "./shared/helpers/helpers.module";
     CategoryModule,
     UnityModule,
     AuthModule,
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({ isGlobal: true, validate }),
     OrdersModule,
     NotificationModule,
     DepartmentModule,
