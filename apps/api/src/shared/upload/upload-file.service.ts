@@ -2,12 +2,23 @@ import { mkdir, rm, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import {
   DeleteObjectCommand,
+  GetObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { Injectable, Logger } from "@nestjs/common";
 
 type StorageDriver = "r2" | "local";
+
+/**
+ * Has to outlive the client's cache, not just the request: the web holds the
+ * report response in React Query and opens the URL when the user clicks, which
+ * can be minutes later. Re-fetching at click time would put `window.open`
+ * behind an await and trip popup blockers, so the link is given room instead —
+ * still short enough that one pasted into a chat is dead on arrival.
+ */
+const SIGNED_URL_TTL_SECONDS = 15 * 60;
 
 @Injectable()
 export class UploadFileService {
@@ -37,7 +48,12 @@ export class UploadFileService {
         `Storage driver: local (dir=${this.#localDir}, publicUrl=${this.#localPublicUrl})`,
       );
     } else {
-      this.#r2Client = new S3Client({ endpoint: process.env.R2_ENDPOINT });
+      // R2 ignores the region but the SDK requires one, and presigning needs
+      // credentials resolved up front rather than per-request.
+      this.#r2Client = new S3Client({
+        endpoint: process.env.R2_ENDPOINT,
+        region: process.env.R2_REGION ?? "auto",
+      });
       this.logger.log("Storage driver: r2");
     }
   }
@@ -81,18 +97,26 @@ export class UploadFileService {
     await this.#r2Client!.send(command);
   }
 
-  getFileUrl(fileKey: string): string {
+  /**
+   * A time-limited URL for one stored object.
+   *
+   * Only the object key is ever persisted; the URL is minted per request. The
+   * bucket is private, so this signature — not the caller's role — is what the
+   * storage layer checks, and it has to expire.
+   */
+  async getDownloadUrl(fileKey: string): Promise<string> {
     if (this.driver === "local") {
       const base = this.#localPublicUrl.endsWith("/")
         ? this.#localPublicUrl
         : `${this.#localPublicUrl}/`;
       return `${base}${fileKey}`;
     }
-    const endpoint =
-      process.env.R2_PUBLIC_URL ??
-      "https://pub-02162cc0773546efb6b651c10eb87288.r2.dev/";
-    const normalized = endpoint.endsWith("/") ? endpoint : `${endpoint}/`;
-    return `${normalized}${fileKey}`;
+    return getSignedUrl(
+      // biome-ignore lint/style/noNonNullAssertion: client is set when driver is r2
+      this.#r2Client!,
+      new GetObjectCommand({ Bucket: this.#r2Bucket, Key: fileKey }),
+      { expiresIn: SIGNED_URL_TTL_SECONDS },
+    );
   }
 
   /** Exposed so the bootstrap can mount static-file serving when in local mode. */

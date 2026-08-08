@@ -31,15 +31,15 @@ export class ProductReportService {
     // Gerar PDF
     const pdfBytes = await this.createProductsPDF(products, departmentId);
 
-    // Upload para R2
+    // Upload para R2. Guardamos a chave, não a URL: o link de download é
+    // assinado a cada requisição e expira.
     const fileName = `relatorio_produtos_${reportId}_${Date.now()}.pdf`;
     await this.uploadService.uploadFile(fileName, pdfBytes, "application/pdf");
-    const filePath = this.uploadService.getFileUrl(fileName);
 
     this.logger.log(
-      `Relatório de produtos ${reportId} enviado para ${filePath}`,
+      `Relatório de produtos ${reportId} enviado para ${fileName}`,
     );
-    return filePath;
+    return fileName;
   }
 
   private async validateUserDepartmentAccess(

@@ -3,6 +3,8 @@ import { EventEmitter2 } from "@nestjs/event-emitter";
 import { reportStatus, type reportType } from "@prisma/client";
 import { PrismaService } from "src/shared/db/prisma.service";
 import { HelpersService } from "src/shared/helpers/helpers.service";
+// biome-ignore lint/style/useImportType: Nest DI requires the runtime class.
+import { UploadFileService } from "src/shared/upload/upload-file.service";
 import { CreateReportDto } from "./dto/create-report.dto";
 
 @Injectable()
@@ -13,6 +15,7 @@ export class ReportsService {
     private readonly prismaService: PrismaService,
     private readonly helpersService: HelpersService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly uploadFileService: UploadFileService,
   ) {}
 
   async createReport(userId: string, createReportDto: CreateReportDto) {
@@ -76,13 +79,30 @@ export class ReportsService {
       where: { userId },
     });
 
-    return { reports, total };
+    return {
+      reports: await Promise.all(reports.map((r) => this.withDownloadUrl(r))),
+      total,
+    };
   }
 
   async getReport(reportId: string, userId: string) {
-    return this.prismaService.report.findFirst({
+    const report = await this.prismaService.report.findFirst({
       where: { id: reportId, userId },
     });
+    if (!report) return null;
+    return this.withDownloadUrl(report);
+  }
+
+  /** `filePath` holds the storage key; the signed URL is minted per request. */
+  private async withDownloadUrl<T extends { filePath: string | null }>(
+    report: T,
+  ): Promise<T & { downloadUrl: string | null }> {
+    return {
+      ...report,
+      downloadUrl: report.filePath
+        ? await this.uploadFileService.getDownloadUrl(report.filePath)
+        : null,
+    };
   }
 
   async updateReportStatus(

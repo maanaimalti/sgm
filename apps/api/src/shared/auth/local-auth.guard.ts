@@ -1,14 +1,13 @@
-import { type ExecutionContext, Injectable } from "@nestjs/common";
+import { Injectable } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 
+/**
+ * Plain passport-local guard: LocalStrategy validates the credentials and puts
+ * the resulting user on the request.
+ *
+ * It used to override canActivate to stuff the raw body onto `request.user` and
+ * return the request object (truthy, so the guard always passed). Credentials
+ * were still checked further in, but nothing in the guard did it.
+ */
 @Injectable()
-export class LocalAuthGuard extends AuthGuard("local") {
-  async canActivate(context: ExecutionContext) {
-    const request = context.switchToHttp().getRequest();
-    request.user = {
-      username: request.body.username,
-      password: request.body.password,
-    };
-    return request;
-  }
-}
+export class LocalAuthGuard extends AuthGuard("local") {}

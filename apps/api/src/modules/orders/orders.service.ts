@@ -23,6 +23,9 @@ import { computeOrderSignature } from "./order-signature";
 
 const APPROVER_ROLES = ["admin", "manager"];
 
+/** How long a report job may stay in flight before it is presumed dead. */
+const STALE_REPORT_TIMEOUT_MS = 10 * 60 * 1000;
+
 @Injectable()
 export class OrdersService {
   private readonly logger = new Logger(OrdersService.name);
@@ -497,15 +500,40 @@ export class OrdersService {
     return { order, signature: computeOrderSignature(order) };
   }
 
+  /**
+   * A report job still worth waiting on.
+   *
+   * Generation runs in-process, so a restart mid-render leaves a row stuck in
+   * PROCESSING forever — and a permanently "in flight" job would block every
+   * future attempt for that order. Anything older than the window is treated
+   * as dead: it is marked FAILED and the caller is free to enqueue again.
+   */
   private async findPendingReport(orderId: string) {
-    return this.prismaService.report.findFirst({
+    const pending = await this.prismaService.report.findFirst({
       where: {
         type: reportType.ORDERS,
         status: { in: [reportStatus.PENDING, reportStatus.PROCESSING] },
         parameters: { contains: orderId },
       },
-      select: { id: true },
+      select: { id: true, createdAt: true },
+      orderBy: { createdAt: "desc" },
     });
+    if (!pending) return null;
+
+    const age = Date.now() - pending.createdAt.getTime();
+    if (age <= STALE_REPORT_TIMEOUT_MS) return pending;
+
+    this.logger.warn(
+      `Report ${pending.id} for order ${orderId} has been in flight for ${Math.round(age / 60_000)}min; marking it failed`,
+    );
+    await this.prismaService.report.update({
+      where: { id: pending.id },
+      data: {
+        status: reportStatus.FAILED,
+        errorMessage: "Geração interrompida (processo reiniciado)",
+      },
+    });
+    return null;
   }
 
   async getReport(id: string, userId: string, callerRoles: string[]) {
@@ -520,7 +548,7 @@ export class OrdersService {
     if (existing) {
       return {
         status: "ready" as const,
-        url: this.uploadFileService.getFileUrl(existing.url),
+        url: await this.uploadFileService.getDownloadUrl(existing.url),
         stale: existing.signature !== signature,
       };
     }
@@ -545,7 +573,7 @@ export class OrdersService {
     if (existing && existing.signature === signature) {
       return {
         status: "ready" as const,
-        url: this.uploadFileService.getFileUrl(existing.url),
+        url: await this.uploadFileService.getDownloadUrl(existing.url),
         stale: false,
       };
     }

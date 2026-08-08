@@ -1,5 +1,6 @@
 import { Module } from "@nestjs/common";
 import { ConfigModule } from "@nestjs/config";
+import { ThrottlerModule } from "@nestjs/throttler";
 import { AppController } from "./app.controller";
 import { AppService } from "./app.service";
 import { CategoryModule } from "./modules/category/category.module";
@@ -24,6 +25,9 @@ import { HelpersModule } from "./shared/helpers/helpers.module";
     UnityModule,
     AuthModule,
     ConfigModule.forRoot({ isGlobal: true }),
+    // Provides the throttler storage. The guard is applied per-controller
+    // (see AuthController), not globally.
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 10 }]),
     OrdersModule,
     NotificationModule,
     DepartmentModule,
