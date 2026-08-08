@@ -36,7 +36,9 @@ export class AuthService {
         department: { select: { id: true, name: true } },
       },
     });
-    if (user && (await bcrypt.compare(password, user.password))) {
+    // A null hash means the account exists only in Supabase Auth, which owns
+    // its password. Such a user can never sign in through this route.
+    if (user?.password && (await bcrypt.compare(password, user.password))) {
       const { password: _, ...result } = user;
       return result;
     }
@@ -70,7 +72,7 @@ export class AuthService {
       where: { id: userId },
       select: { password: true },
     });
-    if (!user) {
+    if (!user?.password) {
       throw new UnauthorizedException();
     }
     if (!(await bcrypt.compare(currentPassword, user.password))) {

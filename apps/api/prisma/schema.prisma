@@ -104,8 +104,9 @@ model user {
   name         String
   username     String         @unique
   email        String?        @unique
-  password     String
+  password     String?
   passwordChangedAt DateTime? @map("password_changed_at")
+  supabaseUserId String?      @unique @map("supabase_user_id") @db.Uuid
   roles          role[]
   orders         orders[]
   approvedOrders orders[]       @relation("approvedOrders")
