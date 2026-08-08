@@ -1,5 +1,9 @@
 # Runbook — Etapa A: virada MySQL → Supabase Postgres
 
+> **Executado em 08/08/2026.** Mantido como registro do que foi feito e como
+> reverter, não como trabalho pendente. O estado atual e as etapas restantes
+> estão em [`00-onde-paramos.md`](./00-onde-paramos.md).
+
 Projeto Supabase: `uhvqtymjdihoagfyaruj` (us-east-1). Baseline `0_init` já aplicado.
 
 **Ponto de não retorno: o momento em que os usuários voltam a entrar.** Antes disso a
