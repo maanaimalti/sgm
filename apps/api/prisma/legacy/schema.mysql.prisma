@@ -1,7 +1,8 @@
 // Frozen snapshot of production MySQL as it stood before the cutover — taken
 // from git HEAD, NOT from the working schema. Production has no `email` column
 // (that is collected on the Postgres side after Stage A), so adding one here
-// would make every read fail against the real source.
+// would make every read fail against the real source. It DOES have
+// password_changed_at, added by the password-management work on main.
 //
 // Only prisma/migrate-mysql-to-postgres.ts reads this, through a separately
 // generated client, so it can talk to MySQL and Postgres in the same process.
@@ -110,6 +111,7 @@ model user {
   name         String
   username     String         @unique
   password     String
+  passwordChangedAt DateTime? @map("password_changed_at")
   roles          role[]
   orders         orders[]
   approvedOrders orders[]       @relation("approvedOrders")

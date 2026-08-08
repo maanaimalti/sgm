@@ -105,6 +105,7 @@ model user {
   username     String         @unique
   email        String?        @unique
   password     String
+  passwordChangedAt DateTime? @map("password_changed_at")
   roles          role[]
   orders         orders[]
   approvedOrders orders[]       @relation("approvedOrders")

@@ -31,13 +31,15 @@ export const useProductPage = () => {
   const debouncedQ = useDebounce(q, 300);
 
   useEffect(() => {
+    // Bailing out when the URL already matches is what makes it safe to depend
+    // on searchParams: without it, our own replace() would retrigger the effect.
+    if (debouncedQ === urlQ) return;
     const next = new URLSearchParams(searchParams.toString());
     if (debouncedQ) next.set("q", debouncedQ);
     else next.delete("q");
-    if (debouncedQ !== urlQ) next.set("page", "1");
+    next.set("page", "1");
     router.replace(`?${next.toString()}`);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedQ]);
+  }, [debouncedQ, urlQ, searchParams, router]);
 
   const setCategory = (value: string) => {
     const next = new URLSearchParams(searchParams.toString());
