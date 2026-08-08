@@ -13,6 +13,7 @@ export class UsersService {
         id: true,
         name: true,
         username: true,
+        email: true,
         roles: { select: { name: true } },
         department: { select: { id: true, name: true } },
       },
@@ -22,6 +23,7 @@ export class UsersService {
       id: user.id,
       name: user.name,
       username: user.username,
+      email: user.email,
       roles: user.roles.map((role) => role.name),
       departments: user.department,
     }));
