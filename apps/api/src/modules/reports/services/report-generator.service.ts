@@ -66,7 +66,7 @@ export class ReportGeneratorService {
             payload.userId,
           );
           filePath = result.filename;
-          extraMetadata = { orderId, url: result.publicUrl };
+          extraMetadata = { orderId };
           break;
         }
         case "MOVEMENTS":
