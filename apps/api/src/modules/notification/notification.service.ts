@@ -1,4 +1,8 @@
-import { Injectable } from "@nestjs/common";
+import {
+  Injectable,
+  NotFoundException,
+  UnauthorizedException,
+} from "@nestjs/common";
 // biome-ignore lint/style/useImportType: <explanation>
 import { PrismaService } from "src/shared/db/prisma.service";
 // biome-ignore lint/style/useImportType: <explanation>
@@ -86,9 +90,10 @@ export class NotificationService {
   }
 
   findAll(userId: string) {
+    assertUserId(userId);
     return this.prismaService.notification.findMany({
       where: {
-        user: { id: userId },
+        to: userId,
         readableAt: null,
       },
       orderBy: { createdAt: "desc" },
@@ -97,7 +102,8 @@ export class NotificationService {
   }
 
   async findAllPaginated(userId: string, page = 1, pageSize = 20) {
-    const where = { user: { id: userId } };
+    assertUserId(userId);
+    const where = { to: userId };
     const [notifications, total, unreadCount] = await Promise.all([
       this.prismaService.notification.findMany({
         where,
@@ -113,19 +119,35 @@ export class NotificationService {
     return { notifications, total, unreadCount };
   }
 
-  async read(id: string) {
-    await this.prismaService.notification.update({
-      where: { id },
+  async read(id: string, userId: string) {
+    assertUserId(userId);
+    const result = await this.prismaService.notification.updateMany({
+      where: { id, to: userId },
       data: { readableAt: new Date() },
     });
+    if (result.count === 0) {
+      throw new NotFoundException(`Notification with id: ${id} not found`);
+    }
   }
 
   async readAll(userId: string) {
+    assertUserId(userId);
     const result = await this.prismaService.notification.updateMany({
-      where: { user: { id: userId }, readableAt: null },
+      where: { to: userId, readableAt: null },
       data: { readableAt: new Date() },
     });
     return { updated: result.count };
+  }
+}
+
+/**
+ * Prisma drops `undefined` filter values instead of failing, so a missing user
+ * id would silently widen these queries to every user's notifications. Every
+ * caller is behind a JWT guard; this is the second line of defence.
+ */
+function assertUserId(userId: string): asserts userId is string {
+  if (!userId) {
+    throw new UnauthorizedException();
   }
 }
 

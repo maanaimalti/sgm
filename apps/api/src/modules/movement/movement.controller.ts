@@ -3,7 +3,6 @@ import {
   Controller,
   Delete,
   Get,
-  Headers,
   Param,
   Post,
   Query,
@@ -12,6 +11,7 @@ import {
 import { AuthGuard } from "@nestjs/passport";
 import { Roles } from "src/shared/auth/roles.decorator";
 import { RolesGuard } from "src/shared/auth/roles.guard";
+import { GetDepartmentId } from "src/shared/decorators/get-department-id";
 import { CreateMovementDto } from "./dto/create-movement.dto";
 import { CreateMovementBatchDto } from "./dto/create-movement-batch.dto";
 // biome-ignore lint/style/useImportType: <explanation>
@@ -46,7 +46,7 @@ export class MovementController {
       pageSize,
       search,
     }: { page?: string | number; pageSize?: string | number; search?: string },
-    @Headers("departmentId") departmentId: string,
+    @GetDepartmentId() departmentId: string,
   ) {
     page = page ? Number.parseInt(page as string) : 1;
     pageSize = pageSize ? Number.parseInt(pageSize as string) : 10;
@@ -69,7 +69,7 @@ export class MovementController {
       pageSize,
       search,
     }: { page?: string | number; pageSize?: string | number; search?: string },
-    @Headers("departmentId") departmentId: string,
+    @GetDepartmentId() departmentId: string,
   ) {
     page = page ? Number.parseInt(page as string) : 1;
     pageSize = pageSize ? Number.parseInt(pageSize as string) : 10;

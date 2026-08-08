@@ -1,6 +1,6 @@
 import { Global, Module } from "@nestjs/common";
 import { ConfigModule, ConfigService } from "@nestjs/config";
-import { JwtModule } from "@nestjs/jwt";
+import { JwtModule, type JwtSignOptions } from "@nestjs/jwt";
 import { PassportModule } from "@nestjs/passport";
 import { AuthController } from "./auth.controller";
 import { AuthService } from "./auth.service";
@@ -20,7 +20,9 @@ import { LocalStrategy } from "./local.strategy";
         if (!secret) {
           throw new Error("JWT_SECRET environment variable is required");
         }
-        return { secret };
+        const expiresIn = (config.get<string>("JWT_EXPIRES_IN") ??
+          "12h") as JwtSignOptions["expiresIn"];
+        return { secret, signOptions: { expiresIn } };
       },
     }),
   ],
