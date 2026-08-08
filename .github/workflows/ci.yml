@@ -1,0 +1,37 @@
+name: CI
+
+# Runs on every pull request, and is called by deploy-api.yml as a gate before
+# the EasyPanel deploy hook fires. Needs no secrets: `prisma generate` requires
+# a valid schema but not a live database.
+on:
+  pull_request:
+  workflow_call:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # Also runs @sgm/shared's `prepare` (builds dist/) and @sgm/api's
+      # `postinstall` (prisma generate).
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm typecheck
+
+      - run: pnpm --filter @sgm/api test
+
+      - run: pnpm build:api
+
+      - run: pnpm build:web
+        env:
+          NEXT_PUBLIC_BASE_URL: http://localhost:3000

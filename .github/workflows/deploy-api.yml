@@ -16,7 +16,11 @@ on:
       - ".github/workflows/deploy-api.yml"
 
 jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
   deploy:
+    needs: ci
     runs-on: ubuntu-latest
     steps:
       - name: Trigger EasyPanel deploy
