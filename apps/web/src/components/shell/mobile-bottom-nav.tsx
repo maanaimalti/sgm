@@ -27,25 +27,10 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useSidebar } from "@/hooks/pages/use-sidebar";
-import { useJwt } from "@/hooks/use-jwt";
-import { unsubscribeFromPush } from "@/lib/push";
+import { useAuth } from "@/hooks/use-auth";
+import { signOut } from "@/lib/auth/sign-out";
+import { roleLabel } from "@/lib/roles";
 import { cn } from "@/lib/utils";
-
-interface UserData {
-  username: string;
-  name?: string;
-  sub: string;
-  roles: string[];
-}
-
-const roleLabel = (roles: string[] | undefined): string => {
-  if (!roles?.length) return "";
-  if (roles.includes("admin")) return "Administrador";
-  if (roles.includes("manager")) return "Gerente";
-  if (roles.includes("kitchen")) return "Cozinha";
-  if (roles.includes("buyer")) return "Compras";
-  return roles[0];
-};
 
 type IconType = React.ComponentType<{ size?: number; strokeWidth?: number }>;
 
@@ -71,12 +56,12 @@ export function MobileBottomNav() {
   const pathname = usePathname();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const userData = useJwt<UserData>("accessToken");
+  const { user } = useAuth();
   const { isKitchen, isAdmin, isBuyer, isManager } = useSidebar();
   const [menuOpen, setMenuOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
 
-  const userName = userData?.name || userData?.username || "Usuário";
+  const userName = user?.name ?? "Usuário";
   // Kitchen/admin manage stock; manager/buyer get a Notificações tab in that
   // slot instead (Cadastros/Operação stay kitchen/admin only, per the sidebar).
   const canSeeStock = isKitchen || isAdmin;
@@ -127,11 +112,7 @@ export function MobileBottomNav() {
   }
 
   const handleLogout = async () => {
-    await unsubscribeFromPush().catch(() => undefined);
-    localStorage.removeItem("accessToken");
-    document.cookie =
-      "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    queryClient.clear();
+    await signOut(queryClient);
     setMenuOpen(false);
     router.push("/");
   };
@@ -232,7 +213,7 @@ export function MobileBottomNav() {
                   {userName}
                 </div>
                 <div className="text-[12px] text-muted">
-                  {roleLabel(userData?.roles)}
+                  {roleLabel(user?.roles)}
                 </div>
               </div>
             </div>

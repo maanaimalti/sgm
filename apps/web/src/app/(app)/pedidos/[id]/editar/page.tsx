@@ -6,24 +6,18 @@ import { Button } from "@/components/ui/button";
 import { useToast } from "@/components/ui/use-toast";
 import { GetOrderByIdFetcher } from "@/data/fetchers/orders/get-by-id";
 import { useResubmitOrderPage } from "@/hooks/pages/use-resubmit-order";
-import { useJwt } from "@/hooks/use-jwt";
+import { useAuth } from "@/hooks/use-auth";
 import { useQuery } from "@tanstack/react-query";
 import { ChevronLeft, Loader2 } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
-
-interface UserData {
-  username: string;
-  sub: string;
-  roles: string[];
-}
 
 const EditOrderPage = () => {
   const params = useParams();
   const id = String(params?.id ?? "");
   const router = useRouter();
   const { toast } = useToast();
-  const userData = useJwt<UserData>("accessToken");
+  const { user } = useAuth();
 
   const orderQuery = useQuery({
     queryKey: ["order", id],
@@ -34,8 +28,8 @@ const EditOrderPage = () => {
   const form = useResubmitOrderPage(id, orderQuery.data);
 
   useEffect(() => {
-    if (!orderQuery.data || !userData) return;
-    const isCreator = orderQuery.data.user.id === userData.sub;
+    if (!orderQuery.data || !user) return;
+    const isCreator = orderQuery.data.user.id === user.id;
     const isRejected = orderQuery.data.status === "REJECTED";
     if (!isCreator || !isRejected) {
       toast({
@@ -44,7 +38,7 @@ const EditOrderPage = () => {
       });
       router.replace(`/pedidos/${id}`);
     }
-  }, [orderQuery.data, userData, id, router, toast]);
+  }, [orderQuery.data, user, id, router, toast]);
 
   return (
     <main className="flex flex-1 flex-col">

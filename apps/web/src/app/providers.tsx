@@ -1,5 +1,6 @@
 "use client";
 
+import { AuthProvider } from "@/providers/auth-provider";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 function makeQueryClient() {
@@ -25,7 +26,12 @@ function getQueryClient() {
 export default function Providers({ children }: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
 
+  // AuthProvider sits inside QueryClientProvider because it uses useQuery, and
+  // it wraps the login page too — that is how ["auth","me"] gets primed by the
+  // SIGNED_IN event before the redirect to /pedidos.
   return (
-    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>{children}</AuthProvider>
+    </QueryClientProvider>
   );
 }

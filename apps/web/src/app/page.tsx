@@ -6,8 +6,8 @@ import {
   Eye,
   EyeOff,
   LoaderCircleIcon,
+  Mail,
   Shield,
-  User,
 } from "lucide-react";
 import { useState } from "react";
 
@@ -92,7 +92,7 @@ export default function LoginPage() {
             Entre na sua conta
           </h1>
           <p className="mt-1.5 text-[14px] text-muted">
-            Use o usuário fornecido pela administração.
+            Use o e-mail cadastrado pela administração.
           </p>
 
           <Form {...form}>
@@ -102,16 +102,18 @@ export default function LoginPage() {
             >
               <FormField
                 control={form.control}
-                name="username"
+                name="email"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel htmlFor="username">Nome de usuário</FormLabel>
+                    <FormLabel htmlFor="email">E-mail</FormLabel>
                     <FormControl>
-                      <InputGroup leading={<User size={15} />}>
+                      <InputGroup leading={<Mail size={15} />}>
                         <Input
-                          id="username"
-                          autoComplete="username"
-                          placeholder="ex: maria.cozinha"
+                          id="email"
+                          type="email"
+                          inputMode="email"
+                          autoComplete="email"
+                          placeholder="ex: maria@icmalagoas.org.br"
                           disabled={loginMutateIsLoading}
                           {...field}
                         />

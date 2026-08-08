@@ -4,7 +4,7 @@ import {
   type ChangePasswordForm,
   changePasswordSchema,
 } from "@/data/schemas/password-schema";
-import { unsubscribeFromPush } from "@/lib/push";
+import { signOut } from "@/lib/auth/sign-out";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { AxiosError } from "axios";
@@ -41,13 +41,10 @@ export const useChangePassword = (onDone?: () => void) => {
       });
     },
     onSuccess: async () => {
-      // The API retires every token issued before the change, so this session
-      // is already dead — end it here instead of letting the next request 401.
-      await unsubscribeFromPush().catch(() => undefined);
-      localStorage.removeItem("accessToken");
-      document.cookie =
-        "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-      queryClient.clear();
+      // Supabase revokes the refresh token on a password change, so this
+      // session is already dead — end it here instead of letting the next
+      // request 401.
+      await signOut(queryClient);
       onDone?.();
       toast({
         title: "Senha alterada",

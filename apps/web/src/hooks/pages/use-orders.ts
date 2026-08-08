@@ -6,8 +6,8 @@ import type { OrderStatus } from "@sgm/shared";
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
+import { useRoles } from "../use-auth";
 import { useDebounce } from "../use-debounce";
-import { useJwt } from "../use-jwt";
 
 const PAGE_SIZE = 10;
 
@@ -15,7 +15,7 @@ export const useOrdersPage = () => {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const userData = useJwt<UserData>("accessToken");
+  const { isAdmin, isManager, isKitchen, isBuyer } = useRoles();
   const { toast } = useToast();
 
   const urlPage = Number.parseInt(searchParams.get("page") ?? "1", 10) || 1;
@@ -158,15 +158,9 @@ export const useOrdersPage = () => {
     currentStatus: urlStatus,
     searchInput,
     stats: stats.data,
-    isAdmin: userData?.roles.includes("admin"),
-    isManager: userData?.roles.includes("manager"),
-    isKitchen: userData?.roles.includes("kitchen"),
-    isBuyer: userData?.roles.includes("buyer"),
+    isAdmin,
+    isManager,
+    isKitchen,
+    isBuyer,
   };
 };
-
-interface UserData {
-  username: string;
-  sub: string;
-  roles: string[];
-}

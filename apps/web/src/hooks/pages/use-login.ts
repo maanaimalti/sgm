@@ -1,46 +1,78 @@
 import { useToast } from "@/components/ui/use-toast";
-import { loginMutation } from "@/data/mutations/login";
+import { GetAuthMeFetcher, authMeQueryKey } from "@/data/fetchers/auth/me";
 import { type LoginForm, loginSchema } from "@/data/schemas/login-schema";
+import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMutation } from "@tanstack/react-query";
-import type { AxiosError } from "axios";
-import { jwtDecode } from "jwt-decode";
+import { type AuthError, isAuthApiError } from "@supabase/supabase-js";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
+
+/**
+ * Matching on `code` rather than `message`: the message is localizable and has
+ * changed between GoTrue versions, so both are checked.
+ */
+function describe(error: AuthError): { title: string; description: string } {
+  if (
+    isAuthApiError(error) &&
+    (error.code === "invalid_credentials" ||
+      error.message === "Invalid login credentials")
+  ) {
+    return {
+      title: "E-mail ou senha inválidos",
+      description: "Verifique o e-mail e a senha e tente de novo",
+    };
+  }
+
+  if (error.code === "email_not_confirmed") {
+    return {
+      title: "Conta não confirmada",
+      description: "Fale com um administrador para liberar o acesso",
+    };
+  }
+
+  if (error.status === 429 || error.code === "over_request_rate_limit") {
+    return {
+      title: "Muitas tentativas",
+      description: "Espere um minuto antes de tentar de novo",
+    };
+  }
+
+  return {
+    title: "Erro ao fazer login",
+    description: "Tente novamente mais tarde",
+  };
+}
 
 export const useLogin = () => {
   const { toast } = useToast();
   const router = useRouter();
+  const queryClient = useQueryClient();
 
   const loginMutate = useMutation({
     mutationKey: ["login"],
-    mutationFn: loginMutation,
-    onError: (error: AxiosError) => {
-      if (error?.response?.status === 401) {
-        toast({
-          title: "Usuario ou senha inválidos",
-          description: "Verifique seu nome de usuário e senha",
-          duration: 5000,
-          variant: "destructive",
+    mutationFn: async ({ email, password }: LoginForm) => {
+      const { data, error } =
+        await getSupabaseBrowserClient().auth.signInWithPassword({
+          email: email.trim().toLowerCase(),
+          password,
         });
-      } else {
-        toast({
-          title: "Erro ao fazer login",
-          description: "Tente novamente mais tarde",
-          duration: 5000,
-          variant: "destructive",
-        });
-      }
+      // supabase-js resolves with the error instead of throwing it.
+      if (error) throw error;
+      return data;
     },
-    onSuccess: (data) => {
-      localStorage.setItem("accessToken", data.accessToken);
-      const { exp } = jwtDecode<{ exp?: number }>(data.accessToken);
-      const expires = exp
-        ? `; expires=${new Date(exp * 1000).toUTCString()}`
-        : "";
-      const secure = window.location.protocol === "https:" ? "; Secure" : "";
-      document.cookie = `accessToken=${data.accessToken}; path=/; SameSite=Lax${expires}${secure}`;
-      router.push("/pedidos");
+    onError: (error: AuthError) => {
+      toast({ ...describe(error), duration: 5000, variant: "destructive" });
+    },
+    onSuccess: async () => {
+      // Warms the identity before navigating, so the shell renders with roles
+      // already in hand instead of flashing an empty menu.
+      await queryClient.prefetchQuery({
+        queryKey: authMeQueryKey,
+        queryFn: GetAuthMeFetcher,
+      });
+      // replace, not push: Back should not return to the login screen.
+      router.replace("/pedidos");
     },
   });
 
