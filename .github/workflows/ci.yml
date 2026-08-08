@@ -1,0 +1,36 @@
+name: CI
+
+# Also exposed as a reusable workflow so deploy-api.yml can gate on it —
+# `needs:` cannot reference a job in another workflow file.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_call:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    env:
+      # prisma generate reads the datasource url from the env even though it
+      # never connects; the web build inlines its public base url at compile time.
+      DATABASE_URL: mysql://ci:ci@localhost:3306/ci
+      NEXT_PUBLIC_BASE_URL: http://localhost:3333
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      # Builds packages/shared (prepare) and runs prisma generate (postinstall).
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm typecheck
+      - run: pnpm lint:ci
+      - run: pnpm test
+      - run: pnpm build:api
+      - run: pnpm build:web

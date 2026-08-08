@@ -11,6 +11,8 @@
     "build:shared": "pnpm --filter @sgm/shared build",
     "lint:api": "pnpm --filter @sgm/api lint",
     "lint:web": "pnpm --filter @sgm/web lint",
+    "lint:ci": "pnpm --filter @sgm/api lint:ci && pnpm --filter @sgm/web lint:ci",
+    "test": "pnpm --filter @sgm/api test",
     "typecheck": "pnpm -r typecheck"
   }
 }
