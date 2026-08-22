@@ -33,5 +33,21 @@ export const resetPasswordSchema = z
     path: ["confirmPassword"],
   });
 
+/**
+ * Same shape as resetPasswordSchema, kept separate because the two are read by
+ * different people: an admin typing a password for someone else, and someone
+ * choosing their own after an invite.
+ */
+export const setPasswordSchema = z
+  .object({
+    newPassword: password,
+    confirmPassword: z.string({ message: "Confirme a nova senha" }),
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: "As senhas não conferem",
+    path: ["confirmPassword"],
+  });
+
 export type ChangePasswordForm = z.infer<typeof changePasswordSchema>;
 export type ResetPasswordForm = z.infer<typeof resetPasswordSchema>;
+export type SetPasswordForm = z.infer<typeof setPasswordSchema>;

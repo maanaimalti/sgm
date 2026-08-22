@@ -1,6 +1,7 @@
 import { useToast } from "@/components/ui/use-toast";
 import { authMeQueryKey } from "@/data/fetchers/auth/me";
 import { GetAllUsersFetcher } from "@/data/fetchers/users/get-all";
+import { resendUserInviteMutation } from "@/data/mutations/resend-user-invite";
 import { resetUserPasswordMutation } from "@/data/mutations/reset-user-password";
 import { updateUserEmailMutation } from "@/data/mutations/update-user-email";
 import {
@@ -72,9 +73,41 @@ export const useUsersPage = () => {
     onSuccess: () => {
       toast({
         title: "Senha redefinida",
-        description: `${target?.name} precisará entrar novamente com a nova senha.`,
+        description: `${target?.name} entra com a nova senha e escolhe a própria em seguida.`,
       });
+      // The reset also flags the user as owing a password, and the badge on
+      // this screen reads that flag.
+      queryClient.invalidateQueries({ queryKey: ["users"] });
       closeReset();
+    },
+  });
+
+  const resendInvite = useMutation({
+    mutationFn: (user: UserListItem) => resendUserInviteMutation(user.id),
+    onError: (error: AxiosError<{ message?: string }>) => {
+      toast({
+        title:
+          error?.response?.status === 429
+            ? "Espere um pouco"
+            : "Erro ao reenviar o convite",
+        description:
+          error?.response?.data?.message ?? "Tente novamente mais tarde",
+        variant: "destructive",
+      });
+    },
+    onSuccess: (result, user) => {
+      toast({
+        title:
+          result.channel === "invite"
+            ? "Convite reenviado"
+            : "Link de redefinição enviado",
+        description:
+          result.channel === "invite"
+            ? `${user.name} vai receber um novo e-mail para definir a senha.`
+            : `${user.name} já tinha aceitado o convite, então enviamos um link para redefinir a senha.`,
+        duration: 6000,
+      });
+      queryClient.invalidateQueries({ queryKey: ["users"] });
     },
   });
 
@@ -142,10 +175,16 @@ export const useUsersPage = () => {
     [data],
   );
 
+  const pendingInviteCount = useMemo(
+    () => (data ?? []).filter((user) => user.mustSetPassword).length,
+    [data],
+  );
+
   return {
     users,
     total: data?.length ?? 0,
     placeholderCount,
+    pendingInviteCount,
     isLoading,
     q,
     setQ,
@@ -166,5 +205,9 @@ export const useUsersPage = () => {
     editTarget,
     openEdit,
     closeEdit,
+    resendInvite: (user: UserListItem) => resendInvite.mutate(user),
+    resendingInviteId: resendInvite.isPending
+      ? (resendInvite.variables?.id ?? null)
+      : null,
   };
 };

@@ -9,9 +9,10 @@ import {
   Mail,
   Shield,
 } from "lucide-react";
-import { useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useState } from "react";
 
-import { Logo } from "@/components/ui-ext/brand-mark";
+import { AuthBrandPanel } from "@/components/ui-ext/auth-brand-panel";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -24,70 +25,38 @@ import {
 import { Input, InputGroup } from "@/components/ui/input";
 import { useLogin } from "@/hooks/pages/use-login";
 
+/**
+ * /auth/confirm sends people here with ?erro=link-invalido when a token is
+ * expired or already spent. Reading it needs useSearchParams, which forces a
+ * Suspense boundary — hence the split from the page component.
+ */
+function ExpiredLinkNotice() {
+  const isInvalidLink = useSearchParams().get("erro") === "link-invalido";
+  if (!isInvalidLink) return null;
+
+  return (
+    <div className="flex items-start gap-2.5 px-3.5 py-3 mb-5 rounded-2 border border-bad/30 bg-bad-soft text-[12.5px] leading-[1.5] text-bad-ink">
+      <AlertCircle size={14} className="shrink-0 mt-0.5" />
+      <span>
+        O link expirou ou já foi usado. Peça um novo convite ao administrador.
+      </span>
+    </div>
+  );
+}
+
 export default function LoginPage() {
   const { form, loginMutateIsLoading, onSubmit } = useLogin();
   const [showPw, setShowPw] = useState(false);
 
   return (
     <div className="grid min-h-[100dvh] grid-cols-1 md:grid-cols-[5fr_6fr]">
-      <section
-        aria-hidden="false"
-        className="relative flex flex-col justify-between p-8 md:p-12 overflow-hidden md:min-h-screen min-h-[260px]"
-        style={{
-          background: "linear-gradient(180deg, #f9efe9 0%, #f4ebe5 100%)",
-        }}
-      >
-        <svg
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full pointer-events-none"
-          viewBox="0 0 600 800"
-          preserveAspectRatio="xMidYMid slice"
-          style={{ opacity: 0.18 }}
-        >
-          <path
-            d="M-50 600 C 100 300, 300 200, 650 250"
-            stroke="#ab2c2c"
-            strokeWidth="1.5"
-            fill="none"
-          />
-          <path
-            d="M-30 700 C 120 420, 320 320, 680 360"
-            stroke="#ab2c2c"
-            strokeWidth="1"
-            fill="none"
-          />
-          <ellipse
-            cx="450"
-            cy="180"
-            rx="140"
-            ry="60"
-            transform="rotate(-25 450 180)"
-            stroke="#ab2c2c"
-            strokeWidth="1"
-            fill="none"
-          />
-        </svg>
-        <div className="relative z-10">
-          <Logo width={200} priority />
-        </div>
-        <div className="relative z-10 max-w-[380px]">
-          <h1 className="font-serif text-[36px] md:text-[48px] leading-[1.05] tracking-[-0.02em] text-ink">
-            Estoque e pedidos
-            <br />
-            <span className="italic text-[#ab2c2c]">do começo ao fim.</span>
-          </h1>
-          <p className="mt-4 text-[14px] leading-[1.55] text-ink-2 max-w-[320px]">
-            Sistema interno de gestão do Maanaim de Alagoas. Cozinha, compras e
-            administração no mesmo lugar.
-          </p>
-        </div>
-        <div className="relative z-10 flex gap-6 text-[12px] text-muted">
-          © Maanaim de Alagoas · v2.0
-        </div>
-      </section>
+      <AuthBrandPanel />
 
       <section className="flex items-center justify-center p-6 md:p-10 bg-surface">
         <div className="w-full max-w-[360px]">
+          <Suspense fallback={null}>
+            <ExpiredLinkNotice />
+          </Suspense>
           <h1 className="font-serif text-[32px] tracking-[-0.02em] text-ink">
             Entre na sua conta
           </h1>

@@ -8,6 +8,8 @@ import {
   KeyRound,
   LoaderCircleIcon,
   Mail,
+  MailPlus,
+  MoreHorizontal,
   Pencil,
   Plus,
   Search,
@@ -32,6 +34,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Form,
   FormControl,
@@ -60,6 +68,7 @@ const UsersPageInner = () => {
   const {
     users,
     placeholderCount,
+    pendingInviteCount,
     isLoading,
     q,
     setQ,
@@ -78,6 +87,8 @@ const UsersPageInner = () => {
     editTarget,
     openEdit,
     closeEdit,
+    resendInvite,
+    resendingInviteId,
   } = useUsersPage();
 
   // Convenience, not security — the API's @Roles("admin") is what actually
@@ -125,6 +136,18 @@ const UsersPageInner = () => {
           </div>
         )}
 
+        {pendingInviteCount > 0 && (
+          <div className="flex items-start gap-2.5 px-4 py-3 bg-soft border border-line rounded-2 text-[13px] text-ink-2 leading-[1.5]">
+            <MailPlus size={15} className="shrink-0 mt-0.5" />
+            <span>
+              {pendingInviteCount === 1
+                ? "1 usuário ainda não definiu a senha"
+                : `${pendingInviteCount} usuários ainda não definiram a senha`}
+              . Use “Reenviar convite” se o e-mail não chegou.
+            </span>
+          </div>
+        )}
+
         {showEmpty ? (
           <EmptyState
             icon={q ? Search : Users}
@@ -147,7 +170,7 @@ const UsersPageInner = () => {
                   <TableHead>E-mail</TableHead>
                   <TableHead>Papéis</TableHead>
                   <TableHead>Setores</TableHead>
-                  <TableHead className="w-[340px] text-right">Ações</TableHead>
+                  <TableHead className="w-[180px] text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               {isLoading ? (
@@ -157,7 +180,12 @@ const UsersPageInner = () => {
                   {users.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="font-medium text-ink">
-                        {user.name}
+                        <span className="flex items-center gap-1.5">
+                          {user.name}
+                          {user.mustSetPassword && (
+                            <Badge variant="secondary">convite pendente</Badge>
+                          )}
+                        </span>
                       </TableCell>
                       <TableCell className="font-mono text-[12.5px] text-ink-2">
                         {user.username}
@@ -199,22 +227,49 @@ const UsersPageInner = () => {
                           <Pencil size={14} className="mr-1.5" />
                           Editar
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openEmail(user)}
-                        >
-                          <Mail size={14} className="mr-1.5" />
-                          E-mail
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => openReset(user)}
-                        >
-                          <KeyRound size={14} className="mr-1.5" />
-                          Redefinir senha
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              aria-label={`Mais ações para ${user.name}`}
+                            >
+                              {resendingInviteId === user.id ? (
+                                <LoaderCircleIcon
+                                  size={14}
+                                  className="animate-spin"
+                                />
+                              ) : (
+                                <MoreHorizontal size={14} />
+                              )}
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onSelect={() => resendInvite(user)}
+                              disabled={
+                                isPlaceholderEmail(user.email) ||
+                                resendingInviteId === user.id
+                              }
+                              title={
+                                isPlaceholderEmail(user.email)
+                                  ? "Endereço provisório não recebe e-mail — troque pelo e-mail real primeiro."
+                                  : undefined
+                              }
+                            >
+                              <MailPlus size={14} className="mr-2" />
+                              Reenviar convite
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => openEmail(user)}>
+                              <Mail size={14} className="mr-2" />
+                              Trocar e-mail
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onSelect={() => openReset(user)}>
+                              <KeyRound size={14} className="mr-2" />
+                              Redefinir senha
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </TableCell>
                     </TableRow>
                   ))}
