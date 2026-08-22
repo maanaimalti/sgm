@@ -27,6 +27,19 @@ export const createUserSchema = z.object({
     .min(1, { message: "Escolha ao menos um setor" }),
 });
 
+export const updateUserSchema = z.object({
+  name: z
+    .string({ message: "Nome é obrigatório" })
+    .min(3, { message: "Nome deve ter no mínimo 3 caracteres" })
+    .max(120, { message: "Nome deve ter no máximo 120 caracteres" }),
+  roles: z
+    .array(z.enum(ROLES))
+    .min(1, { message: "Escolha ao menos um papel" }),
+  departmentIds: z
+    .array(z.string())
+    .min(1, { message: "Escolha ao menos um setor" }),
+});
+
 export const updateUserEmailSchema = z.object({
   email: z
     .string({ message: "E-mail é obrigatório" })
@@ -35,4 +48,5 @@ export const updateUserEmailSchema = z.object({
 });
 
 export type CreateUserForm = z.infer<typeof createUserSchema>;
+export type UpdateUserForm = z.infer<typeof updateUserSchema>;
 export type UpdateUserEmailForm = z.infer<typeof updateUserEmailSchema>;

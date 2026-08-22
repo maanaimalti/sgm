@@ -28,6 +28,7 @@ export const useUsersPage = () => {
   const debouncedQ = useDebounce(q, 300);
   const [target, setTarget] = useState<UserListItem | null>(null);
   const [emailTarget, setEmailTarget] = useState<UserListItem | null>(null);
+  const [editTarget, setEditTarget] = useState<UserListItem | null>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ["users"],
@@ -117,6 +118,10 @@ export const useUsersPage = () => {
     setEmailTarget(user);
   };
 
+  const openEdit = (user: UserListItem) => setEditTarget(user);
+
+  const closeEdit = () => setEditTarget(null);
+
   const users = useMemo(() => {
     const all = data ?? [];
     if (!debouncedQ) return all;
@@ -158,5 +163,8 @@ export const useUsersPage = () => {
     onSubmitEmail: emailForm.handleSubmit((values) =>
       updateEmail.mutate(values),
     ),
+    editTarget,
+    openEdit,
+    closeEdit,
   };
 };

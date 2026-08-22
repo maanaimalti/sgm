@@ -8,6 +8,7 @@ import {
   KeyRound,
   LoaderCircleIcon,
   Mail,
+  Pencil,
   Plus,
   Search,
   Users,
@@ -48,8 +49,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EditUserDialog } from "@/components/usuarios/edit-user-dialog";
 import { useUsersPage } from "@/hooks/pages/use-users";
 import { useRoles } from "@/hooks/use-auth";
+import { roleLabel } from "@/lib/roles";
 
 const UsersPageInner = () => {
   const router = useRouter();
@@ -72,6 +75,9 @@ const UsersPageInner = () => {
     closeEmail,
     isUpdatingEmail,
     onSubmitEmail,
+    editTarget,
+    openEdit,
+    closeEdit,
   } = useUsersPage();
 
   // Convenience, not security — the API's @Roles("admin") is what actually
@@ -141,7 +147,7 @@ const UsersPageInner = () => {
                   <TableHead>E-mail</TableHead>
                   <TableHead>Papéis</TableHead>
                   <TableHead>Setores</TableHead>
-                  <TableHead className="w-[250px] text-right">Ações</TableHead>
+                  <TableHead className="w-[340px] text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               {isLoading ? (
@@ -176,7 +182,7 @@ const UsersPageInner = () => {
                         <span className="flex flex-wrap gap-1">
                           {user.roles.map((role) => (
                             <Badge key={role} variant="default">
-                              {role}
+                              {roleLabel([role])}
                             </Badge>
                           ))}
                         </span>
@@ -185,6 +191,14 @@ const UsersPageInner = () => {
                         {user.departments.map((d) => d.name).join(", ") || "—"}
                       </TableCell>
                       <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => openEdit(user)}
+                        >
+                          <Pencil size={14} className="mr-1.5" />
+                          Editar
+                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -344,6 +358,11 @@ const UsersPageInner = () => {
           </Form>
         </DialogContent>
       </Dialog>
+      <EditUserDialog
+        user={editTarget}
+        open={editTarget !== null}
+        onOpenChange={(open) => !open && closeEdit()}
+      />
     </main>
   );
 };
