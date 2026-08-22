@@ -12,6 +12,8 @@ import { orderStatus, reportStatus, reportType } from "@prisma/client";
 import { PrismaService } from "src/shared/db/prisma.service";
 // biome-ignore lint/style/useImportType: <explanation>
 import { HelpersService } from "src/shared/helpers/helpers.service";
+// biome-ignore lint/style/useImportType: Nest DI requires the runtime class.
+import { SupabaseAdminService } from "src/shared/supabase/supabase-admin.service";
 // biome-ignore lint/style/useImportType: <explanation>
 import { UploadFileService } from "src/shared/upload/upload-file.service";
 // biome-ignore lint/style/useImportType: <explanation>
@@ -36,6 +38,7 @@ export class OrdersService {
     private readonly uploadFileService: UploadFileService,
     private readonly notificationService: NotificationService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly supabase: SupabaseAdminService,
   ) {}
 
   async create(createOrderDto: CreateOrderDto) {
@@ -91,17 +94,12 @@ export class OrdersService {
     friendlyCode: string | null,
   ) {
     try {
-      const recipients = await this.prismaService.user.findMany({
-        where: {
-          roles: { some: { name: { in: APPROVER_ROLES } } },
-        },
-        select: { id: true },
-      });
+      const recipients = await this.supabase.findUserIdsByRole(APPROVER_ROLES);
       const code = friendlyCode ?? `#${orderId.slice(0, 6)}`;
       await Promise.all(
-        recipients.map((r) =>
+        recipients.map((recipientId) =>
           this.notificationService.create({
-            to: r.id,
+            to: recipientId,
             type: "PENDING_ORDER",
             text: `Pedido ${code} aguarda aprovação.`,
             metadata: JSON.stringify({ orderId }),
@@ -118,17 +116,12 @@ export class OrdersService {
     friendlyCode: string | null,
   ) {
     try {
-      const recipients = await this.prismaService.user.findMany({
-        where: {
-          roles: { some: { name: { in: APPROVER_ROLES } } },
-        },
-        select: { id: true },
-      });
+      const recipients = await this.supabase.findUserIdsByRole(APPROVER_ROLES);
       const code = friendlyCode ?? `#${orderId.slice(0, 6)}`;
       await Promise.all(
-        recipients.map((r) =>
+        recipients.map((recipientId) =>
           this.notificationService.create({
-            to: r.id,
+            to: recipientId,
             type: "ORDER_RESUBMITTED",
             text: `Pedido ${code} foi reenviado após rejeição.`,
             metadata: JSON.stringify({ orderId }),

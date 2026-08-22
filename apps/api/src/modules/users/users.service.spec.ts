@@ -9,7 +9,6 @@ const dto: CreateUserDto = {
   name: "Maria",
   username: "maria",
   email: "maria@icmalagoas.org.br",
-  password: "segredo",
   roles: ["buyer"],
   departmentIds: ["dept-1"],
 };
@@ -19,8 +18,14 @@ const row = {
   name: "Maria",
   username: "maria",
   email: "maria@icmalagoas.org.br",
-  roles: [{ name: "buyer" }],
-  department: [{ id: "dept-1", name: "Cozinha" }],
+  mustSetPassword: true,
+};
+
+/** What the auth account carries — roles and setores live there now. */
+const metadata = {
+  app_user_id: "01JULID",
+  roles: ["buyer"],
+  department_ids: ["dept-1"],
 };
 
 interface Overrides {
@@ -30,6 +35,7 @@ interface Overrides {
   update?: jest.Mock;
   count?: jest.Mock;
   departmentCount?: jest.Mock;
+  departmentFindMany?: jest.Mock;
   supabase?: Partial<Record<keyof SupabaseAdminService, jest.Mock>>;
 }
 
@@ -44,13 +50,22 @@ function build(overrides: Overrides = {}) {
     },
     department: {
       count: overrides.departmentCount ?? jest.fn().mockResolvedValue(1),
+      findMany:
+        overrides.departmentFindMany ??
+        jest.fn().mockResolvedValue([{ id: "dept-1", name: "Cozinha" }]),
     },
   } as unknown as PrismaService;
 
   const supabase = {
-    createUser: jest.fn().mockResolvedValue({ id: "uuid-1" }),
+    inviteUserByEmail: jest.fn().mockResolvedValue({ id: "uuid-1" }),
+    sendPasswordRecovery: jest.fn().mockResolvedValue(undefined),
     updateUserById: jest.fn().mockResolvedValue(undefined),
     deleteUser: jest.fn().mockResolvedValue(undefined),
+    setAppMetadata: jest.fn().mockResolvedValue(undefined),
+    revokeSessions: jest.fn().mockResolvedValue(undefined),
+    invalidateUserCache: jest.fn(),
+    findAppMetadata: jest.fn().mockResolvedValue(metadata),
+    findUserIdsByRole: jest.fn().mockResolvedValue(["01JULID", "other"]),
     ...overrides.supabase,
   } as unknown as SupabaseAdminService;
 
@@ -58,11 +73,15 @@ function build(overrides: Overrides = {}) {
     generateId: jest.fn().mockReturnValue("01JULID"),
   } as unknown as HelpersService;
 
-  return { service: new UsersService(prisma, helpers, supabase), supabase };
+  return {
+    service: new UsersService(prisma, helpers, supabase),
+    supabase,
+    prisma,
+  };
 }
 
 describe("UsersService.create", () => {
-  it("creates the auth account and the local row, and returns the list shape", async () => {
+  it("invites the account and creates the local row, and returns the list shape", async () => {
     const { service, supabase } = build();
 
     await expect(service.create(dto)).resolves.toEqual({
@@ -72,11 +91,33 @@ describe("UsersService.create", () => {
       email: "maria@icmalagoas.org.br",
       roles: ["buyer"],
       departments: [{ id: "dept-1", name: "Cozinha" }],
+      mustSetPassword: true,
     });
-    expect(supabase.createUser).toHaveBeenCalledWith({
-      email: dto.email,
-      password: dto.password,
-    });
+    expect(supabase.inviteUserByEmail).toHaveBeenCalledWith(dto.email);
+  });
+
+  it("marks the new row as still owing a password", async () => {
+    const create = jest.fn().mockResolvedValue(row);
+    const { service } = build({ create });
+
+    await service.create(dto);
+
+    expect(create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ mustSetPassword: true }),
+      }),
+    );
+  });
+
+  // The six migrated accounts still carry one of these. Inviting them burns
+  // the project's e-mail rate limit and returns a bounce, not an error.
+  it("refuses a placeholder address before touching supabase", async () => {
+    const { service, supabase } = build();
+
+    await expect(
+      service.create({ ...dto, email: "maria@sgm.icmalagoas.org.br" }),
+    ).rejects.toThrow(/provisório/);
+    expect(supabase.inviteUserByEmail).not.toHaveBeenCalled();
   });
 
   // The compensation branch. It has no other way of running before production:
@@ -108,7 +149,7 @@ describe("UsersService.create", () => {
     });
 
     await expect(service.create(dto)).rejects.toBeInstanceOf(ConflictException);
-    expect(supabase.createUser).not.toHaveBeenCalled();
+    expect(supabase.inviteUserByEmail).not.toHaveBeenCalled();
   });
 
   it("names the e-mail when that is what collided", async () => {
@@ -127,34 +168,63 @@ describe("UsersService.create", () => {
     await expect(service.create(dto)).rejects.toBeInstanceOf(
       BadRequestException,
     );
-    expect(supabase.createUser).not.toHaveBeenCalled();
+    expect(supabase.inviteUserByEmail).not.toHaveBeenCalled();
   });
 });
 
 describe("UsersService.update", () => {
-  const admin = { id: "admin-1", roles: [{ name: "admin" }] };
+  const admin = { id: "admin-1", supabaseUserId: "uuid-1" };
+  const adminMetadata = {
+    app_user_id: "admin-1",
+    roles: ["admin"],
+    department_ids: ["dept-1"],
+  };
 
+  // The payload is the full desired list, so removing a role has to be
+  // possible — and app_metadata is overwritten, never merged, for that reason.
   it("replaces the role list rather than adding to it", async () => {
-    const update = jest.fn().mockResolvedValue(row);
+    const setAppMetadata = jest.fn().mockResolvedValue(undefined);
     const { service } = build({
       findUnique: jest.fn().mockResolvedValue(admin),
-      update,
+      supabase: { setAppMetadata },
     });
 
     await service.update("admin-1", { roles: ["admin", "buyer"] }, "admin-1");
 
-    expect(update).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: expect.objectContaining({
-          roles: { set: [{ name: "admin" }, { name: "buyer" }] },
+    expect(setAppMetadata).toHaveBeenCalledWith(
+      "uuid-1",
+      expect.objectContaining({ roles: ["admin", "buyer"] }),
+    );
+  });
+
+  // A partial edit must not silently strip what it did not mention — there is
+  // no row left to fall back on.
+  it("keeps the setores when only the roles are sent", async () => {
+    const setAppMetadata = jest.fn().mockResolvedValue(undefined);
+    const { service } = build({
+      findUnique: jest.fn().mockResolvedValue(admin),
+      supabase: {
+        setAppMetadata,
+        findAppMetadata: jest.fn().mockResolvedValue({
+          app_user_id: "admin-1",
+          roles: ["admin"],
+          department_ids: ["dept-7"],
         }),
-      }),
+      },
+    });
+
+    await service.update("admin-1", { roles: ["admin"] }, "admin-1");
+
+    expect(setAppMetadata).toHaveBeenCalledWith(
+      "uuid-1",
+      expect.objectContaining({ department_ids: ["dept-7"] }),
     );
   });
 
   it("refuses to let an admin demote themselves", async () => {
     const { service } = build({
       findUnique: jest.fn().mockResolvedValue(admin),
+      supabase: { findAppMetadata: jest.fn().mockResolvedValue(adminMetadata) },
     });
 
     await expect(
@@ -165,7 +235,10 @@ describe("UsersService.update", () => {
   it("refuses to demote the last admin in the system", async () => {
     const { service } = build({
       findUnique: jest.fn().mockResolvedValue(admin),
-      count: jest.fn().mockResolvedValue(1),
+      supabase: {
+        findAppMetadata: jest.fn().mockResolvedValue(adminMetadata),
+        findUserIdsByRole: jest.fn().mockResolvedValue(["admin-1"]),
+      },
     });
 
     await expect(
@@ -176,7 +249,10 @@ describe("UsersService.update", () => {
   it("allows demoting an admin while another one remains", async () => {
     const { service } = build({
       findUnique: jest.fn().mockResolvedValue(admin),
-      count: jest.fn().mockResolvedValue(2),
+      supabase: {
+        findAppMetadata: jest.fn().mockResolvedValue(adminMetadata),
+        findUserIdsByRole: jest.fn().mockResolvedValue(["admin-1", "admin-2"]),
+      },
     });
 
     await expect(
@@ -185,17 +261,65 @@ describe("UsersService.update", () => {
   });
 
   it("does not count admins when the target was never one", async () => {
-    const count = jest.fn().mockResolvedValue(1);
+    const findUserIdsByRole = jest.fn().mockResolvedValue(["admin-1"]);
     const { service } = build({
       findUnique: jest
         .fn()
-        .mockResolvedValue({ id: "user-9", roles: [{ name: "buyer" }] }),
-      count,
+        .mockResolvedValue({ id: "user-9", supabaseUserId: "uuid-9" }),
+      supabase: {
+        findUserIdsByRole,
+        findAppMetadata: jest.fn().mockResolvedValue({
+          app_user_id: "user-9",
+          roles: ["buyer"],
+          department_ids: [],
+        }),
+      },
     });
 
     await service.update("user-9", { roles: ["kitchen"] }, "admin-1");
 
-    expect(count).not.toHaveBeenCalled();
+    expect(findUserIdsByRole).not.toHaveBeenCalled();
+  });
+
+  // The whole point of moving authorization onto the token: the edit is
+  // pointless until the token says so, and the old sessions have to go or the
+  // person keeps the old roles until their refresh happens to expire.
+  it("pushes the new roles onto the token and ends the old sessions", async () => {
+    const setAppMetadata = jest.fn().mockResolvedValue(undefined);
+    const revokeSessions = jest.fn().mockResolvedValue(undefined);
+    const { service } = build({
+      findUnique: jest.fn().mockResolvedValue(admin),
+      supabase: {
+        setAppMetadata,
+        revokeSessions,
+        findAppMetadata: jest.fn().mockResolvedValue(adminMetadata),
+      },
+    });
+
+    await service.update("admin-1", { roles: ["admin"] }, "admin-1");
+
+    expect(setAppMetadata).toHaveBeenCalledWith("uuid-1", {
+      app_user_id: "admin-1",
+      roles: ["admin"],
+      department_ids: ["dept-1"],
+    });
+    expect(revokeSessions).toHaveBeenCalledWith("uuid-1");
+  });
+
+  // The local row is already written by then. A 500 here would tell the admin
+  // the edit failed when it did not.
+  it("does not fail the edit when the token write does", async () => {
+    const { service } = build({
+      findUnique: jest.fn().mockResolvedValue(admin),
+      supabase: {
+        findAppMetadata: jest.fn().mockResolvedValue(adminMetadata),
+        setAppMetadata: jest.fn().mockRejectedValue(new Error("auth down")),
+      },
+    });
+
+    await expect(
+      service.update("admin-1", { roles: ["admin"] }, "admin-1"),
+    ).resolves.toBeDefined();
   });
 });
 
@@ -243,6 +367,166 @@ describe("UsersService.updateEmail", () => {
     });
 
     await expect(service.updateEmail("01JULID", "real@b.com")).rejects.toThrow(
+      /auth:provision/,
+    );
+  });
+});
+
+describe("UsersService.resetPassword", () => {
+  const linked = { email: "maria@icmalagoas.org.br", supabaseUserId: "uuid-1" };
+
+  it("marks the password as still owed, so a handed-over one gets replaced", async () => {
+    const update = jest.fn().mockResolvedValue(row);
+    const { service, supabase } = build({
+      findUnique: jest.fn().mockResolvedValue(linked),
+      update,
+    });
+
+    await service.resetPassword("01JULID", "provisoria");
+
+    expect(supabase.updateUserById).toHaveBeenCalledWith("uuid-1", {
+      password: "provisoria",
+    });
+    expect(update).toHaveBeenCalledWith({
+      where: { id: "01JULID" },
+      data: { mustSetPassword: true },
+    });
+  });
+
+  it("skips the flag when the caller opts out", async () => {
+    const update = jest.fn().mockResolvedValue(row);
+    const { service } = build({
+      findUnique: jest.fn().mockResolvedValue(linked),
+      update,
+    });
+
+    await service.resetPassword("01JULID", "provisoria", false);
+
+    expect(update).not.toHaveBeenCalled();
+  });
+
+  // The flag only adds friction. Failing to write it must never fail the reset
+  // itself — this is the break-glass path when no e-mail can be delivered.
+  it("still succeeds when the flag write fails", async () => {
+    const { service } = build({
+      findUnique: jest.fn().mockResolvedValue(linked),
+      update: jest.fn().mockRejectedValue(new Error("db down")),
+    });
+
+    await expect(
+      service.resetPassword("01JULID", "provisoria"),
+    ).resolves.toBeUndefined();
+  });
+});
+
+describe("UsersService.resendInvite", () => {
+  const linked = { email: "maria@icmalagoas.org.br", supabaseUserId: "uuid-1" };
+
+  it("re-sends the invite while the account is unconfirmed", async () => {
+    const { service, supabase } = build({
+      findUnique: jest.fn().mockResolvedValue(linked),
+    });
+
+    await expect(service.resendInvite("01JULID")).resolves.toEqual({
+      ok: true,
+      channel: "invite",
+    });
+    expect(supabase.sendPasswordRecovery).not.toHaveBeenCalled();
+  });
+
+  it("sets the flag before sending, not after", async () => {
+    const update = jest.fn().mockResolvedValue(row);
+    const inviteUserByEmail = jest.fn().mockResolvedValue({ id: "uuid-1" });
+    const { service } = build({
+      findUnique: jest.fn().mockResolvedValue(linked),
+      update,
+      supabase: { inviteUserByEmail },
+    });
+
+    await service.resendInvite("01JULID");
+
+    expect(update.mock.invocationCallOrder[0]).toBeLessThan(
+      inviteUserByEmail.mock.invocationCallOrder[0],
+    );
+  });
+
+  // Once the person accepts an invite they are confirmed, and GoTrue refuses
+  // to invite them again. A recovery link lands on the same screen.
+  it("falls back to a recovery link when the address is already confirmed", async () => {
+    const { service, supabase } = build({
+      findUnique: jest.fn().mockResolvedValue(linked),
+      supabase: {
+        inviteUserByEmail: jest
+          .fn()
+          .mockRejectedValue(new ConflictException("já existe")),
+      },
+    });
+
+    await expect(service.resendInvite("01JULID")).resolves.toEqual({
+      ok: true,
+      channel: "recovery",
+    });
+    expect(supabase.sendPasswordRecovery).toHaveBeenCalledWith(linked.email);
+  });
+
+  it("keeps the flag set on the recovery fallback", async () => {
+    const update = jest.fn().mockResolvedValue(row);
+    const { service } = build({
+      findUnique: jest.fn().mockResolvedValue(linked),
+      update,
+      supabase: {
+        inviteUserByEmail: jest
+          .fn()
+          .mockRejectedValue(new ConflictException("já existe")),
+      },
+    });
+
+    await service.resendInvite("01JULID");
+
+    expect(update).toHaveBeenCalledTimes(1);
+    expect(update).toHaveBeenCalledWith({
+      where: { id: "01JULID" },
+      data: { mustSetPassword: true },
+    });
+  });
+
+  it("puts the flag back when nothing was sent", async () => {
+    const update = jest.fn().mockResolvedValue(row);
+    const { service } = build({
+      findUnique: jest.fn().mockResolvedValue(linked),
+      update,
+      supabase: {
+        inviteUserByEmail: jest.fn().mockRejectedValue(new Error("smtp down")),
+      },
+    });
+
+    await expect(service.resendInvite("01JULID")).rejects.toThrow("smtp down");
+    expect(update).toHaveBeenLastCalledWith({
+      where: { id: "01JULID" },
+      data: { mustSetPassword: false },
+    });
+  });
+
+  it("refuses a placeholder address", async () => {
+    const { service, supabase } = build({
+      findUnique: jest.fn().mockResolvedValue({
+        email: "maria@sgm.icmalagoas.org.br",
+        supabaseUserId: "uuid-1",
+      }),
+    });
+
+    await expect(service.resendInvite("01JULID")).rejects.toThrow(/provisório/);
+    expect(supabase.inviteUserByEmail).not.toHaveBeenCalled();
+  });
+
+  it("refuses a user that was never linked to supabase auth", async () => {
+    const { service } = build({
+      findUnique: jest
+        .fn()
+        .mockResolvedValue({ email: "a@b.com", supabaseUserId: null }),
+    });
+
+    await expect(service.resendInvite("01JULID")).rejects.toThrow(
       /auth:provision/,
     );
   });

@@ -1,6 +1,5 @@
 import { UnauthorizedException } from "@nestjs/common";
 import type { ConfigService } from "@nestjs/config";
-import type { PrismaService } from "../db/prisma.service";
 
 // jwks-rsa pulls in jose, which ships ESM only and that Jest cannot parse under
 // CommonJS. Nothing here verifies a signature — these tests cover the issuer
@@ -43,76 +42,63 @@ describe("JwtStrategy.validate", () => {
     get: () => "https://project.supabase.co",
   } as unknown as ConfigService;
 
-  function strategyFor(user: unknown) {
-    const findUnique = jest.fn().mockResolvedValue(user);
-    const prisma = { user: { findUnique } } as unknown as PrismaService;
-    return { strategy: new JwtStrategy(prisma, config), findUnique };
-  }
+  const strategy = new JwtStrategy(config);
 
-  const row = {
-    id: "01JABCULID",
-    name: "Maria",
-    username: "maria",
-    email: "maria@icmalagoas.org.br",
-    roles: [{ name: "admin" }, { name: "buyer" }],
-    department: [{ id: "dept-1", name: "Cozinha" }],
+  const claims = {
+    sub: "3f1c0d6e-uuid",
+    app_metadata: {
+      app_user_id: "01JABCULID",
+      roles: ["admin", "buyer"],
+      department_ids: ["dept-1"],
+    },
   };
 
-  it("resolves the local user through the supabase link column", async () => {
-    const { strategy, findUnique } = strategyFor(row);
-
-    await strategy.validate({ sub: "3f1c0d6e-uuid" });
-
-    expect(findUnique).toHaveBeenCalledWith(
-      expect.objectContaining({ where: { supabaseUserId: "3f1c0d6e-uuid" } }),
-    );
+  it("authorizes from the token alone", () => {
+    expect(strategy.validate(claims)).toEqual({
+      id: "01JABCULID",
+      roles: ["admin", "buyer"],
+      departmentIds: ["dept-1"],
+    });
   });
 
-  it("returns the ULID as the id, not the supabase uuid", async () => {
-    const { strategy } = strategyFor(row);
-
-    await expect(strategy.validate({ sub: "3f1c0d6e-uuid" })).resolves.toEqual(
+  // `sub` is the Supabase UUID and nothing downstream speaks it — @GetUserId,
+  // every service and every foreign key are ULIDs.
+  it("returns the ULID as the id, not the supabase uuid", () => {
+    expect(strategy.validate(claims)).toEqual(
       expect.objectContaining({ id: "01JABCULID" }),
-    );
-  });
-
-  it("flattens the roles into names, which is what RolesGuard reads", async () => {
-    const { strategy } = strategyFor(row);
-
-    await expect(strategy.validate({ sub: "uuid" })).resolves.toEqual(
-      expect.objectContaining({ roles: ["admin", "buyer"] }),
     );
   });
 
   // GetDepartmentId reads request.user.departmentIds and falls back to the
   // first entry. The web app stopped sending the departmentId header on the
   // strength of that, so this key keeps its exact name.
-  it("still exposes departmentIds for GetDepartmentId", async () => {
-    const { strategy } = strategyFor(row);
-
-    await expect(strategy.validate({ sub: "uuid" })).resolves.toEqual(
+  it("still exposes departmentIds for GetDepartmentId", () => {
+    expect(strategy.validate(claims)).toEqual(
       expect.objectContaining({ departmentIds: ["dept-1"] }),
     );
   });
 
-  it("also exposes the named departments, which GET /auth/me hands the browser", async () => {
-    const { strategy } = strategyFor(row);
-
-    await expect(strategy.validate({ sub: "uuid" })).resolves.toEqual(
-      expect.objectContaining({
-        departments: [{ id: "dept-1", name: "Cozinha" }],
+  it("treats missing role and department claims as empty, not undefined", () => {
+    expect(
+      strategy.validate({
+        sub: "uuid",
+        app_metadata: { app_user_id: "01JABCULID" },
       }),
+    ).toEqual({ id: "01JABCULID", roles: [], departmentIds: [] });
+  });
+
+  // Either the token predates the migration, or the account exists in Supabase
+  // Auth and was never linked to public.users. Both are rejected: letting them
+  // through would mean a signed-in user with no permissions and no explanation.
+  it("rejects a token with no app_user_id claim", () => {
+    expect(() => strategy.validate({ sub: "unlinked-uuid" })).toThrow(
+      UnauthorizedException,
     );
   });
 
-  // The failure mode this migration introduces: an account that exists in
-  // Supabase Auth but was never linked to public.users. Rejecting it is what
-  // turns a missed provisioning run into a loud failure at first login.
-  it("rejects a token whose subject matches no local user", async () => {
-    const { strategy } = strategyFor(null);
-
-    await expect(strategy.validate({ sub: "unlinked-uuid" })).rejects.toThrow(
-      UnauthorizedException,
-    );
+  it("rejects app_metadata that carries roles but no app_user_id", () => {
+    expect(() =>
+      strategy.validate({ sub: "uuid", app_metadata: { roles: ["admin"] } }),
+    ).toThrow(UnauthorizedException);
   });
 });

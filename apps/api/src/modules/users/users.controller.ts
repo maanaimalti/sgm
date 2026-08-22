@@ -57,7 +57,21 @@ export class UsersController {
   @Post(":id/reset-password")
   @HttpCode(200)
   async resetPassword(@Param("id") id: string, @Body() dto: ResetPasswordDto) {
-    await this.usersService.resetPassword(id, dto.newPassword);
+    await this.usersService.resetPassword(
+      id,
+      dto.newPassword,
+      dto.requirePasswordChange,
+    );
     return { ok: true };
+  }
+
+  /**
+   * Re-sends whichever mail the account can still receive — an invite while it
+   * is unconfirmed, a recovery link once the person has accepted one.
+   */
+  @Post(":id/invite")
+  @HttpCode(200)
+  resendInvite(@Param("id") id: string) {
+    return this.usersService.resendInvite(id);
   }
 }

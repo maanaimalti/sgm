@@ -6,6 +6,7 @@ import {
   IsEmail,
   IsIn,
   IsNotEmpty,
+  IsOptional,
   IsString,
   Matches,
   MaxLength,
@@ -41,10 +42,18 @@ export class CreateUserDto {
   @IsEmail({}, { message: "e-mail inválido" })
   email: string;
 
+  /**
+   * Accepted and ignored. Users are created by invitation now and choose their
+   * own password, but the web app keeps sending this field until its own
+   * deploy lands — and the two apps deploy separately, so rejecting it here
+   * would break the form in the window between them. Remove once the web
+   * change is live.
+   */
+  @IsOptional()
   @IsString()
   @MinLength(6)
   @MaxLength(MAX_PASSWORD_LENGTH)
-  password: string;
+  password?: string;
 
   @IsArray()
   @ArrayNotEmpty()

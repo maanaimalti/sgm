@@ -4,8 +4,6 @@ import { ulid } from "ulid";
 
 const prisma = new PrismaClient();
 
-const ROLES = ["admin", "kitchen", "buyer", "manager"] as const;
-
 async function main() {
   const department = await prisma.department.upsert({
     where: { id: "dept-cozinha" },
@@ -17,22 +15,13 @@ async function main() {
     update: {},
   });
 
-  for (const name of ROLES) {
-    await prisma.role.upsert({
-      where: { name },
-      create: { id: ulid(), name },
-      update: {},
-    });
-  }
-
-  const adminRole = await prisma.role.findUniqueOrThrow({
-    where: { name: "admin" },
-  });
-
   const password = await bcrypt.hash("admin123", 10);
   // Supabase Auth keys accounts by e-mail, so the local admin needs one before
   // `auth:provision` can give it something to sign in with.
   const email = "admin@sgm.icmalagoas.org.br";
+  // Papéis e setores não são mais colunas: vivem no app_metadata da conta do
+  // Supabase Auth. O seed só consegue criar a linha — quem dá o papel de admin
+  // é o `users:set-roles`, que precisa da service role key.
   await prisma.user.upsert({
     where: { username: "admin" },
     create: {
@@ -41,15 +30,8 @@ async function main() {
       username: "admin",
       email,
       password,
-      roles: { connect: { id: adminRole.id } },
-      department: { connect: { id: department.id } },
     },
-    update: {
-      email,
-      password,
-      roles: { connect: { id: adminRole.id } },
-      department: { connect: { id: department.id } },
-    },
+    update: { email, password },
   });
 
   await prisma.order_counter.upsert({
@@ -101,7 +83,9 @@ async function main() {
 
   console.log(`Seed complete. Login: ${email} / admin123`);
   console.log(
-    "Rode `pnpm auth:provision` para criar essa conta no Supabase Auth.",
+    "Ainda faltam dois passos — sem eles o admin entra sem enxergar nada:\n" +
+      "  1. pnpm auth:provision            (cria a conta no Supabase Auth)\n" +
+      `  2. pnpm users:set-roles admin admin --setores=${department.id}`,
   );
   console.log(
     `Catalog: categoria "${category.name}", unidade "${unity.name}", produto "${product.name}" (estoque 50).`,

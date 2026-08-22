@@ -1,4 +1,10 @@
 /**
+ * RETIRED — this no longer runs. The Etapa A migration it performed is done and
+ * in production, and the `roles` / `_roleTouser` / `_departmentTouser` tables it
+ * copies were dropped when authorization moved to `auth.users.app_metadata`.
+ * Kept only until the MySQL instance is decommissioned (see the Etapa B
+ * runbook); delete it then rather than porting it.
+ *
  * Copies the legacy MySQL database into Supabase Postgres.
  *
  *   LEGACY_DATABASE_URL=mysql://...  (source, read-only)
