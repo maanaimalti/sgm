@@ -10,13 +10,7 @@ import { generateOrderReportMutation } from "@/data/mutations/generate-order-rep
 import { rejectOrderMutation } from "@/data/mutations/reject-order";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
-import { useJwt } from "../use-jwt";
-
-interface UserData {
-  username: string;
-  sub: string;
-  roles: string[];
-}
+import { useAuth } from "../use-auth";
 
 export const useEditOrderPage = () => {
   const params = useParams();
@@ -24,7 +18,7 @@ export const useEditOrderPage = () => {
   const router = useRouter();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const userData = useJwt<UserData>("accessToken");
+  const { user } = useAuth();
 
   const query = useQuery({
     queryKey: ["order", id],
@@ -114,10 +108,10 @@ export const useEditOrderPage = () => {
     reportUrl,
     reportStale,
     goBack: () => router.back(),
-    currentUserId: userData?.sub,
-    isAdmin: userData?.roles.includes("admin") ?? false,
-    isManager: userData?.roles.includes("manager") ?? false,
-    isBuyer: userData?.roles.includes("buyer") ?? false,
-    isKitchen: userData?.roles.includes("kitchen") ?? false,
+    currentUserId: user?.id,
+    isAdmin: user?.roles.includes("admin") ?? false,
+    isManager: user?.roles.includes("manager") ?? false,
+    isBuyer: user?.roles.includes("buyer") ?? false,
+    isKitchen: user?.roles.includes("kitchen") ?? false,
   };
 };

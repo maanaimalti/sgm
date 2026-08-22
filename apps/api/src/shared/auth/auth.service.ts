@@ -1,108 +1,57 @@
-import {
-  Injectable,
-  NotFoundException,
-  UnauthorizedException,
-} from "@nestjs/common";
-// biome-ignore lint/style/useImportType: <explanation>
-import { JwtService } from "@nestjs/jwt";
-import type { role, user } from "@prisma/client";
-import * as bcrypt from "bcrypt";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 // biome-ignore lint/style/useImportType: <explanation>
 import { PrismaService } from "../db/prisma.service";
-
-const BCRYPT_ROUNDS = 10;
-
-/** A user that passed LocalStrategy — everything but the password hash. */
-export type AuthenticatedUser = Omit<user, "password"> & {
-  roles: role[];
-  department: { id: string; name: string }[];
-};
+// biome-ignore lint/style/useImportType: <explanation>
+import { SupabaseAdminService } from "../supabase/supabase-admin.service";
 
 @Injectable()
 export class AuthService {
   constructor(
     private prismaService: PrismaService,
-    private jwtService: JwtService,
+    private supabase: SupabaseAdminService,
   ) {}
 
-  async validateUser(
-    username: string,
-    password: string,
-  ): Promise<AuthenticatedUser | null> {
-    const user = await this.prismaService.user.findUnique({
-      where: { username },
-      include: {
-        roles: true,
-        department: { select: { id: true, name: true } },
-      },
-    });
-    if (user && (await bcrypt.compare(password, user.password))) {
-      const { password: _, ...result } = user;
-      return result;
-    }
-    return null;
-  }
-
   /**
-   * Mints the token for a user LocalStrategy has already authenticated. It does
-   * not re-check the password — the request no longer carries one, because
-   * validateUser strips the hash before handing the user back.
+   * Supabase owns the password now, but the current-password check stays on the
+   * server. `supabase.auth.updateUser` does not verify it, and the
+   * reauthentication flow Supabase offers instead mails a one-time code — which
+   * is no help to accounts on a placeholder address with no mailbox behind it.
+   * So the check is a sign-in against the anon client, whose session is thrown
+   * away immediately.
    */
-  login(user: AuthenticatedUser) {
-    const payload = {
-      username: user.username,
-      sub: user.id,
-      roles: user.roles.map((role) => role.name),
-      department: user.department,
-    };
-
-    return {
-      accessToken: this.jwtService.sign(payload),
-    };
-  }
-
   async changePassword(
     userId: string,
     currentPassword: string,
     newPassword: string,
   ) {
-    const user = await this.prismaService.user.findUnique({
-      where: { id: userId },
-      select: { password: true },
-    });
-    if (!user) {
-      throw new UnauthorizedException();
-    }
-    if (!(await bcrypt.compare(currentPassword, user.password))) {
+    const user = await this.requireLinkedUser(userId);
+
+    if (!(await this.supabase.verifyPassword(user.email, currentPassword))) {
       throw new UnauthorizedException("Senha atual incorreta");
     }
-    await this.writePassword(userId, newPassword);
-  }
 
-  /** Admin-initiated reset: no knowledge of the current password required. */
-  async resetPassword(userId: string, newPassword: string) {
-    const user = await this.prismaService.user.findUnique({
-      where: { id: userId },
-      select: { id: true },
+    await this.supabase.updateUserById(user.supabaseUserId, {
+      password: newPassword,
     });
-    if (!user) {
-      throw new NotFoundException(`User with id: ${userId} not found`);
-    }
-    await this.writePassword(userId, newPassword);
   }
 
   /**
-   * Stamps `passwordChangedAt` alongside the new hash. JwtStrategy refuses any
-   * token issued before that instant, so a reset takes effect immediately
-   * instead of leaving the old token usable until it expires.
+   * A user with no e-mail or no supabase_user_id has no account to act on. That
+   * is the shape of a half-provisioned row, so it fails loudly rather than
+   * reporting a password change that never happened.
    */
-  private async writePassword(userId: string, newPassword: string) {
-    await this.prismaService.user.update({
+  private async requireLinkedUser(
+    userId: string,
+  ): Promise<{ email: string; supabaseUserId: string }> {
+    const user = await this.prismaService.user.findUnique({
       where: { id: userId },
-      data: {
-        password: await bcrypt.hash(newPassword, BCRYPT_ROUNDS),
-        passwordChangedAt: new Date(),
-      },
+      select: { email: true, supabaseUserId: true },
     });
+
+    if (!user?.email || !user.supabaseUserId) {
+      throw new UnauthorizedException();
+    }
+
+    return { email: user.email, supabaseUserId: user.supabaseUserId };
   }
 }

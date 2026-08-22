@@ -1,8 +1,22 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
+import { passportJwtSecret } from "jwks-rsa";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { PrismaService } from "../db/prisma.service";
+
+/** Supabase mints this audience for every signed-in end user. */
+const SUPABASE_AUDIENCE = "authenticated";
+
+/**
+ * A trailing slash on SUPABASE_URL produces an issuer that will not match the
+ * token's `iss`, and the only symptom is 401 on every request with nothing
+ * naming the cause. env.validation normalizes the variable at boot; this is the
+ * second line of defence, and the one that is unit-tested.
+ */
+export function supabaseIssuer(url: string): string {
+  return `${url.trim().replace(/\/+$/, "")}/auth/v1`;
+}
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -10,57 +24,61 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
     private readonly prismaService: PrismaService,
     config: ConfigService,
   ) {
-    const secret = config.get<string>("JWT_SECRET");
-    if (!secret) {
-      throw new Error("JWT_SECRET environment variable is required");
+    const url = config.get<string>("SUPABASE_URL");
+    if (!url) {
+      throw new Error("SUPABASE_URL environment variable is required");
     }
+    const issuer = supabaseIssuer(url);
+
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
-      secretOrKey: secret,
+      // Pinned to the ECC P-256 key selected in the dashboard. Adding an RSA
+      // key there without adding "RS256" here 401s every new token.
+      algorithms: ["ES256"],
+      audience: SUPABASE_AUDIENCE,
+      issuer,
+      secretOrKeyProvider: passportJwtSecret({
+        jwksUri: `${issuer}/.well-known/jwks.json`,
+        cache: true,
+        // Key rotation is a manual action in Supabase, so caching for an hour
+        // means a blip on the JWKS endpoint cannot take authentication down.
+        cacheMaxAge: 3_600_000,
+        cacheMaxEntries: 5,
+        rateLimit: true,
+        jwksRequestsPerMinute: 10,
+      }),
     });
   }
 
-  async validate(payload: any) {
+  /**
+   * `sub` is the Supabase UUID; everything downstream — @Roles, @GetUserId,
+   * @GetDepartmentId — speaks in ULIDs, so the link column is what bridges
+   * them. The claims in the token are never trusted for authorization: roles
+   * and departments are read here, per request, straight from the database.
+   */
+  async validate(payload: { sub: string }) {
     const user = await this.prismaService.user.findUnique({
-      where: { id: payload.sub },
+      where: { supabaseUserId: payload.sub },
       select: {
         id: true,
         name: true,
         username: true,
-        passwordChangedAt: true,
+        email: true,
         roles: { select: { name: true } },
-        department: { select: { id: true } },
+        department: { select: { id: true, name: true } },
       },
     });
     if (!user) throw new UnauthorizedException();
-    if (issuedBeforePasswordChange(payload.iat, user.passwordChangedAt)) {
-      throw new UnauthorizedException("Password changed — sign in again");
-    }
+
     return {
       id: user.id,
       name: user.name,
       username: user.username,
+      email: user.email,
       roles: user.roles.map((role) => role.name),
+      departments: user.department,
       departmentIds: user.department.map((department) => department.id),
     };
   }
-}
-
-/**
- * Retires every token minted before the user's last password change, so a reset
- * logs the old sessions out at once instead of after the token's natural TTL.
- *
- * Both sides are compared in whole seconds: `iat` is already floored to the
- * second, so comparing it against a millisecond timestamp would reject a token
- * issued in the same second as the change — including the fresh one the user
- * gets when they sign back in.
- */
-export function issuedBeforePasswordChange(
-  issuedAtInSeconds: number | undefined,
-  passwordChangedAt: Date | null,
-): boolean {
-  if (!passwordChangedAt) return false;
-  if (!issuedAtInSeconds) return true;
-  return Math.floor(passwordChangedAt.getTime() / 1000) > issuedAtInSeconds;
 }

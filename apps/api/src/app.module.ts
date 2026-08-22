@@ -16,6 +16,7 @@ import { UsersModule } from "./modules/users/users.module";
 import { AuthModule } from "./shared/auth/auth.module";
 import { validate } from "./shared/config/env.validation";
 import { HelpersModule } from "./shared/helpers/helpers.module";
+import { SupabaseModule } from "./shared/supabase/supabase.module";
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { HelpersModule } from "./shared/helpers/helpers.module";
     CategoryModule,
     UnityModule,
     AuthModule,
+    SupabaseModule,
     ConfigModule.forRoot({ isGlobal: true, validate }),
     // Provides the throttler storage. The guard is applied per-controller
     // (see AuthController), not globally.

@@ -1,9 +1,11 @@
 import { Logger } from "@nestjs/common";
-import { validate } from "./env.validation";
+import { normalizeSupabaseUrl, validate } from "./env.validation";
 
 const base = {
   DATABASE_URL: "mysql://root:sgm@localhost:3306/sgm",
-  JWT_SECRET: "secret",
+  SUPABASE_URL: "https://project.supabase.co",
+  SUPABASE_ANON_KEY: "anon-key",
+  SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
 };
 
 describe("validate", () => {
@@ -24,14 +26,18 @@ describe("validate", () => {
 
   it("lists every missing required variable in one error", () => {
     expect(() => validate({ STORAGE_DRIVER: "local" })).toThrow(
-      /DATABASE_URL, JWT_SECRET/,
+      /DATABASE_URL, SUPABASE_URL, SUPABASE_ANON_KEY, SUPABASE_SERVICE_ROLE_KEY/,
     );
   });
 
   it("treats a blank value as missing", () => {
     expect(() =>
-      validate({ ...base, JWT_SECRET: "   ", STORAGE_DRIVER: "local" }),
-    ).toThrow(/JWT_SECRET/);
+      validate({
+        ...base,
+        SUPABASE_SERVICE_ROLE_KEY: "   ",
+        STORAGE_DRIVER: "local",
+      }),
+    ).toThrow(/SUPABASE_SERVICE_ROLE_KEY/);
   });
 
   it("warns but does not throw when the r2 credentials are absent", () => {
@@ -59,5 +65,57 @@ describe("validate", () => {
     expect(warn).toHaveBeenCalledWith(
       expect.stringContaining('STORAGE_DRIVER="s3"'),
     );
+  });
+
+  it("hands the normalized supabase url back to the config", () => {
+    const config = validate({
+      ...base,
+      SUPABASE_URL: " https://project.supabase.co/ ",
+      STORAGE_DRIVER: "local",
+    });
+
+    expect(config.SUPABASE_URL).toBe("https://project.supabase.co");
+  });
+});
+
+/**
+ * A trailing slash here yields an issuer that does not match the token's `iss`,
+ * and the only symptom is 401 on every request with nothing naming the cause.
+ */
+describe("normalizeSupabaseUrl", () => {
+  it("strips a trailing slash and surrounding whitespace", () => {
+    expect(normalizeSupabaseUrl("  https://project.supabase.co/  ")).toBe(
+      "https://project.supabase.co",
+    );
+  });
+
+  it("leaves an already clean url alone", () => {
+    expect(normalizeSupabaseUrl("https://project.supabase.co")).toBe(
+      "https://project.supabase.co",
+    );
+  });
+
+  it("rejects a value that is not a url", () => {
+    expect(() => normalizeSupabaseUrl("project.supabase.co")).toThrow(
+      /não é uma URL válida/,
+    );
+  });
+
+  it("rejects plain http on a remote host", () => {
+    expect(() => normalizeSupabaseUrl("http://project.supabase.co")).toThrow(
+      /https/,
+    );
+  });
+
+  it("allows http on localhost, for a self-hosted stack", () => {
+    expect(normalizeSupabaseUrl("http://localhost:54321")).toBe(
+      "http://localhost:54321",
+    );
+  });
+
+  it("rejects a url carrying a path, which would double up on /auth/v1", () => {
+    expect(() =>
+      normalizeSupabaseUrl("https://project.supabase.co/auth/v1"),
+    ).toThrow(/caminho/);
   });
 });

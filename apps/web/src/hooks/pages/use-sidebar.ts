@@ -1,7 +1,7 @@
 import { getAllNotifications } from "@/data/fetchers/notifications/get-all";
 import { readNotificationMutation } from "@/data/mutations/read-notification";
 import { useQuery } from "@tanstack/react-query";
-import { useJwt } from "../use-jwt";
+import { useRoles } from "../use-auth";
 
 export const useSidebar = () => {
   const { data, isLoading } = useQuery({
@@ -9,7 +9,7 @@ export const useSidebar = () => {
     queryFn: getAllNotifications,
     refetchInterval: 1000 * 60 * 2,
   });
-  const userData = useJwt<UserData>("accessToken");
+  const { isAdmin, isKitchen, isManager, isBuyer } = useRoles();
 
   const handleClickNotification = async (notification: {
     id: string;
@@ -22,16 +22,10 @@ export const useSidebar = () => {
   return {
     notifications: data,
     notificationsIsLoading: isLoading,
-    isAdmin: userData?.roles?.includes("admin"),
-    isKitchen: userData?.roles?.includes("kitchen"),
-    isManager: userData?.roles?.includes("manager"),
-    isBuyer: userData?.roles?.includes("buyer"),
+    isAdmin,
+    isKitchen,
+    isManager,
+    isBuyer,
     handleClickNotification,
   };
 };
-
-interface UserData {
-  username: string;
-  sub: string;
-  roles: string[];
-}

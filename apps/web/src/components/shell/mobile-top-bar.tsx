@@ -6,17 +6,10 @@ import { useRouter } from "next/navigation";
 import { AvatarInitials } from "@/components/ui-ext/avatar-initials";
 import { Mark } from "@/components/ui-ext/brand-mark";
 import { Input, InputGroup } from "@/components/ui/input";
-import { useJwt } from "@/hooks/use-jwt";
+import { useAuth } from "@/hooks/use-auth";
 import { useNotifications } from "@/hooks/use-notifications";
 
 import type { MobileHeaderConfig } from "./mobile-header-context";
-
-interface UserData {
-  username: string;
-  name?: string;
-  sub: string;
-  roles: string[];
-}
 
 interface MobileTopBarProps {
   header: MobileHeaderConfig;
@@ -24,10 +17,10 @@ interface MobileTopBarProps {
 
 export function MobileTopBar({ header }: MobileTopBarProps) {
   const router = useRouter();
-  const userData = useJwt<UserData>("accessToken");
+  const { user } = useAuth();
   const { unreadCount } = useNotifications();
 
-  const userName = userData?.name || userData?.username || "Usuário";
+  const userName = user?.name ?? "Usuário";
 
   return (
     <header className="sticky top-0 z-20 bg-surface border-b border-line pt-[env(safe-area-inset-top)]">

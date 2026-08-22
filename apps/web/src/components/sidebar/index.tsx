@@ -27,9 +27,10 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useSidebar } from "@/hooks/pages/use-sidebar";
-import { useJwt } from "@/hooks/use-jwt";
+import { useAuth } from "@/hooks/use-auth";
 import { useNotifications } from "@/hooks/use-notifications";
-import { unsubscribeFromPush } from "@/lib/push";
+import { signOut } from "@/lib/auth/sign-out";
+import { roleLabel } from "@/lib/roles";
 import { cn } from "@/lib/utils";
 
 import { NotificationsSheet } from "./notifications-sheet";
@@ -45,27 +46,11 @@ interface NavGroup {
   items: NavItem[];
 }
 
-interface UserData {
-  username: string;
-  name?: string;
-  sub: string;
-  roles: string[];
-}
-
-const roleLabel = (roles: string[] | undefined): string => {
-  if (!roles?.length) return "";
-  if (roles.includes("admin")) return "Administrador";
-  if (roles.includes("manager")) return "Gerente";
-  if (roles.includes("kitchen")) return "Cozinha";
-  if (roles.includes("buyer")) return "Compras";
-  return roles[0];
-};
-
 export const Sidebar = () => {
   const pathname = usePathname();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const userData = useJwt<UserData>("accessToken");
+  const { user } = useAuth();
   const { isKitchen, isAdmin, isBuyer, isManager } = useSidebar();
   const { unreadCount } = useNotifications();
 
@@ -106,15 +91,11 @@ export const Sidebar = () => {
 
   const handleLogout = async () => {
     // Best-effort: drop this device's push subscription while still authed.
-    await unsubscribeFromPush().catch(() => undefined);
-    localStorage.removeItem("accessToken");
-    document.cookie =
-      "accessToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
-    queryClient.clear();
+    await signOut(queryClient);
     router.push("/");
   };
 
-  const userName = userData?.name || userData?.username || "Usuário";
+  const userName = user?.name ?? "Usuário";
 
   return (
     <div className="flex h-full max-h-screen flex-col bg-surface">
@@ -186,7 +167,7 @@ export const Sidebar = () => {
             {userName}
           </div>
           <div className="text-[11.5px] text-muted">
-            {roleLabel(userData?.roles)}
+            {roleLabel(user?.roles)}
           </div>
         </div>
         <DropdownMenu>

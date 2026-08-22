@@ -1,24 +1,16 @@
-import { NextResponse } from "next/server";
+import { updateSession } from "@/lib/supabase/middleware";
 import type { NextRequest } from "next/server";
 
-export function middleware(req: NextRequest) {
-  const token = req.cookies.get("accessToken")?.value;
-  const { pathname } = req.nextUrl;
-
-  if (pathname === "/") {
-    if (token) {
-      return NextResponse.redirect(new URL("/pedidos", req.url));
-    }
-    return NextResponse.next();
-  }
-
-  if (!token) {
-    return NextResponse.redirect(new URL("/", req.url));
-  }
-
-  return NextResponse.next();
+export async function middleware(request: NextRequest) {
+  return updateSession(request);
 }
 
 export const config = {
-  matcher: ["/((?!_next|favicon.ico|logo.png|site.webmanifest|api).*)"],
+  matcher: [
+    // Everything except Next internals, the /api proxy, and the static files
+    // the PWA fetches. The previous matcher excluded only logo.png, so /sw.js
+    // and the manifest icons were being redirected to "/" — the service worker
+    // never registered and the install icon never loaded.
+    "/((?!_next/static|_next/image|favicon.ico|api|sw\\.js|site\\.webmanifest|.*\\.(?:png|svg|ico|jpg|jpeg|gif|webp)$).*)",
+  ],
 };

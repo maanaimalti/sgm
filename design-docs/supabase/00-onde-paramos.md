@@ -1,13 +1,13 @@
 # Migração para o Supabase — onde paramos
 
-Documento de continuidade. Última atualização: **08/08/2026**, logo após a Etapa A
-entrar em produção.
+Documento de continuidade. Última atualização: **08/08/2026**, com a Etapa B
+implementada. A §2.4 mudou de decisão — leia antes de tocar em auth.
 
 | Etapa | Status |
 |---|---|
 | **A — Banco: MySQL → Supabase Postgres** | ✅ **Em produção e verificada** |
 | **C — Storage: R2 → Supabase Storage** | ⏸️ Escopo encolheu muito, ver §4 |
-| **B — Auth: JWT próprio → Supabase Auth + gestão de usuários** | ⛔ Não iniciada. Bloqueada por e-mails |
+| **B — Auth: JWT próprio → Supabase Auth + gestão de usuários** | 🔧 **Implementada** na branch `feat/supabase-stage-b`, aguardando os portões |
 | **D — Realtime** | ⛔ Não iniciada. Depende da B |
 
 Projeto Supabase: `uhvqtymjdihoagfyaruj` · região `us-east-1` · Postgres 17.6
@@ -159,17 +159,19 @@ Hoje existe `GET /users` e `POST /users/:id/reset-password` (ambos `@Roles("admi
 mas **não existe criação de usuário** em lugar nenhum — nem endpoint, nem tela.
 Usuários foram criados à mão no banco.
 
-Depois do Supabase Auth isso fica **mais difícil**, não mais fácil: criar um
-usuário passa a ser 4 passos coordenados.
+Depois do Supabase Auth isso fica **mais difícil**, não mais fácil: a conta
+precisa nascer nos dois lados.
 
 1. `supabase.auth.admin.createUser({ email, password, email_confirm: true })`
-2. Inserir a linha em `public.users` com ULID via `HelpersService.generateId()`
-3. Gravar o `supabase_user_id` devolvido no passo 1
-4. `connect` dos papéis e departamentos
+2. `prisma.user.create` com o ULID de `HelpersService.generateId()`, o
+   `supabase_user_id` devolvido no passo 1 e o `connect` de papéis e setores —
+   **tudo campo da mesma instrução**, uma transação implícita.
 
-Se um passo falhar no meio, sobra usuário órfão de um lado ou do outro. O
-endpoint precisa compensar: se o passo 2 falhar, apagar o usuário criado no
-passo 1.
+São dois passos, não quatro, e por isso existe **exatamente uma aresta de
+compensação**: se o passo 2 falhar, apagar a conta criada no passo 1. Sem isso
+sobra uma conta de auth invisível em `GET /users` que é dona do e-mail, e toda
+nova tentativa falha com `user_already_exists` sem nada explicando de onde ela
+veio.
 
 **Backend a construir** (`apps/api/src/modules/users/`):
 
@@ -178,7 +180,6 @@ passo 1.
 | `POST /users` | admin | Cria usuário: e-mail, nome, username, senha inicial, papéis, departamentos |
 | `PATCH /users/:id` | admin | Edita nome, papéis, departamentos |
 | `PATCH /users/:id/email` | admin | **Troca o e-mail** — é como os placeholders viram reais. Precisa atualizar `auth.users` e `public.users` juntos |
-| `DELETE /users/:id` | admin | Desativar (preferir soft delete — há FK de pedidos/notificações apontando para o usuário) |
 | `GET /users` | admin | Já existe |
 | `POST /users/:id/reset-password` | admin | Já existe, migrar para `admin.updateUserById` |
 
@@ -193,87 +194,63 @@ Falta:
 - Destaque visual para quem ainda está com placeholder, para não esquecerem
 - Reaproveitar os padrões de `src/data/mutations/*` e `src/hooks/pages/use-*`
 
-### 2.4 Custom Access Token Hook
+### 2.4 Identidade no frontend: `GET /auth/me`, não Custom Access Token Hook
 
-Função PL/pgSQL que injeta no JWT: `app_user_id` (o ULID), `app_user_name`,
-`app_username`, `roles` (array jsonb) e `departments` (array de `{id,name}`).
+> **Revisitada em 22/08/2026 — leia a §2.9 junto com esta.** O hook voltou, mas
+> com outra forma e outro propósito: as claims **não** são a fonte da
+> identidade, e nada nesta seção mudou. O `GET /auth/me` continua sendo como o
+> browser sabe quem é o usuário, e o `validate()` continua lendo o banco.
 
-**Por que o frontend precisa:**
+**Decisão revista.** A versão anterior desta seção especificava uma função
+PL/pgSQL injetando `app_user_id`, `roles` e `departments` nas claims do token.
+Foi descartada.
 
-1. `services/api.ts:19` lê `jwt.department[0].id` para montar o header
-   `departmentId` — **todo endpoint com escopo de departamento depende disso**
-2. `roles` alimenta o gating em 8 lugares
-3. `app_user_id` é o que permite comparar o usuário atual com `order.userId`
-   ("sou o criador?") em `use-edit-order.ts`
-4. `app_user_name` conserta um bug antigo: o JWT atual **não tem claim `name`**,
-   então `userData?.name` é sempre `undefined` e 4 telas caem no `username`
+O argumento nº 1 a favor do hook caiu ao ler o código: `get-department-id.ts:33`
+já cai em `departmentIds[0]` quando o header `departmentId` está ausente, e o
+web só mandava `department[0].id` — o mesmo elemento. O header era redundante, e
+com ele some a única coisa que exigia claim customizada em toda requisição.
 
-```sql
-create or replace function public.custom_access_token_hook(event jsonb)
-returns jsonb language plpgsql stable as $$
-declare claims jsonb; v_user record; v_roles jsonb; v_departments jsonb;
-begin
-  claims := coalesce(event -> 'claims', '{}'::jsonb);
-  select u.id, u.name, u.username into v_user
-    from public.users u where u.supabase_user_id = (event ->> 'user_id')::uuid;
-  if v_user.id is null then return event; end if;
+No lugar: **`GET /auth/me`**, projeção pura de `request.user`. Não custa query
+nenhuma, porque `JwtStrategy.validate()` já carregava exatamente essa linha para
+autorizar a requisição.
 
-  select coalesce(jsonb_agg(r.name order by r.name), '[]'::jsonb) into v_roles
-    from public."_roleTouser" ru join public.roles r on r.id = ru."A"
-   where ru."B" = v_user.id;
+O que se ganha:
 
-  select coalesce(jsonb_agg(jsonb_build_object('id', d.id, 'name', d.name)
-                            order by d.name), '[]'::jsonb) into v_departments
-    from public."_departmentTouser" du join public.departments d on d.id = du."A"
-   where du."B" = v_user.id;
+- **Sem PL/pgSQL, sem GRANTs, sem toggle de dashboard.** Some junto o modo de
+  falha que esta seção mais temia: grant perdido → `roles` vazio → menu em
+  branco e 403 em tudo, sem erro apontando a causa. O
+  `verify-supabase-grants.ts` não tem mais o que verificar; foi substituído pelo
+  `verify-rls.ts`, que guarda algo que existe.
+- **Mudança de papel vale na hora.** Com o hook valeria só no próximo refresh,
+  até 1h depois.
+- A API continua autoritativa a partir do banco, que já era a regra.
 
-  claims := claims || jsonb_build_object(
-    'app_user_id', v_user.id, 'app_user_name', v_user.name,
-    'app_username', v_user.username, 'roles', v_roles, 'departments', v_departments);
-  return jsonb_set(event, '{claims}', claims);
-end; $$;
+O que se perde: uma requisição no boot. O `AuthGate` em `(app)/layout.tsx`
+segura a shell até a identidade resolver, então o custo é um loader, não um
+menu que pisca — e o `use-login.ts` faz `prefetchQuery` antes de navegar, então
+o caminho pós-login já chega quente.
 
-grant usage on schema public to supabase_auth_admin;
-grant execute on function public.custom_access_token_hook(jsonb) to supabase_auth_admin;
-revoke execute on function public.custom_access_token_hook(jsonb)
-  from authenticated, anon, public;
-grant select on table public.users, public.roles, public.departments,
-  public."_roleTouser", public."_departmentTouser" to supabase_auth_admin;
-```
-
-`roles` sai como jsonb (não `text[]`): `jsonb_agg` produz `["admin","manager"]`,
-que decodifica em JS como `string[]` limpo, enquanto `text[]` viraria literal de
-array do Postgres. O `coalesce(..., '[]')` não é opcional — sem ele um usuário
-sem departamento recebe `null`.
-
-Habilitar em Dashboard → Authentication → Hooks → *Customize Access Token (JWT)
-Claims*. Com RLS ligado (§2.6), `supabase_auth_admin` também precisa de políticas
-de `select` nessas cinco tabelas.
-
-Pontos que não podem ser esquecidos:
-
-- As colunas de junção do Prisma são nomeadas em ordem alfabética do model:
-  `_roleTouser`: `"A"` = `roles.id`, `"B"` = `users.id`.
-  **Verificado nas FKs do `0_init`** (`_roleTouser_A_fkey` → `roles`).
-  No Postgres precisa de aspas duplas: `public."_roleTouser"`, `ru."A"`.
-- GRANTs para `supabase_auth_admin` em `users`, `roles`, `departments`,
-  `"_roleTouser"`, `"_departmentTouser"`, versionados como migration escrita à mão.
-- **Falha silenciosa a se proteger:** se o grant sumir, os tokens saem sem
-  `roles`, o menu de todo mundo fica em branco e todo handler `@Roles` dá 403 —
-  sem erro nenhum apontando a causa. Criar
-  `apps/api/prisma/scripts/verify-supabase-grants.ts` com `has_table_privilege`.
-
-**Regra que decorre disso:** o hook dispara na emissão e no refresh do token,
-não por requisição. Uma mudança de papel só vale no próximo refresh (até 1h).
-Portanto **as claims são conveniência do frontend; a API é autoritativa a partir
-do banco**. Manter o lookup por requisição que o `jwt.strategy.ts` já faz.
+> Consequência para a Etapa D: a política de RLS de `notification` não pode usar
+> `auth.jwt() ->> 'app_user_id'`, porque essa claim não existe. Use um subselect
+> por `supabase_user_id` — ver §3.
 
 ### 2.5 Verificação do JWT na API
 
-Trocar `secretOrKey` por `passportJwtSecret` do `jwks-rsa`, com
-`audience: "authenticated"`, `issuer: <url>/auth/v1` e o JWKS em
-`/.well-known/jwks.json`. Em `validate()`, mudar o `where` de
-`{ id: payload.sub }` para `{ supabaseUserId: payload.sub }`.
+Trocar `secretOrKey` por `passportJwtSecret` do `jwks-rsa` (via
+`secretOrKeyProvider`), com `audience: "authenticated"`, `issuer` **derivado**
+de `SUPABASE_URL` e o JWKS em `/.well-known/jwks.json`. Em `validate()`, mudar
+o `where` de `{ id: payload.sub }` para `{ supabaseUserId: payload.sub }`.
+
+Dois detalhes que a versão anterior não mencionava e que custam caro:
+
+- **Fixar `algorithms: ["ES256"]`.** Sem isso a strategy aceita qualquer
+  algoritmo que o JWKS anunciar. Em compensação, criar uma chave RSA no
+  dashboard sem acrescentar `"RS256"` aqui dá 401 em todo token novo.
+- **Derivar o issuer em vez de configurá-lo à parte**, para os dois não
+  divergirem. Uma barra final em `SUPABASE_URL` produz um issuer que não bate
+  com o `iss` do token, e o único sintoma é 401 em tudo. `normalizeSupabaseUrl`
+  no `env.validation.ts` normaliza no boot e `supabaseIssuer()` normaliza de
+  novo — este último é o que tem teste.
 
 **Pré-requisito rígido:** ativar **chaves assimétricas** no projeto (Dashboard →
 Authentication → JWT Keys → chave ECC P-256). Até fazer isso o JWKS devolve
@@ -286,8 +263,11 @@ curl -s https://uhvqtymjdihoagfyaruj.supabase.co/auth/v1/.well-known/jwks.json |
 Fazer a troca **antes** de qualquer usuário ter sessão — rotacionar invalida
 tokens assinados com a chave antiga.
 
-Manter a invalidação por `passwordChangedAt` só enquanto o login legado existir;
-o Supabase Auth já revoga sessões na troca de senha.
+`issuedBeforePasswordChange` e seus cinco testes foram **apagados**, não
+mantidos: com o login legado removido nada mais escreve `passwordChangedAt`, e o
+Supabase já revoga sessões na troca de senha. Uma função exportada morta com
+spec passando sugere uma proteção que não existe mais. A **coluna** fica, e cai
+junto com `password` em 90 dias.
 
 ### 2.6 RLS é obrigatório nesta etapa
 
@@ -295,11 +275,25 @@ No momento em que a `NEXT_PUBLIC_SUPABASE_ANON_KEY` for para o bundle do
 browser, **o PostgREST fica publicamente acessível para toda tabela sem RLS** —
 catálogo, pedidos e lista de usuários legíveis por quem abrir o devtools.
 
-`ALTER TABLE ... ENABLE ROW LEVEL SECURITY` nas 20 tabelas (aspas nas três de
-junção), **zero políticas** = negação por padrão. Todo acesso real passa pela API.
+`ALTER TABLE ... ENABLE ROW LEVEL SECURITY` nas 20 tabelas mais
+`_prisma_migrations` (aspas nas três de junção, que são camelCase — sem elas o
+Postgres normaliza para minúsculas e o ALTER falha), **zero políticas** =
+negação por padrão. Todo acesso real passa pela API.
 
 **Não quebra o Prisma:** ele conecta como `postgres`, dono de todas as tabelas, e
-dono ignora RLS. O único jeito de quebrar é `FORCE ROW LEVEL SECURITY` — nunca.
+dono ignora RLS. Verificado num banco descartável: o dono lê suas linhas, e um
+role com `SELECT` explicitamente concedido lê zero. O jeito de quebrar é
+`FORCE ROW LEVEL SECURITY` — nunca — ou apontar `DATABASE_URL` para um role que
+não seja dono. `pnpm --filter @sgm/api db:verify-rls` checa os dois, e roda no CI.
+
+Sem o hook da §2.4, `supabase_auth_admin` **não precisa de acesso nenhum** ao
+schema `public`. Dar a ele políticas de `select` furaria o deny-by-default à toa.
+
+> Com o hook da §2.9 isso **continua valendo**. A função é `SECURITY DEFINER`,
+> então o corpo dela roda como dono e o `supabase_auth_admin` recebe só `usage`
+> no schema e `execute` naquela função — nenhum grant de tabela, nenhuma
+> política nova. Foi exatamente para não furar o deny-by-default que o exemplo
+> `SECURITY INVOKER` da documentação do Supabase não foi seguido.
 
 No dashboard: **"Allow new users to sign up" OFF** (crítico), Confirm email OFF,
 tamanho mínimo de senha igual ao de `login-schema.ts`, Site URL do domínio Vercel,
@@ -322,14 +316,29 @@ PWA, então a requisição do service worker é redirecionada para `/` — bug a
 |---|---|
 | `src/lib/supabase/client.ts` | novo — singleton `createBrowserClient` |
 | `src/lib/supabase/middleware.ts` | novo — helper `updateSession` |
-| `src/providers/auth-provider.tsx` | novo — `{ user, isLoading, signIn, signOut }` + `onAuthStateChange` |
-| `src/hooks/use-auth.ts` | novo |
-| `src/lib/auth/sign-out.ts` | novo — logout único (hoje duplicado em `sidebar/index.tsx:97` e `mobile-bottom-nav.tsx:119`) |
+| `src/providers/auth-provider.tsx` | novo — `{ user, isLoading, isAuthenticated }` + `onAuthStateChange` |
+| `src/hooks/use-auth.ts` | novo — `useAuth()` e `useRoles()` |
+| `src/components/shell/auth-gate.tsx` | novo — segura a shell até a identidade resolver |
+| `src/data/fetchers/auth/me.ts` | novo |
+| `src/lib/roles.ts` | novo — `roleLabel()`, hoje duplicado em `sidebar/index.tsx:48` e `mobile-bottom-nav.tsx:34` |
+| `src/lib/auth/sign-out.ts` | novo — logout único (**4 cópias**, não 2: `sidebar/index.tsx:100`, `mobile-bottom-nav.tsx:122`, `use-change-password.ts:43` e, parcial, `services/api.ts:33`) |
 | `src/hooks/use-jwt.ts` | **apagar** |
 | `src/data/mutations/login.ts` | **apagar** — vira `signInWithPassword` |
 | `src/middleware.ts` | reescrever |
+| `src/app/providers.tsx` | aninhar o `AuthProvider` **dentro** do `QueryClientProvider` |
+| `src/app/(app)/layout.tsx` | envolver com `AuthGate` |
 | `src/services/api.ts` | interceptor async com `getSession()` — **é o que acaba com o logout de 12h** |
-| `packages/shared/src/auth.ts` | novo — `Role`, `AuthUser`, `AccessTokenClaims` |
+| `packages/shared/src/auth.ts` | novo — `ROLES`, `Role`, `AuthUser`, `isPlaceholderEmail` (sem `AccessTokenClaims`: não há claim customizada) |
+
+**A ordem do logout é obrigatória.** `unsubscribeFromPush()` chama
+`DELETE /push/subscription`, que precisa de token válido — roda **antes** de a
+sessão cair, nunca depois. E `signOut({ scope: "local" })`: o default é
+`"global"` e derrubaria a sessão em todos os aparelhos.
+
+**O 401 do interceptor precisa de guarda de repetição.** Ele agora pede um
+refresh e repete, e a `validate()` passou a dar 401 quando o `sub` não casa
+nenhuma linha de `public.users` — um usuário vivo no auth mas não provisionado
+entraria em loop infinito renovando um token perfeitamente válido.
 
 Apagar as 8 `interface UserData` e trocar `useJwt<UserData>` por `useAuth()`:
 `use-sidebar.ts:33`, `use-orders.ts:168`, `use-edit-order.ts:15`,
@@ -337,8 +346,17 @@ Apagar as 8 `interface UserData` e trocar `useJwt<UserData>` por `useAuth()`:
 `inicio/page.tsx:20`, `pedidos/[id]/editar/page.tsx:15`.
 
 **Login vira por e-mail:** `page.tsx` (label, `type="email"`, ícone `Mail`,
-placeholder), `login-schema.ts` (`z.string().email()`), `use-login.ts` (mensagem
-"E-mail ou senha inválidos", mapear o `AuthApiError` `"Invalid login credentials"`).
+placeholder), `login-schema.ts` (`z.string().email()` — **zod 3**, não o
+`z.email()` do zod 4), `use-login.ts` (mensagem "E-mail ou senha inválidos",
+casando `error.code === "invalid_credentials"` *e* a mensagem, porque o texto é
+localizável e mudou entre versões do GoTrue).
+
+**O `departmentId` sai do interceptor.** `get-department-id.ts:33` já cai em
+`departmentIds[0]`, que é o mesmo valor. O decorator e seu spec ficam
+intocados — o caminho do header vira morto-porém-inofensivo e é o mecanismo de
+um futuro seletor de departamento. O `allowedHeaders` do `main.ts` fica neste
+deploy: um bundle cacheado pelo service worker ainda pode mandá-lo, e rejeição
+de CORS é falha opaca.
 
 ### 2.8 Virada e reversão
 
@@ -357,15 +375,93 @@ await admin.auth.admin.createUser({
 });
 ```
 
+**`LEGACY_LOGIN_ENABLED` foi riscado.** Um login legado que emite HS256 é
+inútil a menos que a API também continue verificando HS256 — o que exige uma
+segunda strategy e trocar todo `AuthGuard("jwt")` em ~10 controllers, dobrando a
+superfície de auth para servir uma rota que nenhuma UI chama. **A unidade de
+reversão é o par de deploys**, e ela já é grátis:
+
 | Item | Manter por |
 |---|---|
 | Coluna `users.password` (nullable) | 90 dias — única forma de reconstruir os hashes numa reversão |
-| `POST /auth/login` legado atrás de `LEGACY_LOGIN_ENABLED` | 14 dias habilitável / 30 no código |
-| `JWT_SECRET`, dependência `bcrypt` | até o legado sair |
+| `JWT_SECRET` **setado no EasyPanel** (fora do código) | até aposentar a imagem anterior — é o que a faz subir |
+| Dependência `bcrypt` | fica: o `prisma/seed.ts` usa |
 
-**Sinais de alerta nas primeiras 48h:** JWKS vazio → chaves assimétricas não
-ativadas. Menu de todos em branco → o hook devolveu `roles` vazio (grant perdido).
-Logouts aleatórios → middleware não devolvendo o `NextResponse` com os cookies.
+**Consequência para o dev local:** sem `POST /auth/login`, o `admin`/`admin123`
+do seed não entra. O seed passou a gravar um e-mail, o fluxo vira
+`make db-up && pnpm prisma:seed && pnpm auth:provision`, e o `.env` local deve
+apontar para um **projeto Supabase separado** — nunca o de produção, porque a
+service-role key cria e apaga contas de verdade.
+
+**A corrida de deploy é o risco real.** O merge dispara `deploy-api.yml` e o
+deploy do Vercel ao mesmo tempo, sem ordem garantida: durante a corrida ou o web
+novo fala com a API velha (ES256 contra verificação HS256 → 401 em massa) ou o
+inverso. **Desligar o auto-deploy do Vercel para `main` antes do merge** e
+promover o preview depois dos portões.
+
+**Sinais de alerta nas primeiras 48h:** JWKS vazio ou `SUPABASE_URL` com barra
+final → 401 em tudo. Menu de **uma** pessoa em branco → `supabase_user_id` não
+gravado. Menu de **todo mundo** em branco → `/auth/me` dando 429, o
+`@SkipThrottle()` não subiu. Logouts aleatórios → middleware não devolvendo o
+`NextResponse` com os cookies. Listas vazias em tudo sem erro → `FORCE ROW LEVEL
+SECURITY` ligado.
+
+### 2.9 Custom Access Token Hook — RBAC visível para o Postgres
+
+Adicionado depois da §2.4, e **sem contradizê-la**. O que mudou não foi a
+decisão sobre identidade, foi a pergunta: o `GET /auth/me` resolve como o
+*browser* sabe quem é o usuário; ele não resolve como o *Postgres* sabe. Uma
+política de RLS roda dentro do banco e não tem como alcançar o `request.user`
+da API. Sem claim, a Etapa D não consegue nada além de subselect, e não existe
+jeito de mexer em papel pelo dashboard.
+
+`prisma/migrations/20260822120000_custom_access_token_hook/` cria três funções:
+
+| Função | Para quê |
+|---|---|
+| `custom_access_token_hook(event jsonb)` | O hook. Injeta `app_roles` e `app_user_id` nas claims |
+| `set_user_roles(username, text[])` | Troca os papéis pelo SQL Editor, com a mesma trava de último admin do `users.service.ts` |
+| `user_roles_overview()` | Lista legível de quem tem o quê |
+
+**As claims não são autoritativas, e isso é o desenho inteiro.** O
+`validate()` continua lendo `roles` e `department` do banco a cada requisição,
+então:
+
+- trocar papel vale **na hora**, não no próximo refresh — é o que a §2.4 não
+  queria perder, e não perdeu;
+- se o hook quebrar, o pior que acontece é RLS sem claim. O menu, o `@Roles` e
+  o `/auth/me` seguem iguais.
+
+Por isso a função termina em `exception when others then return event`. Um hook
+Postgres tem **dois segundos e nenhuma repetição**: se ele levanta, o Supabase
+não emite token nenhum e *ninguém entra*. Falhar aberto devolve um token sem as
+claims extras, o que aqui não custa autorização. **Se algum dia o `validate()`
+passar a confiar nas claims, esse `exception` vira escalação de privilégio e
+tem que sair junto.**
+
+Duas armadilhas que custaram teste para descobrir:
+
+- **Os roles do Supabase não existem no CI.** O workflow sobe um
+  `postgres:16-alpine` cru, onde `supabase_auth_admin`, `anon` e
+  `authenticated` não existem, e um `GRANT` solto aborta com SQLSTATE 42704 —
+  que reprova o build e, em produção, deixa a migration com `finished_at` nulo
+  travando todo deploy seguinte. Todo statement que cita esses roles está
+  dentro de um `DO $$ ... IF EXISTS (SELECT 1 FROM pg_roles ...)`.
+- **`CREATE FUNCTION` dá `EXECUTE` para `PUBLIC` por padrão.** Numa função
+  `SECURITY DEFINER` isso é a anon key podendo rodar código como dono. O
+  `REVOKE` não é higiene, é a trava.
+
+**Nada no `apps/api` nem no `apps/web` mudou.** `jwt.strategy.ts`,
+`roles.guard.ts` e os 31 handlers com `@Roles` ficaram intocados.
+
+Ligar: Dashboard → Authentication → Hooks → *Customize Access Token (JWT)
+Claims* → `public.custom_access_token_hook`. **A migration é inerte enquanto o
+hook estiver desligado**, então ela pode subir antes — e desligar no dashboard
+é a reversão inteira, sem deploy.
+
+Vai depois da Etapa B estar de pé e testada, nunca junto: a Etapa B já tem
+"primeiro login bem-sucedido" como ponto de não retorno, e um hook ruim é
+exatamente "ninguém consegue logar".
 
 ---
 
@@ -381,17 +477,25 @@ cruas — uma linha de `orders` não tem itens, nem nome de produto, nem `user.n
 Reproduzir o escopo por departamento e o gating por papel no cliente seria uma
 reescrita com nova superfície de autorização.
 
-Publicar só `orders` e `notification`. Política que resolve o descasamento
-ULID/UUID usando a claim do hook:
+Publicar só `orders` e `notification`. **A política mudou junto com a §2.4:**
+não existe claim `app_user_id`, então o descasamento ULID/UUID se resolve por
+subselect na coluna de ligação:
 
 ```sql
 create policy "own_notifications" on public.notification
   for select to authenticated
-  using ( "to" = (auth.jwt() ->> 'app_user_id') );
+  using (
+    "to" = (select u.id from public.users u where u.supabase_user_id = auth.uid())
+  );
 ```
 
 `"to"` precisa de aspas — `TO` é palavra reservada. A tabela é
 `public.notification`, singular.
+
+> Com o hook da §2.9 ligado o subselect vira opcional: `app_user_id` já carrega
+> o ULID, então dá para comparar com `auth.jwt() ->> 'app_user_id'` direto. O
+> subselect acima continua correto e não depende de claim nenhuma — prefira ele
+> se a política precisar valer também com o hook desligado.
 
 Manter o polling como fallback atrás de `NEXT_PUBLIC_REALTIME_ENABLED`, só mais
 lento (10 min em vez de 2). Reversão vira uma env var.
@@ -444,10 +548,19 @@ fornecedor, sem ganho de segurança. Se for feito:
 - **`pnpm prisma:seed` contra a produção reseta a senha do admin real para
   `admin123`** — ele faz upsert de `username: "admin"` com `update: { password }`.
 - **Nunca** `prisma migrate reset` nem `db push --force-reset` contra o Supabase.
-  A partir da Etapa B levam junto o hook de auth e os GRANTs.
+  A partir da Etapa B levam junto o RLS de todas as tabelas.
 - **Nunca** `prisma migrate dev` contra o Supabase (quer shadow database).
   Rodar contra o Postgres local, commitar, deixar o `migrate deploy` aplicar.
 - **Nunca** `ALTER TABLE ... FORCE ROW LEVEL SECURITY`.
+- **Uma migration que falha impede o boot.** O CMD do container é
+  `migrate deploy && node dist/main`, e o Prisma registra a falha com
+  `finished_at = NULL` — todo deploy seguinte se recusa a rodar qualquer coisa
+  até um `migrate resolve`. Por isso o SQL escrito à mão vai em arquivo
+  separado, e por isso o CI passou a aplicar as migrations contra um Postgres
+  real (era o único ponto do pipeline que nunca tocava um banco).
+- **Nunca** criar usuário direto no banco a partir da Etapa B: ele nasce sem
+  conta no Supabase Auth e não consegue entrar. Use `POST /users` ou
+  `auth:provision`.
 - O `.env` local tem as strings de produção **comentadas** como `# PROD_*`.
   Nada as lê. Para usar, passe na linha de comando em vez de descomentar.
 - O gitignore agora é `.env.*` com exceção de `.env.example` — um `.env.bak`
@@ -457,11 +570,17 @@ fornecedor, sem ganho de segurança. Se for feito:
 
 ## 6. Pendências imediatas
 
+O código da Etapa B está pronto na branch `feat/supabase-stage-b`. O que falta
+é tudo fora do repositório — ver [`runbook-etapa-b.md`](./runbook-etapa-b.md).
+
 - [ ] Definir os 6 e-mails placeholder e aplicar com `users:set-emails`
-      (Lucas com o real). **Portão da Etapa B.**
+      (Lucas com o real). **Portão 1 da Etapa B.**
 - [ ] Ativar chaves assimétricas de JWT no projeto Supabase (antes de qualquer
-      sessão existir).
-- [ ] Desligar "Allow new users to sign up" no dashboard.
+      sessão existir). **Portão 2.**
+- [ ] Desligar "Allow new users to sign up" no dashboard. **Portão 3.**
+- [ ] Rodar `auth:provision` até sair com código 0. **Portão 4.**
+- [ ] Criar um projeto Supabase separado para desenvolvimento local.
+- [ ] Desligar o auto-deploy do Vercel para `main` antes do merge.
 - [ ] Confirmar backups: plano Pro com PITR de 7 dias.
 - [ ] Retirar a instância MySQL de produção depois de 07/09/2026.
 - [ ] Remover o serviço `db` (MySQL) de `apps/api/docker-compose.yaml` — hoje só
@@ -480,10 +599,20 @@ pnpm --filter @sgm/api exec ts-node --transpile-only \
 # preencher e-mails (idempotente, tem --dry-run)
 pnpm --filter @sgm/api users:set-emails emails.csv --dry-run
 
+# criar as contas no Supabase Auth (idempotente, tem --dry-run)
+pnpm --filter @sgm/api auth:provision --dry-run
+
+# conferir o deny-by-default do RLS, views soltas e o EXECUTE do hook (CI também)
+pnpm --filter @sgm/api db:verify-rls
+
+# exercitar o custom access token hook contra SQL de verdade (CI também)
+pnpm --filter @sgm/api db:verify-auth-hook
+
 # o que o CI roda
 pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint:ci \
   && pnpm test && pnpm build:api && pnpm build:web
 ```
 
-Runbook da virada da Etapa A, com portões e reversão:
-[`runbook-etapa-a.md`](./runbook-etapa-a.md).
+Runbooks, com portões e reversão:
+[`runbook-etapa-a.md`](./runbook-etapa-a.md) (executado) ·
+[`runbook-etapa-b.md`](./runbook-etapa-b.md) (pendente).

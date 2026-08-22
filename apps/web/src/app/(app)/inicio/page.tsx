@@ -8,21 +8,14 @@ import { AvatarInitials } from "@/components/ui-ext/avatar-initials";
 import { OrderStatusChip } from "@/components/ui-ext/status-chip";
 import { SummaryStat } from "@/components/ui-ext/summary-stat";
 import { useSidebar } from "@/hooks/pages/use-sidebar";
+import { useAuth } from "@/hooks/use-auth";
 import { useInicio } from "@/hooks/use-inicio";
 import { useIsMobile } from "@/hooks/use-is-mobile";
-import { useJwt } from "@/hooks/use-jwt";
 import type { OrderListItem } from "@sgm/shared";
 import { ChevronRight, Plus } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
-
-interface UserData {
-  username: string;
-  name?: string;
-  sub: string;
-  roles: string[];
-}
 
 function formatShortDate(iso: string) {
   return new Date(iso).toLocaleDateString("pt-BR", {
@@ -35,7 +28,7 @@ function formatShortDate(iso: string) {
 export default function InicioPage() {
   const router = useRouter();
   const isMobile = useIsMobile();
-  const userData = useJwt<UserData>("accessToken");
+  const { user } = useAuth();
   const { isKitchen, isAdmin } = useSidebar();
   const {
     pendingCount,
@@ -45,8 +38,7 @@ export default function InicioPage() {
     recentLoading,
   } = useInicio();
 
-  const firstName =
-    (userData?.name || userData?.username || "").split(" ")[0] || "Olá";
+  const firstName = (user?.name ?? "").split(" ")[0] || "Olá";
 
   useMobileHeader({ title: `Olá, ${firstName}` });
   useFAB(
