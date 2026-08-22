@@ -67,4 +67,10 @@ jobs:
       - run: pnpm lint:ci
       - run: pnpm test
       - run: pnpm build:api
+
+      # Building is not booting. @sgm/shared is required at runtime by the user
+      # DTOs, and an ESM-only build of it passed every check here while making
+      # the container crash on start with ERR_PACKAGE_PATH_NOT_EXPORTED.
+      - run: node -e "require('@sgm/shared')"
+        working-directory: apps/api
       - run: pnpm build:web
