@@ -36,7 +36,7 @@ To run a script in a single workspace ad-hoc: `pnpm --filter @sgm/api <script>` 
 Implications when changing `packages/shared/src/*.ts`:
 
 - The `dist/` output must be rebuilt for consumers to see changes. `pnpm install` rebuilds it via the `prepare` script; otherwise run `pnpm build:shared` (or `pnpm --filter @sgm/shared build`).
-- It is an ES module (`"type": "module"`). Keep exports flowing through `src/index.ts`.
+- **It compiles to CommonJS, and must stay that way.** `@sgm/api` is a NestJS app built to CJS, so its `dist` does `require("@sgm/shared")`. An ESM-only build (`"type": "module"` with only an `import` condition in `exports`) type-checks, lints, tests and builds cleanly, then crashes the container at startup with `ERR_PACKAGE_PATH_NOT_EXPORTED`. CI guards this with a `require("@sgm/shared")` step. Keep exports flowing through `src/index.ts`.
 - Types here are the canonical domain shapes (category, department, notification, order, product, stock, unity). When adding/changing API response shapes, update `@sgm/shared` first, then both apps.
 
 ## Tooling notes
