@@ -71,11 +71,43 @@ src/
 ### Authentication & Authorization
 - **Supabase Auth owns identity.** The API mints no tokens and stores no passwords. `JwtStrategy` verifies the access token against the project's JWKS (`ES256`, `aud: authenticated`, issuer derived from `SUPABASE_URL`) — there is no `POST /auth/login` and no `JWT_SECRET`.
 - **`sub` is a Supabase UUID; everything else speaks ULID.** `users.supabase_user_id` bridges the two, so `@GetUserId()`, `@Roles`, `@GetDepartmentId` and every service are unchanged. Adding a user means creating the account in Supabase Auth *and* the row here — use `POST /users` or `prisma/scripts/provision-supabase-auth.ts`, never raw SQL.
-- **Claims are never trusted for authorization.** `validate()` reads roles and departments from the database on every request, so a role change takes effect immediately. `GET /auth/me` is a projection of that same lookup, which is why it costs no extra query — it is what the browser uses instead of decoding the token.
-- **A Custom Access Token Hook puts `app_roles` and `app_user_id` in the token anyway** (`prisma/migrations/20260822120000_custom_access_token_hook/`), because RLS policies run inside Postgres and cannot reach `request.user`. Those claims exist for RLS and for `set_user_roles()` in the SQL Editor — **never** read them here. The hook is allowed to fail open precisely because the line above is true; if that ever changes, its `exception` handler becomes a privilege-escalation hole.
+- **Authorization comes off the token.** `auth.users.app_metadata` holds
+  `{ app_user_id, roles, department_ids }` and is writable only by the service
+  role, so the browser cannot forge it and Supabase puts it in every access
+  token. `validate()` reads it and never touches the database — which is what
+  lets RLS policies and Realtime (Stage D) authorize identically, since they run
+  inside Postgres and can never reach `request.user`.
+- **The price is staleness.** A role change lands on the next token, so
+  `UsersService.update` writes `app_metadata` and then deletes the user's rows
+  from `auth.sessions` (raw SQL — `auth.admin.signOut` needs the *user's* own
+  JWT, which the server never has). That kills the refresh path but cannot
+  invalidate an access token already issued, so keep the JWT expiry short in the
+  dashboard.
+- **`jwt.strategy.ts` reads no database at all.** A token with no
+  `app_user_id` is rejected outright — either it predates the migration or the
+  account was never linked to `public.users`, and letting it through would mean
+  a signed-in user with no permissions and no explanation.
+- **`GET /auth/me` is the one place that reads the row.** Roles come from the
+  token; the name, username, e-mail, `mustSetPassword` and the department
+  *names* do not exist as claims, so it fetches them.
+- **"Which users have role X?" is no longer a join.** Notification fan-out, the
+  approver list and the last-admin guard go through
+  `SupabaseAdminService.findUserIdsByRole`, which pages `listUsers` and filters
+  on `app_metadata` (memoized ~30s). Authorization never reads that cache.
 - Role-based access control (RBAC); department-based user organization.
 - `users.password` is retained but no longer read (see the Stage B runbook); `bcrypt` survives only for `prisma/seed.ts`.
-- **Roles are `public.roles` + `_roleTouser`, and nothing else.** The `permission` table is unwired. Change roles with `POST/PATCH /users` or `select public.set_user_roles('<username>', array[...])` — the latter carries the same last-admin guard as `users.service.ts`. Editing `auth.users.app_metadata` in the dashboard does nothing: no code reads it.
+- **`prisma/seed.ts` cannot grant a role any more.** It writes the row; the
+  papel comes from `pnpm users:set-roles admin admin --setores=dept-cozinha`,
+  which needs the service role key. Seeding then provisioning then setting
+  roles is the full local-dev path.
+- **Roles live in `app_metadata` and nowhere else.** The `roles`, `permissions`
+  and their join tables are gone, along with the `custom_access_token_hook` and
+  its `set_user_roles()` helper. Change roles with `POST/PATCH /users`, or
+  `pnpm users:set-roles <username> <papel...>` when the UI is unreachable — that
+  script carries the same last-admin guard as `users.service.ts`. There is no FK
+  behind a role name any more, so `@IsIn(ROLES)` on the DTOs and the check in
+  that script are the only things standing between a typo and a token that
+  silently matches no `@Roles`.
 - **Row level security is on for every table with zero policies.** The anon key ships in the web bundle, so without it PostgREST would be a public read API over the whole schema. Prisma is unaffected because it connects as the tables' owner — never `FORCE ROW LEVEL SECURITY`, and never point `DATABASE_URL` at a non-owner role. `pnpm db:verify-rls` checks both, and runs in CI.
 
 ### Key Patterns
