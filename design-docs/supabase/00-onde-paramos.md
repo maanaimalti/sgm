@@ -196,6 +196,11 @@ Falta:
 
 ### 2.4 Identidade no frontend: `GET /auth/me`, não Custom Access Token Hook
 
+> **Revisitada em 22/08/2026 — leia a §2.9 junto com esta.** O hook voltou, mas
+> com outra forma e outro propósito: as claims **não** são a fonte da
+> identidade, e nada nesta seção mudou. O `GET /auth/me` continua sendo como o
+> browser sabe quem é o usuário, e o `validate()` continua lendo o banco.
+
 **Decisão revista.** A versão anterior desta seção especificava uma função
 PL/pgSQL injetando `app_user_id`, `roles` e `departments` nas claims do token.
 Foi descartada.
@@ -283,6 +288,12 @@ não seja dono. `pnpm --filter @sgm/api db:verify-rls` checa os dois, e roda no 
 
 Sem o hook da §2.4, `supabase_auth_admin` **não precisa de acesso nenhum** ao
 schema `public`. Dar a ele políticas de `select` furaria o deny-by-default à toa.
+
+> Com o hook da §2.9 isso **continua valendo**. A função é `SECURITY DEFINER`,
+> então o corpo dela roda como dono e o `supabase_auth_admin` recebe só `usage`
+> no schema e `execute` naquela função — nenhum grant de tabela, nenhuma
+> política nova. Foi exatamente para não furar o deny-by-default que o exemplo
+> `SECURITY INVOKER` da documentação do Supabase não foi seguido.
 
 No dashboard: **"Allow new users to sign up" OFF** (crítico), Confirm email OFF,
 tamanho mínimo de senha igual ao de `login-schema.ts`, Site URL do domínio Vercel,
@@ -395,6 +406,63 @@ gravado. Menu de **todo mundo** em branco → `/auth/me` dando 429, o
 `NextResponse` com os cookies. Listas vazias em tudo sem erro → `FORCE ROW LEVEL
 SECURITY` ligado.
 
+### 2.9 Custom Access Token Hook — RBAC visível para o Postgres
+
+Adicionado depois da §2.4, e **sem contradizê-la**. O que mudou não foi a
+decisão sobre identidade, foi a pergunta: o `GET /auth/me` resolve como o
+*browser* sabe quem é o usuário; ele não resolve como o *Postgres* sabe. Uma
+política de RLS roda dentro do banco e não tem como alcançar o `request.user`
+da API. Sem claim, a Etapa D não consegue nada além de subselect, e não existe
+jeito de mexer em papel pelo dashboard.
+
+`prisma/migrations/20260822120000_custom_access_token_hook/` cria três funções:
+
+| Função | Para quê |
+|---|---|
+| `custom_access_token_hook(event jsonb)` | O hook. Injeta `app_roles` e `app_user_id` nas claims |
+| `set_user_roles(username, text[])` | Troca os papéis pelo SQL Editor, com a mesma trava de último admin do `users.service.ts` |
+| `user_roles_overview()` | Lista legível de quem tem o quê |
+
+**As claims não são autoritativas, e isso é o desenho inteiro.** O
+`validate()` continua lendo `roles` e `department` do banco a cada requisição,
+então:
+
+- trocar papel vale **na hora**, não no próximo refresh — é o que a §2.4 não
+  queria perder, e não perdeu;
+- se o hook quebrar, o pior que acontece é RLS sem claim. O menu, o `@Roles` e
+  o `/auth/me` seguem iguais.
+
+Por isso a função termina em `exception when others then return event`. Um hook
+Postgres tem **dois segundos e nenhuma repetição**: se ele levanta, o Supabase
+não emite token nenhum e *ninguém entra*. Falhar aberto devolve um token sem as
+claims extras, o que aqui não custa autorização. **Se algum dia o `validate()`
+passar a confiar nas claims, esse `exception` vira escalação de privilégio e
+tem que sair junto.**
+
+Duas armadilhas que custaram teste para descobrir:
+
+- **Os roles do Supabase não existem no CI.** O workflow sobe um
+  `postgres:16-alpine` cru, onde `supabase_auth_admin`, `anon` e
+  `authenticated` não existem, e um `GRANT` solto aborta com SQLSTATE 42704 —
+  que reprova o build e, em produção, deixa a migration com `finished_at` nulo
+  travando todo deploy seguinte. Todo statement que cita esses roles está
+  dentro de um `DO $$ ... IF EXISTS (SELECT 1 FROM pg_roles ...)`.
+- **`CREATE FUNCTION` dá `EXECUTE` para `PUBLIC` por padrão.** Numa função
+  `SECURITY DEFINER` isso é a anon key podendo rodar código como dono. O
+  `REVOKE` não é higiene, é a trava.
+
+**Nada no `apps/api` nem no `apps/web` mudou.** `jwt.strategy.ts`,
+`roles.guard.ts` e os 31 handlers com `@Roles` ficaram intocados.
+
+Ligar: Dashboard → Authentication → Hooks → *Customize Access Token (JWT)
+Claims* → `public.custom_access_token_hook`. **A migration é inerte enquanto o
+hook estiver desligado**, então ela pode subir antes — e desligar no dashboard
+é a reversão inteira, sem deploy.
+
+Vai depois da Etapa B estar de pé e testada, nunca junto: a Etapa B já tem
+"primeiro login bem-sucedido" como ponto de não retorno, e um hook ruim é
+exatamente "ninguém consegue logar".
+
 ---
 
 ## 3. Etapa D — Realtime
@@ -423,6 +491,11 @@ create policy "own_notifications" on public.notification
 
 `"to"` precisa de aspas — `TO` é palavra reservada. A tabela é
 `public.notification`, singular.
+
+> Com o hook da §2.9 ligado o subselect vira opcional: `app_user_id` já carrega
+> o ULID, então dá para comparar com `auth.jwt() ->> 'app_user_id'` direto. O
+> subselect acima continua correto e não depende de claim nenhuma — prefira ele
+> se a política precisar valer também com o hook desligado.
 
 Manter o polling como fallback atrás de `NEXT_PUBLIC_REALTIME_ENABLED`, só mais
 lento (10 min em vez de 2). Reversão vira uma env var.
@@ -529,8 +602,11 @@ pnpm --filter @sgm/api users:set-emails emails.csv --dry-run
 # criar as contas no Supabase Auth (idempotente, tem --dry-run)
 pnpm --filter @sgm/api auth:provision --dry-run
 
-# conferir o deny-by-default do RLS (roda no CI também)
+# conferir o deny-by-default do RLS, views soltas e o EXECUTE do hook (CI também)
 pnpm --filter @sgm/api db:verify-rls
+
+# exercitar o custom access token hook contra SQL de verdade (CI também)
+pnpm --filter @sgm/api db:verify-auth-hook
 
 # o que o CI roda
 pnpm install --frozen-lockfile && pnpm typecheck && pnpm lint:ci \

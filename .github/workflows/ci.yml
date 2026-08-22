@@ -58,6 +58,11 @@ jobs:
       # readable by anyone who opens the devtools.
       - run: pnpm --filter @sgm/api db:verify-rls
 
+      # Exercises the custom access token hook against real SQL. The roles it
+      # grants to exist only on Supabase, so this also proves the migration's
+      # pg_roles guard works — without it the deploy above would have aborted.
+      - run: pnpm --filter @sgm/api db:verify-auth-hook
+
       - run: pnpm typecheck
       - run: pnpm lint:ci
       - run: pnpm test
