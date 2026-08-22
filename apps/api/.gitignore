@@ -45,6 +45,11 @@ lerna-debug.log*
 .env.*
 !.env.example
 
+# Input for users:set-emails. Holds real personal addresses of staff, and the
+# script resolves it relative to this package, so it lands here by default.
+emails.csv
+emails*.csv
+
 # Prisma client generated from the frozen MySQL schema (Stage A migration only)
 /prisma/generated/
 
