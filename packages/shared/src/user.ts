@@ -10,4 +10,6 @@ export interface UserListItem {
     id: string;
     name: string;
   }[];
+  /** Invited but has not chosen a password yet — drives the "convite pendente" badge. */
+  mustSetPassword: boolean;
 }

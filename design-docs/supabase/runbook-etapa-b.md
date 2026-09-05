@@ -163,12 +163,108 @@ desenhada com coluna de ligação em vez de reescrever as PKs.
 
 - [ ] Trocar os 6 e-mails provisórios por reais, pela tela `/usuarios`.
       Achar quem falta: `WHERE email LIKE '%@sgm.icmalagoas.org.br'`.
+      **Depois de trocar, usar "Reenviar convite"** em cada um, para que a
+      pessoa defina a própria senha. Enquanto o endereço for provisório o
+      botão fica desabilitado — não existe caixa postal do outro lado.
 - [ ] Em 14 dias: remover `departmentId` de `allowedHeaders` no `main.ts`.
 - [ ] Em 90 dias: `DROP COLUMN users.password` e `users.password_changed_at`;
       tirar `JWT_SECRET` do EasyPanel; avaliar remover `bcrypt` (ainda usado
       pelo `prisma/seed.ts`).
 - [ ] Retirar a instância MySQL de produção depois de 07/09/2026.
-- [ ] Abrir o PR de follow-up com o setup de teste do `apps/web`.
+- [ ] Abrir o PR de follow-up com o setup de teste do `apps/web`. O
+      `decideRedirect` é a função mais arriscada desse lado: se ela errar,
+      todo link de convite morre antes de ser resgatado.
+
+## Convites por e-mail (só depois da virada)
+
+Nada aqui é necessário para a virada dar certo — os 7 usuários migrados
+continuam com senha própria e `must_set_password = false`. Isto é o portão da
+funcionalidade de convite, que entra num deploy separado.
+
+- [ ] **Portão 5 — SMTP próprio.** Authentication → Emails → SMTP Settings.
+      Testar com um convite para um endereço externo de verdade.
+      *Se faltar:* o Supabase se recusa a entregar para qualquer endereço fora
+      da equipe da organização, responde "Email address not authorized", e o
+      convite some sem erro visível para o admin.
+- [ ] **Portão 6 — templates.** Authentication → Emails → Templates, em
+      **Invite user** e **Reset password**, trocar o link por:
+
+      {{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=invite&next=/definir-senha
+
+      (`type=recovery` no template de redefinição.)
+      *Se ficar no `{{ .ConfirmationURL }}` padrão:* um convite gerado pelo
+      servidor não pode usar PKCE, então o link volta com os tokens no
+      fragmento da URL. O middleware nunca enxerga um fragmento, e o
+      `createBrowserClient` é fixado no fluxo PKCE e recusa a sessão com
+      "Not a valid PKCE flow url" — a pessoa vê uma tela em branco.
+- [ ] **Portão 7 — Site URL.** Authentication → URL Configuration → Site URL =
+      o domínio de produção do Vercel, **sem barra no final**. O template acima
+      depende dele: com barra sobrando o link vira `//auth/confirm`.
+- [ ] Smoke test: criar usuário em `/usuarios/novo` (não existe mais campo de
+      senha) → o e-mail chega → clicar → `/definir-senha` → definir → **a
+      sessão cai** (o Supabase revoga todas as sessões quando a senha é
+      trocada pela API admin) → entrar com a senha nova.
+- [ ] Smoke test: "Reenviar convite" em alguém que ainda não aceitou (chega um
+      convite) e em alguém que já aceitou (chega um link de redefinição).
+- [ ] Sem SMTP, o caminho de emergência continua sendo "Redefinir senha" na
+      tela `/usuarios`: o admin digita uma senha, entrega em mãos, e a pessoa
+      é obrigada a trocar por uma própria no primeiro acesso.
+
+## Autorização no token (depois dos convites)
+
+Move papéis e setores de `public.roles` / `_roleTouser` / `_departmentTouser`
+para `auth.users.app_metadata`. É o que destranca RLS de verdade e o Realtime
+da Etapa D.
+
+**Dois deploys, nesta ordem.** Não junte: o primeiro é inócuo e o segundo é o
+que muda o comportamento, e é bom poder olhar o `app_metadata` gravado antes de
+passar a depender dele.
+
+**Deploy 1 — escrever nos dois lugares.** Só API. `create` e `update` passam a
+gravar `app_metadata` além das tabelas. Nada lê ainda, então nada muda.
+
+- [ ] Deploy da API.
+- [ ] `SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... pnpm --filter @sgm/api auth:sync-roles --dry-run`
+- [ ] O mesmo sem `--dry-run`. Precisa sair com 0: se sobrar alguém sem
+      `supabase_user_id`, rode `auth:provision` antes.
+- [ ] Conferir no SQL Editor:
+      `select email, raw_app_meta_data from auth.users order by email;`
+      Todo mundo com `app_user_id`, `roles` e `department_ids`.
+- *Reversão:* voltar o deploy. O `app_metadata` fica escrito e ninguém lê.
+
+**Deploy 2 — ler do token e apagar as tabelas.**
+
+- [ ] Dashboard → Authentication → Sessions → **Access token (JWT) expiry para
+      900s**. Revogar sessão mata o refresh, mas não invalida um access token
+      já emitido: esse é o tamanho da janela em que um papel removido ainda
+      vale. O Supabase não recomenda abaixo de 300s.
+- [ ] **Avisar que todo mundo vai precisar entrar de novo, uma vez.** Os tokens
+      emitidos antes do `auth:sync-roles` não têm as claims, e a partir deste
+      deploy eles passam a dar 401 — não existe mais consulta ao banco para
+      cair de volta. Com sete pessoas isso é um recado no grupo; se um dia
+      forem setenta, vale reintroduzir o fallback temporário no
+      `jwt.strategy` e separar em mais um deploy.
+- [ ] Deploy da API. A migration `20260823140000_drop_role_tables` derruba
+      `roles`, `permissions` e as três tabelas de junção junto.
+- [ ] Dashboard → Authentication → Hooks → **desligar** o *Customize Access
+      Token (JWT) Claims*. Faça **antes** de aplicar a migration se puder: se a
+      função sumir enquanto o hook ainda aponta para ela, o GoTrue falha ao
+      emitir token e ninguém entra. (A migration `20260823130000` derruba a
+      função.)
+- [ ] Smoke test: entrar; conferir que o menu aparece com os papéis certos;
+      trocar o papel de alguém em `/usuarios` e confirmar que a sessão dessa
+      pessoa cai; criar um pedido e ver a notificação chegar em quem aprova
+      (é o fan-out que deixou de ser um JOIN).
+- *Reversão:* voltar o deploy e religar o hook. Recriar as tabelas é fácil;
+  repovoá-las não. Depois deste passo o `app_metadata` é a **única** cópia de
+  quem é o quê — o backup do dia é o plano B, não a migration.
+
+Depois disso:
+
+- [ ] Tirar `prisma/migrate-mysql-to-postgres.ts` junto com o MySQL.
+- [ ] Políticas de RLS de verdade, agora que dá: `auth.jwt() -> 'app_metadata'`
+      carrega `roles` e `department_ids`. Ficou fora deste trabalho de
+      propósito — nada lê pelo PostgREST ainda, e o Prisma conecta como dono.
 
 ## Nunca
 
@@ -185,6 +281,14 @@ desenhada com coluna de ligação em vez de reescrever as PKs.
 - **Nunca** criar usuário direto no banco. Ele nasce sem conta no Supabase Auth
   e não consegue entrar. Use `POST /users` (a tela `/usuarios`) ou o
   `auth:provision`.
+- **Nunca** apagar as tabelas de papéis antes de o `auth:sync-roles` ter
+  rodado e de os tokens antigos terem expirado. Depois do DROP, o
+  `app_metadata` é a única cópia — não há de onde recuperar sem backup.
+- **Nunca** editar `app_metadata` pelo dashboard achando que é cosmético: é de
+  lá que a autorização é lida. Use `/usuarios` ou `pnpm users:set-roles`.
+- **Nunca** convidar um endereço `@sgm.icmalagoas.org.br`. Não existe caixa
+  postal atrás dele: o e-mail volta e o rate limit de envio do projeto é
+  queimado à toa. A API recusa, e o botão na tela fica desabilitado.
 - **Nunca** rodar `pnpm prisma:seed` contra a produção — ele faz upsert de
   `username: "admin"` e **reseta a senha do admin real para `admin123`**.
 - **Nunca** rodar `prisma migrate reset` ou `prisma db push --force-reset`

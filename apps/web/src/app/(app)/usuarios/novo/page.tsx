@@ -1,7 +1,7 @@
 "use client";
 
 import { ROLES, type Role } from "@sgm/shared";
-import { ArrowLeft, Check, LoaderCircleIcon } from "lucide-react";
+import { ArrowLeft, Check, Info, LoaderCircleIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 import { FilterChip } from "@/components/ui-ext/filter-chip";
@@ -41,7 +41,7 @@ const NewUserPage = () => {
       <PageHeader
         crumbs={["Administração", "Usuários", "Novo usuário"]}
         title="Novo usuário"
-        subtitle="A conta é criada no sistema de login e aqui ao mesmo tempo."
+        subtitle="A pessoa recebe um e-mail para definir a própria senha."
         actions={
           <Button size="sm" variant="ghost" onClick={() => router.back()}>
             <ArrowLeft size={14} />
@@ -58,7 +58,7 @@ const NewUserPage = () => {
                 <FormSection
                   index={1}
                   title="Identificação"
-                  desc="O e-mail é com o que essa pessoa entra no sistema."
+                  desc="O convite vai para esse endereço, e é com ele que a pessoa entra."
                 >
                   <div className="grid gap-4">
                     <FormField
@@ -111,31 +111,6 @@ const NewUserPage = () => {
 
                 <FormSection
                   index={2}
-                  title="Acesso"
-                  desc="Senha inicial. Entregue em mãos — não existe e-mail de boas-vindas."
-                >
-                  <FormField
-                    control={form.control}
-                    name="password"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Senha inicial</FormLabel>
-                        <FormControl>
-                          <Input
-                            type="text"
-                            autoComplete="off"
-                            placeholder="Mínimo de 6 caracteres"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </FormSection>
-
-                <FormSection
-                  index={3}
                   title="Permissões"
                   desc="O que essa pessoa enxerga e pode fazer."
                 >
@@ -203,6 +178,14 @@ const NewUserPage = () => {
                     />
                   </div>
                 </FormSection>
+                <div className="flex items-start gap-2.5 px-3.5 py-3 mb-7 bg-soft rounded-2 text-[12.5px] text-muted leading-[1.5]">
+                  <Info size={14} className="shrink-0 mt-0.5" />
+                  <span>
+                    Nenhuma senha é definida aqui. Assim que você criar a conta,
+                    o sistema envia um convite por e-mail e a pessoa escolhe a
+                    própria senha.
+                  </span>
+                </div>
               </div>
 
               <div className="px-7 py-4 border-t border-line bg-surface flex justify-end gap-2">

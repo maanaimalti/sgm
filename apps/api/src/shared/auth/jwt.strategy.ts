@@ -3,7 +3,6 @@ import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
 import { passportJwtSecret } from "jwks-rsa";
 import { ExtractJwt, Strategy } from "passport-jwt";
-import { PrismaService } from "../db/prisma.service";
 
 /** Supabase mints this audience for every signed-in end user. */
 const SUPABASE_AUDIENCE = "authenticated";
@@ -18,12 +17,22 @@ export function supabaseIssuer(url: string): string {
   return `${url.trim().replace(/\/+$/, "")}/auth/v1`;
 }
 
+/**
+ * Only the parts this app reads. `app_metadata` is absent on tokens minted
+ * before the authorization migration — see the fallback in `validate`.
+ */
+interface JwtPayload {
+  sub: string;
+  app_metadata?: {
+    app_user_id?: string;
+    roles?: string[];
+    department_ids?: string[];
+  };
+}
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(
-    private readonly prismaService: PrismaService,
-    config: ConfigService,
-  ) {
+  constructor(config: ConfigService) {
     const url = config.get<string>("SUPABASE_URL");
     if (!url) {
       throw new Error("SUPABASE_URL environment variable is required");
@@ -52,33 +61,36 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   /**
-   * `sub` is the Supabase UUID; everything downstream — @Roles, @GetUserId,
-   * @GetDepartmentId — speaks in ULIDs, so the link column is what bridges
-   * them. The claims in the token are never trusted for authorization: roles
-   * and departments are read here, per request, straight from the database.
+   * Authorization comes off the token, and nowhere else.
+   *
+   * `app_metadata` is written only by the service role — the API, through
+   * `UsersService` — so the browser cannot forge it, and Supabase puts it in
+   * every access token it mints. That is what lets RLS policies and Realtime
+   * authorize the same way this does; they run inside Postgres and can never
+   * reach `request.user`.
+   *
+   * There is no database read here at all any more. A token with no
+   * `app_user_id` is either older than the migration or belongs to an account
+   * that was never linked to `public.users`; both are rejected, which turns a
+   * missed `auth:sync-roles` into a loud failure at sign-in rather than a user
+   * who is quietly allowed in with no permissions.
+   *
+   * The cost is that a role change only lands on the next token. `update()`
+   * revokes the user's sessions so the refresh path cannot extend the old one,
+   * which bounds the gap at one access-token lifetime — keep that expiry short
+   * in the dashboard.
    */
-  async validate(payload: { sub: string }) {
-    const user = await this.prismaService.user.findUnique({
-      where: { supabaseUserId: payload.sub },
-      select: {
-        id: true,
-        name: true,
-        username: true,
-        email: true,
-        roles: { select: { name: true } },
-        department: { select: { id: true, name: true } },
-      },
-    });
-    if (!user) throw new UnauthorizedException();
+  validate(payload: JwtPayload) {
+    const metadata = payload.app_metadata;
+
+    if (!metadata?.app_user_id) {
+      throw new UnauthorizedException();
+    }
 
     return {
-      id: user.id,
-      name: user.name,
-      username: user.username,
-      email: user.email,
-      roles: user.roles.map((role) => role.name),
-      departments: user.department,
-      departmentIds: user.department.map((department) => department.id),
+      id: metadata.app_user_id,
+      roles: metadata.roles ?? [],
+      departmentIds: metadata.department_ids ?? [],
     };
   }
 }

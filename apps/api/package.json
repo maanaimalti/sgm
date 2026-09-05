@@ -26,8 +26,9 @@
     "prisma:seed": "ts-node --transpile-only prisma/seed.ts",
     "users:set-emails": "ts-node --transpile-only prisma/scripts/set-user-emails.ts",
     "db:verify-rls": "ts-node --transpile-only prisma/scripts/verify-rls.ts",
-    "db:verify-auth-hook": "ts-node --transpile-only prisma/scripts/verify-auth-hook.ts",
     "auth:provision": "ts-node --transpile-only prisma/scripts/provision-supabase-auth.ts",
+    "auth:sync-roles": "ts-node --transpile-only prisma/scripts/sync-roles-to-app-metadata.ts",
+    "users:set-roles": "ts-node --transpile-only prisma/scripts/set-user-roles.ts",
     "postinstall": "prisma generate"
   },
   "prisma": {

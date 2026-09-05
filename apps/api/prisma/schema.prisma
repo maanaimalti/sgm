@@ -106,40 +106,18 @@ model user {
   email        String?        @unique
   password     String?
   passwordChangedAt DateTime? @map("password_changed_at")
+  mustSetPassword Boolean     @default(false) @map("must_set_password")
   supabaseUserId String?      @unique @map("supabase_user_id") @db.Uuid
-  roles          role[]
   orders         orders[]
   approvedOrders orders[]       @relation("approvedOrders")
   rejectedOrders orders[]       @relation("rejectedOrders")
   orderReports   orderReports[]
   notification   notification[]
-  department     department[]
   reports        report[]
   orderEvents    orderEvent[]
   pushSubscriptions pushSubscription[]
 
   @@map("users")
-}
-
-model role {
-  id          String       @id
-  name        String       @unique
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  users       user[]
-  permissions permission[]
-
-  @@map("roles")
-}
-
-model permission {
-  id        String   @id
-  name      String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  roles     role[]
-
-  @@map("permissions")
 }
 
 model orders {
@@ -257,7 +235,6 @@ model department {
   description String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
-  user        user[]
   product     product[]
 
   @@map("departments")

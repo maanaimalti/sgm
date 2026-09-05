@@ -1,6 +1,8 @@
 import { ForbiddenException, Injectable, Logger } from "@nestjs/common";
 import { PDFDocument, rgb, StandardFonts } from "pdf-lib";
 import { PrismaService } from "src/shared/db/prisma.service";
+// biome-ignore lint/style/useImportType: Nest DI requires the runtime class.
+import { SupabaseAdminService } from "src/shared/supabase/supabase-admin.service";
 import { UploadFileService } from "src/shared/upload/upload-file.service";
 
 @Injectable()
@@ -10,6 +12,7 @@ export class ProductReportService {
   constructor(
     private readonly prismaService: PrismaService,
     private readonly uploadService: UploadFileService,
+    private readonly supabase: SupabaseAdminService,
   ) {}
 
   async generateProductReport(
@@ -42,31 +45,29 @@ export class ProductReportService {
     return fileName;
   }
 
+  /**
+   * Second line of defence. The controller already checks the requested
+   * department against the caller's token, but a report is generated later, by
+   * a background job, and can be retried — so the check is repeated here where
+   * the work actually happens.
+   *
+   * Department assignments live on the auth account now, which is why this
+   * asks Supabase rather than joining. The answer is memoized, so the retry
+   * path does not pay for it every time.
+   */
   private async validateUserDepartmentAccess(
     userId: string,
     departmentId?: string,
   ) {
-    const user = await this.prismaService.user.findUnique({
-      where: { id: userId },
-      include: {
-        department: {
-          select: { id: true, name: true },
-        },
-      },
-    });
+    if (!departmentId) return;
 
-    if (!user) {
+    const metadata = await this.supabase.findAppMetadata(userId);
+    if (!metadata) {
       throw new ForbiddenException("Usuário não encontrado");
     }
 
-    // Se um departmentId específico foi solicitado, verificar se o usuário pertence a ele
-    if (departmentId) {
-      const userBelongsToDepartment = user.department.some(
-        (dept) => dept.id === departmentId,
-      );
-      if (!userBelongsToDepartment) {
-        throw new ForbiddenException("Você não tem acesso a este departamento");
-      }
+    if (!metadata.department_ids?.includes(departmentId)) {
+      throw new ForbiddenException("Você não tem acesso a este departamento");
     }
   }
 

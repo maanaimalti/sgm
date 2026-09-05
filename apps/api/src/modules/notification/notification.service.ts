@@ -8,6 +8,8 @@ import { PrismaService } from "src/shared/db/prisma.service";
 // biome-ignore lint/style/useImportType: <explanation>
 import { HelpersService } from "src/shared/helpers/helpers.service";
 // biome-ignore lint/style/useImportType: Nest DI requires the runtime class.
+import { SupabaseAdminService } from "src/shared/supabase/supabase-admin.service";
+// biome-ignore lint/style/useImportType: Nest DI requires the runtime class.
 import { PushService } from "../push/push.service";
 import {
   CreateNotificationDto,
@@ -40,6 +42,7 @@ export class NotificationService {
     private readonly prismaService: PrismaService,
     private readonly helpersService: HelpersService,
     private readonly pushService: PushService,
+    private readonly supabase: SupabaseAdminService,
   ) {}
 
   async create(createNotificationDto: CreateNotificationDto) {
@@ -77,15 +80,14 @@ export class NotificationService {
     text,
     metadata,
   }: BroadcastInput) {
-    const recipients = await this.prismaService.user.findMany({
-      where: {
-        roles: { some: { name: { in: toRoles } } },
-        ...(departmentId ? { department: { some: { id: departmentId } } } : {}),
-      },
-      select: { id: true },
-    });
+    // Roles and department assignments live on the auth account now, so "who
+    // holds this role" is no longer a join — see SupabaseAdminService.
+    const recipients = await this.supabase.findUserIdsByRole(
+      toRoles,
+      departmentId,
+    );
     await Promise.all(
-      recipients.map((r) => this.create({ to: r.id, type, text, metadata })),
+      recipients.map((to) => this.create({ to, type, text, metadata })),
     );
   }
 

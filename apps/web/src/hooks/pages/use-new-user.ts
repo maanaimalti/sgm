@@ -34,10 +34,10 @@ export const useNewUser = () => {
         variant: "destructive",
       });
     },
-    onSuccess: () => {
+    onSuccess: (_result, submitted) => {
       toast({
-        title: "Usuário criado com sucesso",
-        description: "Entregue a senha inicial para essa pessoa.",
+        title: "Convite enviado",
+        description: `${submitted.name} vai receber um e-mail para definir a senha.`,
         duration: 5000,
       });
       queryClient.invalidateQueries({ queryKey: ["users"] });
@@ -51,7 +51,6 @@ export const useNewUser = () => {
       name: "",
       username: "",
       email: "",
-      password: "",
       roles: [],
       departmentIds: [],
     },

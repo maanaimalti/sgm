@@ -3,8 +3,18 @@ import { type NextRequest, NextResponse } from "next/server";
 
 export const LOGIN_PATH = "/";
 export const HOME_PATH = "/pedidos";
+export const SET_PASSWORD_PATH = "/definir-senha";
+export const CONFIRM_PATH = "/auth/confirm";
 
 export type RedirectTarget = typeof LOGIN_PATH | typeof HOME_PATH | null;
+
+/**
+ * Routes that must be reachable with no session, because they are what creates
+ * one. The matcher in src/middleware.ts excludes `api` but not `auth`, so
+ * /auth/confirm does run through here — without this entry every invite and
+ * recovery link is redirected to "/" and the token is never redeemed.
+ */
+const PUBLIC_PATHS = new Set<string>([CONFIRM_PATH]);
 
 /**
  * The routing half of the middleware, pulled out so it can be reasoned about
@@ -14,6 +24,16 @@ export function decideRedirect(
   pathname: string,
   hasSession: boolean,
 ): RedirectTarget {
+  if (PUBLIC_PATHS.has(pathname)) {
+    return null;
+  }
+  // Written out even though it matches the rule below, so that folding it into
+  // PUBLIC_PATHS reads as the behaviour change it would be: /definir-senha
+  // needs a real session — /auth/confirm has just created one — and letting it
+  // through without one would show the form to anyone who guessed the URL.
+  if (pathname === SET_PASSWORD_PATH) {
+    return hasSession ? null : LOGIN_PATH;
+  }
   if (pathname === LOGIN_PATH) {
     return hasSession ? HOME_PATH : null;
   }

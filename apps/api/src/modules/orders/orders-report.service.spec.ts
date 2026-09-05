@@ -32,6 +32,7 @@ function build() {
     { getDownloadUrl: async () => "https://signed" } as never,
     { create: jest.fn() } as never,
     eventEmitter as never,
+    { findUserIdsByRole: jest.fn(async () => []) } as never,
   );
   return { service, prisma, eventEmitter };
 }
